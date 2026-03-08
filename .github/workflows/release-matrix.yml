@@ -1,0 +1,91 @@
+name: release-matrix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            formats: dir,deb,appimage,flatpak
+            app_id: dev.forge.todo.linux
+            product_name: Forge Todo Linux
+          - os: macos-latest
+            formats: dir,app,dmg
+            app_id: dev.forge.todo.macos
+            product_name: Forge Todo macOS
+          - os: windows-latest
+            formats: dir,msi,nsis
+            app_id: dev.forge.todo.windows
+            product_name: Forge Todo Windows
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Python build tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . maturin nuitka pytest
+
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder xvfb fuse libfuse2 desktop-file-utils
+          curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o appimagetool
+          chmod +x appimagetool
+          sudo mv appimagetool /usr/local/bin/appimagetool
+
+      - name: Install Windows packaging tools
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          choco install -y nsis wixtoolset
+
+      - name: Build native extension
+        run: python -m maturin develop
+
+      - name: Validate repo
+        run: |
+          cargo check
+          python -m pytest -q tests/test_app.py tests/test_cli.py tests/test_config.py
+
+      - name: Prepare release fixture
+        shell: bash
+        run: |
+          python scripts/ci/prepare_release_fixture.py \
+            --source examples/forge_todo \
+            --dest .ci/forge_todo \
+            --formats "${{ matrix.formats }}" \
+            --app-id "${{ matrix.app_id }}" \
+            --product-name "${{ matrix.product_name }}"
+
+      - name: Build release fixture
+        shell: bash
+        run: |
+          python -m forge_cli.main build .ci/forge_todo --result-format json > build-result.json
+          cat build-result.json
+
+      - name: Smoke-test installers
+        run: python scripts/ci/smoke_installers.py --build-result build-result.json
+
+      - name: Upload build result
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-result-${{ runner.os }}
+          path: |
+            build-result.json
+            .ci/forge_todo/dist

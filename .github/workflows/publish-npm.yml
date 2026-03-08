@@ -1,0 +1,40 @@
+name: publish-npm
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        package-dir:
+          - packages/api
+          - packages/cli
+          - packages/create-forge-app
+          - packages/vite-plugin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish package
+        if: github.event_name == 'release'
+        working-directory: ${{ matrix.package-dir }}
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Pack package
+        if: github.event_name != 'release'
+        working-directory: ${{ matrix.package-dir }}
+        run: npm pack
