@@ -1,0 +1,39 @@
+[app]
+name = "{{PROJECT_NAME}}"
+version = "1.0.0"
+description = "A Forge desktop application with Vue"
+authors = ["{{AUTHOR}}"]
+
+[window]
+title = "{{PROJECT_NAME}}"
+width = {{WINDOW_WIDTH}}
+height = {{WINDOW_HEIGHT}}
+resizable = true
+fullscreen = false
+min_width = 400
+min_height = 300
+decorations = true
+always_on_top = false
+transparent = false
+
+[build]
+entry = "src/main.py"
+icon = "assets/icon.png"
+output_dir = "dist"
+single_binary = true
+
+[dev]
+frontend_dir = "src/frontend"
+hot_reload = true
+port = 5173
+
+[permissions]
+filesystem = true
+clipboard = true
+dialogs = true
+system_tray = false
+
+[tool.forge_template]
+name = "vue"
+schema_version = 1
+forge_version_range = ">=2.0.0,<3.0.0"

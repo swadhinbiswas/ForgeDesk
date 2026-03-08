@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PROJECT_NAME}}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ {{PROJECT_NAME}}</h1>
+            <p class="tagline">Built with Forge</p>
+        </header>
+
+        <main>
+            <section class="card">
+                <h2>Greeting</h2>
+                <div class="input-group">
+                    <input type="text" id="nameInput" placeholder="Enter your name" value="Developer">
+                    <button id="greetButton">Greet</button>
+                </div>
+                <p id="greetingResult" class="result"></p>
+            </section>
+
+            <section class="card">
+                <h2>System Info</h2>
+                <button id="systemInfoButton">Get Info</button>
+                <pre id="systemInfo" class="result"></pre>
+            </section>
+
+            <section class="card">
+                <h2>Calculator</h2>
+                <div class="input-group">
+                    <input type="number" id="numA" placeholder="A" value="5">
+                    <input type="number" id="numB" placeholder="B" value="3">
+                    <button id="addButton">Add</button>
+                </div>
+                <p id="calcResult" class="result"></p>
+            </section>
+        </main>
+
+        <footer>
+            <p>Forge Framework v1.0.0</p>
+        </footer>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
