@@ -1,0 +1,44 @@
+[package]
+name = "forge-core"
+version = "2.0.0"
+edition = "2021"
+description = "Native Rust core for Forge Framework - NoGIL-aware Python desktop/web engine"
+
+[lib]
+name = "forge_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+# PyO3 0.24+ with free-threaded (NoGIL) Python 3.14 support
+pyo3 = { version = "0.28", features = ["extension-module"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rmp-serde = "1.3"           # MessagePack for binary IPC (zero-copy bridge)
+tokio = { version = "1.0", features = ["full"] }
+crossbeam-channel = "0.5"   # Lock-free MPMC channels for NoGIL thread communication
+parking_lot = "0.12"        # Faster mutexes than std (important for free-threaded Python)
+
+# Desktop dependencies — tao 0.34 + wry 0.54 (latest compatible pair)
+# wry's default features include: os-webview, protocol, drag-drop, x11
+# - os-webview pulls in gtk, webkit2gtk on Linux
+# - x11 pulls in gdkx11, x11-dl, and tao/x11
+# So we do NOT need separate gtk/gdk/raw-window-handle deps for Linux.
+tao = "0.34"
+wry = { version = "0.54", features = ["devtools"] }
+global-hotkey = "0.7"
+single-instance = "0.3.3"
+auto-launch = "0.6.0"
+starship-battery = "0.10.3"
+keyring = "3.6.3"
+window-vibrancy = "0.7.1"
+
+# GTK for Linux window decoration support (same version tao uses internally).
+# Used to set a proper GtkHeaderBar so close/minimize/maximize buttons appear
+# in both CSD (client-side decoration) and SSD (server-side decoration) environments.
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+
+[features]
+default = []
+# Note: Free-threaded (NoGIL) Python 3.14+ support is detected automatically
+# by PyO3 at build time based on the Python interpreter. No Cargo feature needed.
