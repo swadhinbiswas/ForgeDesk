@@ -114,12 +114,21 @@ jobs:
 
       - name: Build native extension (Unix)
         if: runner.os != 'Windows'
-        run: $GITHUB_WORKSPACE/.venv/bin/python -m maturin develop
+        shell: bash
+        run: |
+          if ! "$GITHUB_WORKSPACE/.venv/bin/python" -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('maturin') else 1)"; then
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install maturin
+          fi
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m maturin develop
 
       - name: Build native extension (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('maturin') else 1)"
+          if ($LASTEXITCODE -ne 0) {
+            & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install maturin
+          }
           & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m maturin develop
 
       - name: Validate repo

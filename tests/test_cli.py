@@ -615,7 +615,7 @@ def test_build_generates_windows_msi_installer(tmp_path: Path, monkeypatch) -> N
             output_arg = next(str(arg) for arg in args if str(arg).startswith("--output-dir="))
             output_dir = Path(output_arg.split("=", 1)[1])
             (output_dir / "cli_test.bin").write_text("binary", encoding="utf-8")
-        elif args and args[0] == "wixl":
+        elif args and Path(str(args[0])).name == "wixl":
             output_path = Path(args[args.index("-o") + 1])
             output_path.write_text("msi", encoding="utf-8")
         return subprocess.CompletedProcess(args, 0, stdout="ok", stderr="")
