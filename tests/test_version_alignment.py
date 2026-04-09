@@ -31,7 +31,7 @@ def test_verify_alignment_reports_matching_versions(tmp_path: Path) -> None:
     (forge_cli_pkg / "__init__.py").write_text('__version__ = "2.0.0"\n', encoding="utf-8")
     api_pkg = workspace / "packages" / "api"
     api_pkg.mkdir(parents=True)
-    (api_pkg / "package.json").write_text(json.dumps({"name": "@forge/api", "version": "2.0.0"}), encoding="utf-8")
+    (api_pkg / "package.json").write_text(json.dumps({"name": "@forgedesk/api", "version": "2.0.0"}), encoding="utf-8")
 
     summary = verify_alignment(workspace)
 

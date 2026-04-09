@@ -23,7 +23,7 @@ def test_api_package_exposes_runtime_bindings() -> None:
     source = (ROOT / "packages" / "api" / "index.js").read_text(encoding="utf-8")
     typings = (ROOT / "packages" / "api" / "index.d.ts").read_text(encoding="utf-8")
 
-    assert package_json["name"] == "@forge/api"
+    assert package_json["name"] == "@forgedesk/api"
     assert package_json["exports"]["."]["default"] == "./index.js"
     assert "export function getForge()" in source
     assert "export const forge" in source
@@ -34,7 +34,7 @@ def test_cli_wrapper_bootstraps_python_runtime() -> None:
     package_json = _read_json(ROOT / "packages" / "cli" / "package.json")
     wrapper = (ROOT / "packages" / "cli" / "bin" / "forge.js").read_text(encoding="utf-8")
 
-    assert package_json["name"] == "@forge/cli"
+    assert package_json["name"] == "@forgedesk/cli"
     assert package_json["bin"]["forge"] == "./bin/forge.js"
     assert "forge_cli.main" in wrapper
     assert "pip install forge-framework" in wrapper
@@ -54,6 +54,6 @@ def test_vite_plugin_package_exports_plugin() -> None:
     package_json = _read_json(ROOT / "packages" / "vite-plugin" / "package.json")
     source = (ROOT / "packages" / "vite-plugin" / "index.js").read_text(encoding="utf-8")
 
-    assert package_json["name"] == "@forge/vite-plugin"
+    assert package_json["name"] == "@forgedesk/vite-plugin"
     assert "export function forgeVitePlugin" in source
     assert "transformIndexHtml" in source

@@ -198,8 +198,8 @@ def test_create_generates_frontend_workspace_files(tmp_path: Path, monkeypatch) 
     vite_config = (tmp_path / "workspace-app" / "vite.config.mjs").read_text(encoding="utf-8")
     forge_toml = (tmp_path / "workspace-app" / "forge.toml").read_text(encoding="utf-8")
 
-    assert package_json["devDependencies"]["@forge/vite-plugin"] == "^2.0.0"
-    assert package_json["dependencies"]["@forge/api"] == "^2.0.0"
+    assert package_json["devDependencies"]["@forgedesk/vite-plugin"] == "^2.0.0"
+    assert package_json["dependencies"]["@forgedesk/api"] == "^2.0.0"
     assert "forgeVitePlugin" in vite_config
     assert 'dev_server_command = "npm run dev"' in forge_toml
     assert 'dev_server_url = "http://127.0.0.1:5173"' in forge_toml
@@ -215,7 +215,7 @@ def test_templates_use_forge_api_package() -> None:
 
     for template_file in template_files:
         content = template_file.read_text(encoding="utf-8")
-        assert "@forge/api" in content
+        assert "@forgedesk/api" in content
         assert "window.__forge__" not in content
 
 

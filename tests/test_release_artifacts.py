@@ -134,7 +134,7 @@ def test_release_manifest_payload_uses_project_directory_for_alignment(tmp_path:
     packages_dir = workspace / "packages" / "api"
     packages_dir.mkdir(parents=True)
     (packages_dir / "package.json").write_text(
-        json.dumps({"name": "@forge/api", "version": "2.0.0"}, indent=2),
+        json.dumps({"name": "@forgedesk/api", "version": "2.0.0"}, indent=2),
         encoding="utf-8",
     )
 

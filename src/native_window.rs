@@ -580,7 +580,7 @@ impl NativeWindow {
                         if let Some(parent_label) = &descriptor.parent_label {
                             if let Some(parent_id) = labels_to_id.get(parent_label) {
                                 if let Some(parent_rt) = windows_by_id.get(parent_id) {
-                                    use tao::platform::windows::WindowBuilderExtWindows;
+                                    use tao::platform::windows::{WindowBuilderExtWindows, WindowExtWindows};
                                     child_builder =
                                         child_builder.with_owner_window(parent_rt.window.hwnd());
                                 }
