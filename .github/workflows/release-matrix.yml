@@ -91,11 +91,7 @@ jobs:
             python -m venv .venv
           }
           & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install --upgrade pip
-          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install -e .
-          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -c "import importlib.util,sys; req=['maturin','nuitka','pytest','pytest_cov']; sys.exit(0 if all(importlib.util.find_spec(n) for n in req) else 1)"
-          if ($LASTEXITCODE -ne 0) {
-            & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install maturin nuitka pytest pytest-cov
-          fi
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install -e . maturin nuitka pytest pytest-cov
 
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
