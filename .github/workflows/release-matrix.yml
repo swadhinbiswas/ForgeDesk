@@ -2,7 +2,7 @@ name: release-matrix
 
 on:
   push:
-    branches: [main, 'release/**']
+    branches: [main, master, 'release/**']
   pull_request:
   workflow_dispatch:
 
@@ -159,3 +159,19 @@ jobs:
           path: |
             build-result.json
             .ci/forge_todo/dist
+
+  publish:
+    needs: build-and-smoke
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download matrix artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: published-artifacts
+
+      - name: Upload aggregated release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle-${{ github.sha }}
+          path: published-artifacts
