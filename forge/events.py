@@ -68,6 +68,16 @@ class EventEmitter:
             self._listeners[event].append(callback)
         return callback
 
+    def add_listener(
+        self,
+        event: str,
+        callback: EventCallback,
+    ) -> EventCallback:
+        """
+        Alias for `on` when used without decorators.
+        """
+        return self.on(event, callback)  # type: ignore
+
     def on_async(
         self,
         event: str,

@@ -42,7 +42,7 @@
 </template>
 
 <script>
-import forge, { invoke } from '@forge/api'
+import forge, { invoke } from '@forgedesk/api'
 
 export default {
   name: 'App',

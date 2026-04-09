@@ -46,7 +46,8 @@ class WindowConfig:
     decorations: bool = True
     always_on_top: bool = False
     transparent: bool = False
-    vibrancy: str | None = None  # Add macOS/Windows native blur materials (e.g. 'mica', 'acrylic', 'sidebar', 'hud')
+    vibrancy: str | None = None  # macOS/Windows native blur materials (e.g. 'mica', 'acrylic', 'sidebar', 'hud')
+    remember_state: bool = True  # Persist window position/size/maximized across restarts
 
 
 @dataclass
@@ -145,15 +146,33 @@ class DevConfig:
 
 @dataclass
 class FileSystemPermissions:
-    """Strict File System scopes."""
+    """Strict File System scopes.
+
+    Paths support glob patterns (fnmatch) and environment variables:
+        - ``$APPDATA/myapp/**`` — matches platform-specific app data
+        - ``~/Documents/**``    — matches user documents
+        - ``./data/**``         — matches relative to project root
+
+    Deny patterns always override allow patterns.
+    """
     read: list[str] = field(default_factory=list)
     write: list[str] = field(default_factory=list)
+    deny: list[str] = field(default_factory=list)
 
 @dataclass
 class ShellPermissions:
-    """Strict Shell execution scopes."""
+    """Strict Shell execution scopes.
+
+    ``execute`` lists the exact command names that may be spawned.
+    ``deny_execute`` blocks specific commands even if globally allowed.
+    ``allow_urls`` restricts ``shell.open()`` to matching URL patterns.
+    ``deny_urls`` blocks specific URL patterns from being opened.
+    """
     execute: list[str] = field(default_factory=list)
+    deny_execute: list[str] = field(default_factory=list)
     sidecars: list[str] = field(default_factory=list)
+    allow_urls: list[str] = field(default_factory=list)
+    deny_urls: list[str] = field(default_factory=list)
 
 @dataclass
 class PermissionsConfig:
@@ -188,6 +207,8 @@ class SecurityConfig:
     expose_command_introspection: bool = True
     allowed_origins: list[str] = field(default_factory=list)
     window_scopes: dict[str, list[str]] = field(default_factory=dict)
+    strict_mode: bool = False
+    rate_limit: int = 0  # Max IPC calls per second, 0 = unlimited
 
 
 @dataclass
@@ -212,6 +233,7 @@ class UpdaterConfig:
     require_signature: bool = True
     staging_dir: str = ".forge-updater"
     install_dir: str | None = None
+    preflight_check: bool = True
 
 
 @dataclass
@@ -312,6 +334,7 @@ class ForgeConfig:
                 always_on_top=window_data.get("always_on_top", False),
                 transparent=window_data.get("transparent", False),
                 vibrancy=window_data.get("vibrancy", None),
+                remember_state=window_data.get("remember_state", True),
             )
 
         # Parse [build] section
@@ -376,6 +399,7 @@ class ForgeConfig:
                 fs_perm = FileSystemPermissions(
                     read=list(fs_val.get("read", [])),
                     write=list(fs_val.get("write", [])),
+                    deny=list(fs_val.get("deny", [])),
                 )
             else:
                 fs_perm = bool(fs_val)
@@ -384,7 +408,10 @@ class ForgeConfig:
             if isinstance(shell_val, dict):
                 shell_perm = ShellPermissions(
                     execute=list(shell_val.get("execute", [])),
+                    deny_execute=list(shell_val.get("deny_execute", [])),
                     sidecars=list(shell_val.get("sidecars", [])),
+                    allow_urls=list(shell_val.get("allow_urls", [])),
+                    deny_urls=list(shell_val.get("deny_urls", [])),
                 )
             else:
                 shell_perm = bool(shell_val)
@@ -421,6 +448,8 @@ class ForgeConfig:
                     str(key): list(value)
                     for key, value in security_data.get("window_scopes", {}).items()
                 },
+                strict_mode=bool(security_data.get("strict_mode", False)),
+                rate_limit=int(security_data.get("rate_limit", 0)),
             )
 
         if "plugins" in data:

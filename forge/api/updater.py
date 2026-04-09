@@ -403,6 +403,29 @@ class UpdaterAPI:
                 "check": check_result,
             }
 
+        # Preflight validation: channel match and downgrade protection
+        if self._config.preflight_check:
+            release_channel = check_result.get("channel", "stable")
+            if release_channel != self._config.channel:
+                return {
+                    "updated": False,
+                    "reason": "channel_mismatch",
+                    "expected_channel": self._config.channel,
+                    "release_channel": release_channel,
+                    "check": check_result,
+                }
+
+            latest = check_result.get("latest_version", "")
+            current = check_result.get("current_version", "")
+            if _version_key(latest) < _version_key(current) and not self._config.allow_downgrade:
+                return {
+                    "updated": False,
+                    "reason": "downgrade_blocked",
+                    "current_version": current,
+                    "latest_version": latest,
+                    "check": check_result,
+                }
+
         download_result = self.download(
             manifest_url=manifest_url,
             destination=destination,

@@ -1,12 +1,36 @@
-"""Forge plugin loading and lifecycle support."""
+"""Forge plugin loading, lifecycle, and capability enforcement.
+
+Plugin Manifest Contract:
+    Plugins declare their identity and requirements via a module-level
+    ``__forge_plugin__`` dict or ``manifest`` dict:
+
+    __forge_plugin__ = {
+        "name": "my-plugin",
+        "version": "1.0.0",
+        "capabilities": ["fs", "clipboard"],     # required capabilities
+        "forge_version": ">=0.1.0",              # minimum framework version
+        "depends": ["other-plugin"],              # plugin dependencies
+    }
+
+    def register(app):
+        # Called during plugin loading
+        ...
+
+    def on_ready(app):     # optional lifecycle hook
+        ...
+
+    def on_shutdown(app):  # optional lifecycle hook
+        ...
+"""
 
 from __future__ import annotations
 
 import importlib
 import importlib.util
 import logging
+import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -25,6 +49,9 @@ class PluginRecord:
     loaded: bool = False
     error: str | None = None
     manifest: dict[str, Any] | None = None
+    capabilities: list[str] = field(default_factory=list)
+    has_on_ready: bool = False
+    has_on_shutdown: bool = False
 
     def snapshot(self) -> dict[str, Any]:
         return {
@@ -35,17 +62,49 @@ class PluginRecord:
             "loaded": self.loaded,
             "error": self.error,
             "manifest": self.manifest or {},
+            "capabilities": self.capabilities,
+            "has_on_ready": self.has_on_ready,
+            "has_on_shutdown": self.has_on_shutdown,
         }
 
 
+def _version_key(version: str) -> tuple[int, ...]:
+    """Parse a semver string into a comparable tuple."""
+    parts = [int(p) for p in re.findall(r"\d+", version)]
+    return tuple(parts or [0])
+
+
+def _check_version_constraint(constraint: str, current: str) -> bool:
+    """Check if current version satisfies a simple constraint like '>=0.1.0'."""
+    constraint = constraint.strip()
+    if constraint.startswith(">="):
+        return _version_key(current) >= _version_key(constraint[2:])
+    if constraint.startswith(">"):
+        return _version_key(current) > _version_key(constraint[1:])
+    if constraint.startswith("<="):
+        return _version_key(current) <= _version_key(constraint[2:])
+    if constraint.startswith("<"):
+        return _version_key(current) < _version_key(constraint[1:])
+    if constraint.startswith("==") or constraint.startswith("="):
+        clean = constraint.lstrip("=")
+        return _version_key(current) == _version_key(clean)
+    # Bare version treated as exact match
+    return _version_key(current) >= _version_key(constraint)
+
+
 class PluginManager:
-    """Load Forge plugins from Python modules or file paths."""
+    """Load, validate, and manage Forge plugins with capability enforcement."""
+
+    # Current framework version for compatibility checks
+    FRAMEWORK_VERSION = "0.1.0"
 
     def __init__(self, app: Any, config: Any) -> None:
         self._app = app
         self._config = config
         self._records: list[PluginRecord] = []
         self._loaded_modules: list[ModuleType] = []
+        self._ready_called: bool = False
+        self._shutdown_called: bool = False
 
     @property
     def enabled(self) -> bool:
@@ -54,6 +113,8 @@ class PluginManager:
     def load_all(self) -> list[dict[str, Any]]:
         self._records.clear()
         self._loaded_modules.clear()
+        self._ready_called = False
+        self._shutdown_called = False
         if not self.enabled:
             return []
 
@@ -90,7 +151,44 @@ class PluginManager:
                     )
                 )
 
+        # Validate dependencies after all plugins are loaded
+        self._validate_dependencies()
+
         return self.list()
+
+    def on_ready(self) -> None:
+        """Call on_ready(app) lifecycle hook on all loaded plugins."""
+        if self._ready_called:
+            return
+        self._ready_called = True
+        for module in self._loaded_modules:
+            hook = getattr(module, "on_ready", None)
+            if callable(hook):
+                try:
+                    hook(self._app)
+                except Exception as exc:
+                    logger.error(
+                        "Plugin on_ready hook failed for %s: %s",
+                        getattr(module, "__name__", "unknown"),
+                        exc,
+                    )
+
+    def on_shutdown(self) -> None:
+        """Call on_shutdown(app) lifecycle hook on all loaded plugins."""
+        if self._shutdown_called:
+            return
+        self._shutdown_called = True
+        for module in reversed(self._loaded_modules):
+            hook = getattr(module, "on_shutdown", None)
+            if callable(hook):
+                try:
+                    hook(self._app)
+                except Exception as exc:
+                    logger.error(
+                        "Plugin on_shutdown hook failed for %s: %s",
+                        getattr(module, "__name__", "unknown"),
+                        exc,
+                    )
 
     def list(self) -> list[dict[str, Any]]:
         return [record.snapshot() for record in self._records]
@@ -104,6 +202,13 @@ class PluginManager:
             "failed": failed,
             "plugins": self.list(),
         }
+
+    def get_plugin(self, name: str) -> dict[str, Any] | None:
+        """Look up a plugin by name."""
+        for record in self._records:
+            if record.name == name and record.loaded:
+                return record.snapshot()
+        return None
 
     def _load_module_name(self, module_name: str) -> None:
         try:
@@ -151,6 +256,34 @@ class PluginManager:
 
         plugin_name = str(manifest.get("name") or module.__name__.rsplit(".", 1)[-1])
         version = manifest.get("version")
+
+        # ── Capability enforcement ──
+        required_capabilities = manifest.get("capabilities", [])
+        if isinstance(required_capabilities, (list, tuple)):
+            for cap in required_capabilities:
+                if not self._app.has_capability(str(cap)):
+                    raise PermissionError(
+                        f"Plugin {plugin_name!r} requires capability {cap!r} "
+                        f"which is not granted in the app configuration."
+                    )
+
+        # ── Version compatibility check ──
+        forge_version_constraint = manifest.get("forge_version")
+        if forge_version_constraint:
+            if not _check_version_constraint(str(forge_version_constraint), self.FRAMEWORK_VERSION):
+                raise RuntimeError(
+                    f"Plugin {plugin_name!r} requires forge {forge_version_constraint} "
+                    f"but current version is {self.FRAMEWORK_VERSION}"
+                )
+
+        # ── Check for namespace collision ──
+        existing = self.get_plugin(plugin_name)
+        if existing:
+            raise RuntimeError(
+                f"Plugin name collision: {plugin_name!r} is already loaded from {existing['source']}"
+            )
+
+        # ── Register function ──
         register = getattr(module, "register", None) or getattr(module, "setup", None)
         if not callable(register):
             raise RuntimeError(f"Plugin {plugin_name!r} must define register(app) or setup(app)")
@@ -165,5 +298,26 @@ class PluginManager:
                 source=source,
                 loaded=True,
                 manifest={k: v for k, v in manifest.items() if isinstance(k, str)},
+                capabilities=list(required_capabilities) if isinstance(required_capabilities, (list, tuple)) else [],
+                has_on_ready=callable(getattr(module, "on_ready", None)),
+                has_on_shutdown=callable(getattr(module, "on_shutdown", None)),
             )
         )
+
+    def _validate_dependencies(self) -> None:
+        """Warn about missing plugin dependencies after all plugins are loaded."""
+        loaded_names = {r.name for r in self._records if r.loaded}
+        for record in self._records:
+            if not record.loaded or not record.manifest:
+                continue
+            depends = record.manifest.get("depends", [])
+            if not isinstance(depends, (list, tuple)):
+                continue
+            for dep in depends:
+                if str(dep) not in loaded_names:
+                    logger.warning(
+                        "Plugin %s declares dependency on %s, which is not loaded",
+                        record.name,
+                        dep,
+                    )
+                    record.error = f"missing dependency: {dep}"

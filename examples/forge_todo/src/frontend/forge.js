@@ -36,6 +36,9 @@
      * Picks the correct transport automatically.
      */
     function send(jsonStr) {
+        if (window.__FORGE_INSPECT__) {
+            console.debug("[IPC REQ]", jsonStr);
+        }
         if (hasNativeIPC) {
             window.ipc.postMessage(jsonStr);
         } else if (ws && wsReady) {
@@ -52,6 +55,9 @@
      * Handle an incoming message from the backend (both transports).
      */
     function handleMessage(msg) {
+        if (window.__FORGE_INSPECT__) {
+            console.debug("[IPC RES]", msg);
+        }
         var data;
         try {
             data = typeof msg === "string" ? JSON.parse(msg) : msg;
@@ -830,7 +836,7 @@
         connect: function (url) {
             if (!url) {
                 var proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-                url = proto + "//" + window.location.host + "/ws";
+                url = proto + "//" + window.location.host + "/_forge/ipc";
             }
             connectWebSocket(url);
         },

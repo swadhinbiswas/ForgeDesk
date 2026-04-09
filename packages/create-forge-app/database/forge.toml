@@ -1,0 +1,41 @@
+[app]
+name = "database"
+version = "1.0.0"
+description = "A Forge desktop application"
+authors = ["Swadhin Biswas"]
+
+[window]
+title = "database"
+width = 1280
+height = 800
+resizable = true
+fullscreen = false
+min_width = 400
+min_height = 300
+decorations = true
+always_on_top = false
+transparent = false
+
+[build]
+entry = "src/main.py"
+icon = "assets/icon.png"
+output_dir = "dist"
+single_binary = true
+
+[dev]
+frontend_dir = "src/frontend"
+hot_reload = true
+port = 5173
+dev_server_command = "npm run dev"
+dev_server_url = "http://127.0.0.1:5173"
+
+[permissions]
+filesystem = true
+clipboard = true
+dialogs = true
+system_tray = false
+
+[tool.forge_template]
+name = "plain"
+schema_version = 1
+forge_version_range = ">=2.0.0,<3.0.0"

@@ -1,5 +1,5 @@
 {
-  "name": "@forge/api",
+  "name": "@forgedesk/api",
   "version": "2.0.0",
   "description": "Typed JavaScript API bindings for Forge applications",
   "license": "MIT",

@@ -14,9 +14,14 @@ Build lightweight, cross-platform desktop applications using Python as the backe
 - **Native OS WebView** — Uses WKWebView (macOS), WebView2 (Windows), WebKitGTK (Linux) — NO Chromium bundling
 - **Tiny App Size** — Final binaries under 20MB for basic apps
 - **Simple IPC Bridge** — Call Python functions from JavaScript seamlessly
-- **Beautiful CLI** — Scaffold, develop, and build with a modern terminal UI
-- **Hot Reload** — Watch for file changes during development
+- **Typed State Injection** — `def handler(db: Database)` auto-receives managed instances (Tauri DX)
+- **Deny-First Security** — Scoped filesystem/shell/URL permissions with glob patterns
+- **Circuit Breaker** — Auto-disables commands that fail repeatedly, prevents cascading failures
+- **Crash Reports** — Structured JSON crash reports with system context for post-mortem analysis
+- **Beautiful CLI** — Scaffold, develop, build, doctor, and plugin management
+- **Hot Reload** — Watch for file changes during development, auto-restart on config changes
 - **Multiple Frontends** — Plain HTML, React, Vue, or Svelte templates
+- **NoGIL Ready** — Designed for Python 3.14+ free-threaded mode with thread-safe primitives
 
 ## 🚀 Quick Start
 
@@ -404,12 +409,14 @@ on("window:resized", (data) => {
 | `forge sign` | Sign and verify an existing package manifest |
 | `forge release` | Build and generate a release manifest |
 | `forge info` | Display system and project info |
-| `forge doctor` | Validate local environment and project prerequisites |
+| `forge doctor` | Validate environment with remediation hints |
+| `forge plugin-add <name>` | Install and register a plugin |
+| `python -m forge` | Alternative CLI entry point |
 
 ### CLI Diagnostics
 
 - `forge info --output json` - Machine-readable environment and project details
-- `forge doctor` - Human-readable prerequisite validation
+- `forge doctor` - Human-readable prerequisite validation with fix suggestions
 - `forge doctor --output json` - CI-friendly doctor results with exit code `0` on success and `1` on blocking issues
 - `forge build --result-format json` - CI-friendly build results including target, selected builder, produced artifacts, and validation errors
 - `forge package --result-format json` - Package manifests, installer descriptors, and generated installer artifacts

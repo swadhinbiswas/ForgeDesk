@@ -1,0 +1,5 @@
+[app]
+name = "dummy"
+version = "0.1.0"
+[build]
+frontend_command = "echo ok"

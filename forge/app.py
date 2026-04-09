@@ -34,15 +34,17 @@ from .config import ForgeConfig, load_config
 from .events import EventEmitter
 from .plugins import PluginManager
 from .support import CrashStore, RuntimeLogBuffer, SupportBundleBuilder, register_runtime_log_buffer
+from .window import WindowAPI, WindowManagerAPI
+from .runtime import RuntimeAPI
+from .state import AppState
 from .api.window_state import WindowStateAPI
 from .api.drag_drop import DragDropAPI
-from .api.drag_drop import DragDropAPI
-from .api.drag_drop import DragDropAPI
-from .api.drag_drop import DragDropAPI
-from .api.drag_drop import DragDropAPI
-from .api import ClipboardAPI, DialogAPI, FileSystemAPI, NotificationAPI, SystemAPI, MenuAPI, TrayAPI, UpdaterAPI, DeepLinkAPI, ScreenAPI, ShortcutsAPI, LifecycleAPI, OSIntegrationAPI, AutostartAPI, PowerAPI, KeychainAPI
-from .api.drag_drop import DragDropAPI
-from .api import ClipboardAPI, DialogAPI, FileSystemAPI, NotificationAPI, SystemAPI, MenuAPI, TrayAPI, UpdaterAPI, DeepLinkAPI, ScreenAPI, ShortcutsAPI, LifecycleAPI, OSIntegrationAPI, AutostartAPI, PowerAPI, KeychainAPI
+from .api import (  # noqa: F401
+    ClipboardAPI, DialogAPI, FileSystemAPI, NotificationAPI, SystemAPI,
+    MenuAPI, TrayAPI, UpdaterAPI, DeepLinkAPI, ScreenAPI, ShortcutsAPI,
+    LifecycleAPI, OSIntegrationAPI, AutostartAPI, PowerAPI, KeychainAPI,
+    PrintingAPI, ShellAPI,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,667 +54,10 @@ logger = logging.getLogger(__name__)
 _pending_commands: List[tuple[str, Callable]] = []
 
 
-class WindowAPI:
-    """High-level Python control surface for the native application window."""
+# WindowAPI, WindowManagerAPI imported from .window
+# RuntimeAPI imported from .runtime
+# (Stale inline definitions removed — canonical versions live in window.py and runtime.py)
 
-    def __init__(self, app: ForgeApp) -> None:
-        self._app = app
-        initial_title = app.config.window.title or app.config.app.name
-        self._state: Dict[str, Any] = {
-            "title": initial_title,
-            "width": int(app.config.window.width),
-            "height": int(app.config.window.height),
-            "fullscreen": bool(app.config.window.fullscreen),
-            "always_on_top": bool(app.config.window.always_on_top),
-            "visible": True,
-            "focused": False,
-            "minimized": False,
-            "maximized": False,
-            "x": None,
-            "y": None,
-            "closed": False,
-        }
-
-    @property
-    def is_ready(self) -> bool:
-        """Return whether the native runtime has attached a live window proxy."""
-        return self._app._proxy is not None
-
-    def _require_proxy(self) -> Any:
-        if self._app._proxy is None:
-            raise RuntimeError("The native window is not ready yet.")
-        return self._app._proxy
-
-    def _update_state(self, **updates: Any) -> None:
-        self._state.update(updates)
-
-    def _apply_native_event(self, event: str, payload: Dict[str, Any] | None) -> None:
-        payload = payload or {}
-        if event == "ready":
-            self._update_state(visible=True, closed=False)
-        elif event == "resized":
-            width = payload.get("width")
-            height = payload.get("height")
-            if width is not None and height is not None:
-                self._update_state(width=int(width), height=int(height))
-        elif event == "moved":
-            self._update_state(x=payload.get("x"), y=payload.get("y"))
-        elif event == "focused":
-            self._update_state(focused=bool(payload.get("focused")))
-        elif event == "close_requested":
-            self._update_state(visible=False)
-        elif event == "destroyed":
-            self._update_state(closed=True, visible=False)
-
-    def state(self) -> Dict[str, Any]:
-        """Return the latest known window state snapshot."""
-        return dict(self._state)
-
-    def position(self) -> Dict[str, Any]:
-        """Return the latest known outer window position."""
-        return {"x": self._state.get("x"), "y": self._state.get("y")}
-
-    def is_visible(self) -> bool:
-        """Return whether the window is currently visible."""
-        return bool(self._state.get("visible"))
-
-    def is_focused(self) -> bool:
-        """Return whether the window is currently focused."""
-        return bool(self._state.get("focused"))
-
-    def is_minimized(self) -> bool:
-        """Return whether the window is currently minimized."""
-        return bool(self._state.get("minimized"))
-
-    def is_maximized(self) -> bool:
-        """Return whether the window is currently maximized."""
-        return bool(self._state.get("maximized"))
-
-    def evaluate_script(self, script: str) -> None:
-        """Evaluate JavaScript in the live webview."""
-        self._require_proxy().evaluate_script(script)
-
-    def set_title(self, title: str) -> None:
-        """Update the window title now, or the initial title before startup."""
-        self._app.config.window.title = title
-        self._update_state(title=title)
-        if self._app._proxy is not None:
-            self._app._proxy.set_title(title)
-
-    def set_position(self, x: int | float, y: int | float) -> None:
-        """Move the outer window position."""
-        x_val = int(x)
-        y_val = int(y)
-        self._update_state(x=x_val, y=y_val)
-        if self._app._proxy is not None:
-            self._app._proxy.set_position(float(x_val), float(y_val))
-
-    def set_size(self, width: int | float, height: int | float) -> None:
-        """Update the window size now, or the initial size before startup."""
-        width_val = int(width)
-        height_val = int(height)
-        if width_val <= 0 or height_val <= 0:
-            raise ValueError("Window width and height must be positive.")
-
-        self._app.config.window.width = width_val
-        self._app.config.window.height = height_val
-        self._update_state(width=width_val, height=height_val)
-
-        if self._app._proxy is not None:
-            self._app._proxy.set_size(float(width_val), float(height_val))
-
-    def set_fullscreen(self, enabled: bool) -> None:
-        """Enable or disable fullscreen mode."""
-        self._app.config.window.fullscreen = bool(enabled)
-        self._update_state(fullscreen=bool(enabled))
-        if self._app._proxy is not None:
-            self._app._proxy.set_fullscreen(bool(enabled))
-
-    def set_always_on_top(self, enabled: bool) -> None:
-        """Enable or disable the always-on-top window state."""
-        self._app.config.window.always_on_top = bool(enabled)
-        self._update_state(always_on_top=bool(enabled))
-        if self._app._proxy is not None:
-            self._app._proxy.set_always_on_top(bool(enabled))
-
-    def show(self) -> None:
-        """Show the native window."""
-        self._update_state(visible=True)
-        self._require_proxy().set_visible(True)
-
-    def hide(self) -> None:
-        """Hide the native window."""
-        self._update_state(visible=False)
-        self._require_proxy().set_visible(False)
-
-    def focus(self) -> None:
-        """Bring the native window to the front."""
-        self._update_state(focused=True)
-        self._require_proxy().focus()
-
-    def minimize(self) -> None:
-        """Minimize the native window."""
-        self._update_state(minimized=True, maximized=False)
-        self._require_proxy().set_minimized(True)
-
-    def unminimize(self) -> None:
-        """Restore the window from a minimized state."""
-        self._update_state(minimized=False)
-        self._require_proxy().set_minimized(False)
-
-    def maximize(self) -> None:
-        """Maximize the native window."""
-        self._update_state(maximized=True, minimized=False)
-        self._require_proxy().set_maximized(True)
-
-    def unmaximize(self) -> None:
-        """Restore the window from a maximized state."""
-        self._update_state(maximized=False)
-        self._require_proxy().set_maximized(False)
-
-    def close(self) -> None:
-        """Request that the native window close."""
-        self._update_state(closed=True, visible=False)
-        self._require_proxy().close()
-
-
-class WindowManagerAPI:
-    """Managed multiwindow registry and orchestration surface."""
-
-    def __init__(self, app: ForgeApp) -> None:
-        self._app = app
-        self._current_label = "main"
-        self._windows: Dict[str, Dict[str, Any]] = {}
-        self._register_main_window()
-
-    def _register_main_window(self) -> None:
-        config = self._app.config.window
-        self._windows["main"] = {
-            "label": "main",
-            "title": config.title or self._app.config.app.name,
-            "url": self._resolve_url(),
-            "route": "/",
-            "width": int(config.width),
-            "height": int(config.height),
-            "fullscreen": bool(config.fullscreen),
-            "resizable": bool(config.resizable),
-            "decorations": bool(config.decorations),
-            "always_on_top": bool(config.always_on_top),
-            "visible": True,
-            "focused": False,
-            "closed": False,
-            "backend": "native",
-            "parent": None,
-            "created_at": time.time(),
-        }
-
-    def _resolve_url(self, route: str = "/", explicit_url: str | None = None) -> str:
-        if explicit_url:
-            return explicit_url
-        clean_route = route if route.startswith("/") else f"/{route}"
-        if self._app._dev_server_url:
-            return f"{self._app._dev_server_url.rstrip('/')}{clean_route}"
-        if clean_route == "/":
-            return "forge://app/index.html"
-        return f"forge://app{clean_route}"
-
-    def _emit_frontend_open(self, descriptor: Dict[str, Any]) -> None:
-        if self._app._proxy is None:
-            return
-        payload = json.dumps(descriptor)
-        self._app._proxy.evaluate_script(f"window.__forge__.__openManagedWindow({payload})")
-
-    def _emit_frontend_close(self, label: str) -> None:
-        if self._app._proxy is None:
-            return
-        self._app._proxy.evaluate_script(
-            f"window.__forge__.__closeManagedWindow({json.dumps(label)})"
-        )
-
-    def _supports_native_multiwindow(self) -> bool:
-        return self._app._proxy is not None and hasattr(self._app._proxy, "create_window")
-
-    def _apply_native_event(self, event: str, payload: Dict[str, Any] | None) -> str:
-        payload = payload or {}
-        label = str(payload.get("label") or "main").strip().lower() or "main"
-
-        if label == "main":
-            self.sync_main_window()
-            return label
-
-        descriptor = self._windows.setdefault(
-            label,
-            {
-                "label": label,
-                "title": payload.get("title") or label.replace("-", " ").title(),
-                "url": payload.get("url") or self._resolve_url(),
-                "route": payload.get("route") or "/",
-                "width": int(payload.get("width") or self._app.config.window.width),
-                "height": int(payload.get("height") or self._app.config.window.height),
-                "fullscreen": bool(payload.get("fullscreen", False)),
-                "resizable": bool(payload.get("resizable", True)),
-                "decorations": bool(payload.get("decorations", True)),
-                "always_on_top": bool(payload.get("always_on_top", False)),
-                "visible": bool(payload.get("visible", True)),
-                "focused": bool(payload.get("focused", False)),
-                "closed": False,
-                "backend": "native",
-                "parent": payload.get("parent") or "main",
-                "created_at": time.time(),
-            },
-        )
-
-        descriptor["backend"] = payload.get("backend") or descriptor.get("backend") or "native"
-        if "title" in payload:
-            descriptor["title"] = payload.get("title")
-        if "url" in payload:
-            descriptor["url"] = payload.get("url")
-        if "route" in payload:
-            descriptor["route"] = payload.get("route")
-        if "width" in payload and payload.get("width") is not None:
-            descriptor["width"] = int(payload["width"])
-        if "height" in payload and payload.get("height") is not None:
-            descriptor["height"] = int(payload["height"])
-        if "fullscreen" in payload:
-            descriptor["fullscreen"] = bool(payload.get("fullscreen"))
-        if "resizable" in payload:
-            descriptor["resizable"] = bool(payload.get("resizable"))
-        if "decorations" in payload:
-            descriptor["decorations"] = bool(payload.get("decorations"))
-        if "always_on_top" in payload:
-            descriptor["always_on_top"] = bool(payload.get("always_on_top"))
-        if "visible" in payload:
-            descriptor["visible"] = bool(payload.get("visible"))
-        if "focused" in payload:
-            descriptor["focused"] = bool(payload.get("focused"))
-
-        if event == "close_requested":
-            descriptor["visible"] = False
-            descriptor["focused"] = False
-        elif event == "destroyed":
-            descriptor["visible"] = False
-            descriptor["focused"] = False
-            descriptor["closed"] = True
-        elif event == "created":
-            descriptor["closed"] = False
-            descriptor["visible"] = bool(payload.get("visible", True))
-            descriptor["focused"] = bool(payload.get("focused", False))
-        elif event == "focused":
-            descriptor["focused"] = bool(payload.get("focused"))
-        elif event == "navigated" and payload.get("url"):
-            descriptor["url"] = payload["url"]
-
-        self._windows[label] = descriptor
-        return label
-
-    def sync_main_window(self) -> None:
-        state = self._app.window.state()
-        main = self._windows.setdefault("main", {})
-        main.update(
-            {
-                "label": "main",
-                "title": state.get("title"),
-                "url": self._resolve_url(),
-                "route": "/",
-                "width": state.get("width"),
-                "height": state.get("height"),
-                "fullscreen": state.get("fullscreen"),
-                "resizable": bool(self._app.config.window.resizable),
-                "decorations": bool(self._app.config.window.decorations),
-                "always_on_top": state.get("always_on_top"),
-                "visible": state.get("visible"),
-                "focused": state.get("focused"),
-                "closed": state.get("closed"),
-                "backend": "native",
-                "parent": None,
-            }
-        )
-
-    def current(self) -> Dict[str, Any]:
-        self.sync_main_window()
-        return dict(self._windows[self._current_label])
-
-    def list(self) -> List[Dict[str, Any]]:
-        self.sync_main_window()
-        return [dict(item) for item in self._windows.values()]
-
-    def get(self, label: str) -> Dict[str, Any]:
-        self.sync_main_window()
-        if label not in self._windows:
-            raise KeyError(f"Unknown window label: {label}")
-        return dict(self._windows[label])
-
-    def create(
-        self,
-        label: str,
-        url: str | None = None,
-        route: str = "/",
-        title: str | None = None,
-        width: int | float | None = None,
-        height: int | float | None = None,
-        fullscreen: bool = False,
-        resizable: bool = True,
-        decorations: bool = True,
-        always_on_top: bool = False,
-        visible: bool = True,
-        focus: bool = True,
-        parent: str | None = "main",
-    ) -> Dict[str, Any]:
-        normalized_label = str(label).strip().lower()
-        if not normalized_label:
-            raise ValueError("Window label is required")
-        if normalized_label in self._windows:
-            raise ValueError(f"Window already exists: {normalized_label}")
-
-        descriptor = {
-            "label": normalized_label,
-            "title": title or normalized_label.replace("-", " ").title(),
-            "url": self._resolve_url(route=route, explicit_url=url),
-            "route": route if route.startswith("/") else f"/{route}",
-            "width": int(width or self._app.config.window.width),
-            "height": int(height or self._app.config.window.height),
-            "fullscreen": bool(fullscreen),
-            "resizable": bool(resizable),
-            "decorations": bool(decorations),
-            "always_on_top": bool(always_on_top),
-            "visible": bool(visible),
-            "focused": bool(focus),
-            "closed": False,
-            "backend": "native" if self._supports_native_multiwindow() else "managed-popup",
-            "parent": parent,
-            "created_at": time.time(),
-        }
-        self._windows[normalized_label] = descriptor
-        if descriptor["backend"] == "native":
-            try:
-                self._app._proxy.create_window(json.dumps(descriptor))
-            except Exception:
-                descriptor["backend"] = "managed-popup"
-                self._emit_frontend_open(descriptor)
-        else:
-            self._emit_frontend_open(descriptor)
-        self._app.emit("window:created", descriptor)
-        self._app._log_runtime_event("window_created", label=normalized_label, url=descriptor["url"])
-        return dict(descriptor)
-
-    def close(self, label: str) -> bool:
-        normalized_label = str(label).strip().lower()
-        if normalized_label == "main":
-            self._app.window.close()
-            self.sync_main_window()
-            return True
-        descriptor = self._windows.get(normalized_label)
-        if descriptor is None:
-            raise KeyError(f"Unknown window label: {normalized_label}")
-        descriptor["closed"] = True
-        descriptor["visible"] = False
-        descriptor["focused"] = False
-        if descriptor.get("backend") == "native" and self._supports_native_multiwindow():
-            self._app._proxy.close_window_label(normalized_label)
-        else:
-            self._emit_frontend_close(normalized_label)
-        self._app.emit("window:closed", dict(descriptor))
-        self._app._log_runtime_event("window_closed", label=normalized_label)
-        return True
-
-
-class RuntimeAPI:
-    """Diagnostics and runtime-introspection surface for Forge applications."""
-
-    def __init__(self, app: ForgeApp) -> None:
-        self._app = app
-        self._state: Dict[str, Any] = {
-            "url": "forge://app/index.html",
-            "devtools_open": False,
-        }
-
-    def _require_proxy(self) -> Any:
-        if self._app._proxy is None:
-            raise RuntimeError("The native runtime is not ready yet.")
-        return self._app._proxy
-
-    def _update_state(self, **updates: Any) -> None:
-        self._state.update(updates)
-
-    def _apply_native_event(self, event: str, payload: Dict[str, Any] | None) -> None:
-        payload = payload or {}
-        if event == "navigated":
-            url = payload.get("url")
-            if url:
-                self._update_state(url=url)
-        elif event == "devtools":
-            self._update_state(devtools_open=bool(payload.get("open")))
-
-    def state(self) -> Dict[str, Any]:
-        """Return cached runtime state for navigation and devtools controls."""
-        return dict(self._state)
-
-    def navigate(self, url: str) -> None:
-        """Navigate the native webview to a new URL."""
-        self._update_state(url=url)
-        self._require_proxy().load_url("main", url)
-        self._app._log_runtime_event("runtime_navigate", url=url)
-
-    def reload(self) -> None:
-        """Reload the current native webview page."""
-        self._require_proxy().reload()
-        self._app._log_runtime_event("runtime_reload", url=self._state.get("url"))
-
-    def go_back(self) -> None:
-        """Navigate backward in webview history."""
-        self._require_proxy().go_back()
-        self._app._log_runtime_event("runtime_go_back")
-
-    def go_forward(self) -> None:
-        """Navigate forward in webview history."""
-        self._require_proxy().go_forward()
-        self._app._log_runtime_event("runtime_go_forward")
-
-    def open_devtools(self) -> None:
-        """Open native webview devtools when supported by the platform."""
-        self._update_state(devtools_open=True)
-        self._require_proxy().open_devtools()
-        self._app._log_runtime_event("runtime_open_devtools")
-
-    def close_devtools(self) -> None:
-        """Close native webview devtools when supported by the platform."""
-        self._update_state(devtools_open=False)
-        self._require_proxy().close_devtools()
-        self._app._log_runtime_event("runtime_close_devtools")
-
-    def toggle_devtools(self) -> bool:
-        """Toggle the cached devtools state and apply it to the runtime."""
-        if self._state.get("devtools_open"):
-            self.close_devtools()
-        else:
-            self.open_devtools()
-        return bool(self._state.get("devtools_open"))
-
-    def logs(self, limit: int | None = 100) -> List[Dict[str, Any]]:
-        """Return recent structured runtime log entries."""
-        return self._app._runtime_logs.snapshot(limit)
-
-    def export_support_bundle(self, destination: str | Path | None = None) -> str:
-        """Export a minimal support bundle zip for diagnostics collection."""
-        bundle_path = self._app._support_bundle.export(destination)
-        self._app._log_runtime_event("runtime_export_support_bundle", path=bundle_path)
-        return bundle_path
-
-    def protocol(self) -> Dict[str, Any]:
-        """Return protocol compatibility information."""
-        return {
-            "current": PROTOCOL_VERSION,
-            "supported": sorted(SUPPORTED_PROTOCOL_VERSIONS),
-        }
-
-    def config_snapshot(self) -> Dict[str, Any]:
-        """Return a serializable snapshot of effective Forge configuration."""
-        config = self._app.config
-        return {
-            "app": {
-                "name": config.app.name,
-                "version": config.app.version,
-                "description": config.app.description,
-                "authors": list(config.app.authors),
-            },
-            "window": {
-                "title": config.window.title,
-                "width": config.window.width,
-                "height": config.window.height,
-                "fullscreen": config.window.fullscreen,
-                "resizable": config.window.resizable,
-                "decorations": config.window.decorations,
-                "always_on_top": config.window.always_on_top,
-                "transparent": config.window.transparent,
-            },
-            "build": {
-                "entry": config.build.entry,
-                "output_dir": config.build.output_dir,
-                "single_binary": config.build.single_binary,
-            },
-            "protocol": {
-                "schemes": list(config.protocol.schemes),
-            },
-            "packaging": {
-                "app_id": config.packaging.app_id,
-                "product_name": config.packaging.product_name,
-                "formats": list(config.packaging.formats),
-                "category": config.packaging.category,
-            },
-            "signing": {
-                "enabled": config.signing.enabled,
-                "adapter": config.signing.adapter,
-                "identity": config.signing.identity,
-                "sign_command": config.signing.sign_command,
-                "verify_command": config.signing.verify_command,
-                "notarize": config.signing.notarize,
-                "timestamp_url": config.signing.timestamp_url,
-            },
-            "dev": {
-                "frontend_dir": config.dev.frontend_dir,
-                "hot_reload": config.dev.hot_reload,
-                "port": config.dev.port,
-            },
-            "permissions": {
-                "filesystem": config.permissions.filesystem,
-                "clipboard": config.permissions.clipboard,
-                "dialogs": config.permissions.dialogs,
-                "notifications": config.permissions.notifications,
-                "system_tray": config.permissions.system_tray,
-                "updater": config.permissions.updater,
-            },
-            "security": {
-                "allowed_commands": list(config.security.allowed_commands),
-                "denied_commands": list(config.security.denied_commands),
-                "expose_command_introspection": bool(config.security.expose_command_introspection),
-                "allowed_origins": self._app.allowed_origins(),
-                "window_scopes": {
-                    key: list(value) for key, value in config.security.window_scopes.items()
-                },
-            },
-            "plugins": self._app.plugins.summary(),
-            "updater": {
-                "enabled": config.updater.enabled,
-                "endpoint": config.updater.endpoint,
-                "channel": config.updater.channel,
-                "check_on_startup": config.updater.check_on_startup,
-                "allow_downgrade": config.updater.allow_downgrade,
-                "public_key": config.updater.public_key,
-                "require_signature": config.updater.require_signature,
-                "staging_dir": config.updater.staging_dir,
-                "install_dir": config.updater.install_dir,
-            },
-            "windows": self._app.windows.list(),
-        }
-
-    def last_crash(self) -> Dict[str, Any] | None:
-        """Return the latest captured crash snapshot, if any."""
-        return self._app._crash_store.snapshot()
-
-    def commands(self) -> List[Dict[str, Any]]:
-        """Return the registered command manifest."""
-        return self._app.bridge.get_command_registry()
-
-    def health(self) -> Dict[str, Any]:
-        """Return a lightweight runtime health snapshot."""
-        frontend_path = self._app.config.get_frontend_path()
-        command_count = len(self._app.bridge.get_command_registry())
-        window_state = self._app.window.state()
-        ok = frontend_path.exists() and command_count > 0 and not window_state["closed"]
-        return {
-            "ok": ok,
-            "window_ready": self._app.window.is_ready,
-            "frontend_exists": frontend_path.exists(),
-            "command_count": command_count,
-            "window_closed": window_state["closed"],
-            "window_count": len(self._app.windows.list()),
-            "plugin_count": self._app.plugins.summary()["loaded"],
-            "protocol": PROTOCOL_VERSION,
-            "url": self._state["url"],
-            "devtools_open": self._state["devtools_open"],
-            "last_crash": self.last_crash() is not None,
-        }
-
-    def diagnostics(self, include_logs: bool = True, log_limit: int | None = 100) -> Dict[str, Any]:
-        """Return a structured runtime diagnostics payload."""
-        config = self._app.config
-        payload = {
-            "app": {
-                "name": config.app.name,
-                "version": config.app.version,
-            },
-            "runtime": {
-                "window_ready": self._app.window.is_ready,
-                "frontend_dir": str(config.get_frontend_path()),
-                "config_path": str(config.config_path) if config.config_path else None,
-                "state": self.state(),
-            },
-            "config": self.config_snapshot(),
-            "protocol": self.protocol(),
-            "permissions": {
-                "filesystem": bool(config.permissions.filesystem),
-                "clipboard": bool(config.permissions.clipboard),
-                "dialogs": bool(config.permissions.dialogs),
-                "notifications": bool(config.permissions.notifications),
-                "system_tray": bool(config.permissions.system_tray),
-                "updater": bool(config.permissions.updater),
-            },
-            "security": {
-                "allowed_commands": list(config.security.allowed_commands),
-                "denied_commands": list(config.security.denied_commands),
-                "expose_command_introspection": bool(config.security.expose_command_introspection),
-                "allowed_origins": self._app.allowed_origins(),
-                "window_scopes": {
-                    key: list(value) for key, value in config.security.window_scopes.items()
-                },
-            },
-            "plugins": self._app.plugins.summary(),
-            "window": self._app.window.state(),
-            "windows": self._app.windows.list(),
-            "health": self.health(),
-            "commands": self.commands(),
-            "crash": self.last_crash(),
-            "support": {
-                "bundle_export_supported": True,
-            },
-            "updater": {
-                "enabled": bool(config.updater.enabled),
-                "configured": bool(config.updater.endpoint),
-                "channel": config.updater.channel,
-                "check_on_startup": bool(config.updater.check_on_startup),
-                "require_signature": bool(config.updater.require_signature),
-                "staging_dir": config.updater.staging_dir,
-                "install_dir": config.updater.install_dir,
-            },
-            "notifications": self._app.notifications.state()
-            if self._app.has_capability("notifications")
-            else None,
-            "tray": self._app.tray.state() if self._app.has_capability("system_tray") else None,
-            "deep_links": self._app.deep_links.state(),
-        }
-        if include_logs:
-            payload["logs"] = self.logs(log_limit)
-        return payload
 
 
 class _DisabledAPI:
@@ -728,40 +73,8 @@ class _DisabledAPI:
         )
 
 
-def command(
-    name: Optional[str] = None,
-    capability: Optional[str] = None,
-    version: str = "1.0",
-) -> Callable:
-    """
-    Decorator to register a function as a Forge IPC command.
 
-    Can be used at module level before the app is created -- the command
-    will be registered when ForgeApp is instantiated.
 
-    Usage:
-        @command()
-        def greet(name: str) -> str:
-            return f"Hello, {name}!"
-
-        @command("custom_name")
-        def handler() -> dict:
-            return {"status": "ok"}
-
-    Args:
-        name: Optional custom command name. Defaults to function name.
-    """
-
-    def decorator(func: Callable) -> Callable:
-        cmd_name = name or func.__name__
-        func._forge_cmd = cmd_name  # type: ignore[attr-defined]
-        if capability is not None:
-            func._forge_capability = capability  # type: ignore[attr-defined]
-        func._forge_version = version  # type: ignore[attr-defined]
-        _pending_commands.append((cmd_name, func))
-        return func
-
-    return decorator
 
 
 class ForgeApp:
@@ -804,6 +117,7 @@ class ForgeApp:
         self._support_bundle = SupportBundleBuilder(self, self._runtime_logs)
         self._native_window: Any = None  # NativeWindow, set in run()
         self._proxy: Any = None  # WindowProxy from Rust, set via ready callback
+        self.state = AppState()  # Thread-safe typed state container (Tauri State<T> equivalent)
 
         # Built-in APIs are attached in _setup_apis()
         self.fs: Any = _DisabledAPI("filesystem")
@@ -869,8 +183,9 @@ class ForgeApp:
             def register(name=name, func=command_func):
                 cap_req = getattr(func, '__forge_capability__', None)
                 plugin_req = getattr(func, '__forge_plugin__', None)
-                if cap_req and getattr(self, "config", None) and cap_req not in getattr(self.config.permissions, "capabilities", []):
-                    return
+                if cap_req and getattr(self, "config", None):
+                    if not getattr(self.config.permissions, cap_req, False):
+                        return
                 # we bypass exact capabilities or plugins check if it's missing in config for simplicity,
                 # bridge handles the actual invocation, but we map endpoints here anyway
                 self.bridge.register_command(name, func, capability=cap_req, version="1.0", internal=False)
@@ -878,24 +193,7 @@ class ForgeApp:
 
     def _setup_apis(self) -> None:
         """Initialize built-in APIs and register them as IPC commands."""
-        from .api.clipboard import ClipboardAPI
-        from .api.deep_link import DeepLinkAPI
-        from .api.dialog import DialogAPI
-        from .api.fs import FileSystemAPI
-        from .api.menu import MenuAPI
-        from .api.notification import NotificationAPI
-        from .api.system import SystemAPI
-        from .api.tray import TrayAPI
-        from .api.updater import UpdaterAPI
-        from .api.screen import ScreenAPI
-        from .api.shortcuts import ShortcutsAPI
-        from .api.lifecycle import LifecycleAPI
-        from .api.os_integration import OSIntegrationAPI
-        from .api.printing import PrintingAPI
-        from .api.autostart import AutostartAPI
-        from .api.power import PowerAPI
-        from .api.keychain import KeychainAPI
-        from .api.shell import ShellAPI
+        # Note: Using top-level imports from .api
 
         fs_config = self.config.permissions.filesystem
         if fs_config:
@@ -936,11 +234,7 @@ class ForgeApp:
             self.keychain = KeychainAPI(self)
             self.bridge.register_commands(self.keychain)
 
-        # Initialize Window State Auto-Persistency
-        self.window_state = WindowStateAPI(self)
-        self.drag_drop = DragDropAPI(self)
-        self.printing = PrintingAPI(self)
-        # Initialize Window State Auto-Persistency
+        # Initialize Window State Auto-Persistency (opt-in via config.window.remember_state)
         self.window_state = WindowStateAPI(self)
         self.drag_drop = DragDropAPI(self)
         self.printing = PrintingAPI(self)
@@ -1058,6 +352,12 @@ class ForgeApp:
             internal=True,
         )
         self.bridge.register_command(
+            "__forge_window_set_vibrancy",
+            self._ipc_window_set_vibrancy,
+            version="1.0",
+            internal=True,
+        )
+        self.bridge.register_command(
             "__forge_window_set_position",
             self._ipc_window_set_position,
             version="1.0",
@@ -1096,6 +396,15 @@ class ForgeApp:
             ("__forge_windows_get", self._ipc_windows_get),
             ("__forge_window_create", self._ipc_window_create),
             ("__forge_window_close_label", self._ipc_window_close_label),
+            ("__forge_windows_set_title", self._ipc_windows_set_title),
+            ("__forge_windows_set_size", self._ipc_windows_set_size),
+            ("__forge_windows_set_position", self._ipc_windows_set_position),
+            ("__forge_windows_focus", self._ipc_windows_focus),
+            ("__forge_windows_minimize", self._ipc_windows_minimize),
+            ("__forge_windows_maximize", self._ipc_windows_maximize),
+            ("__forge_windows_set_fullscreen", self._ipc_windows_set_fullscreen),
+            ("__forge_windows_show", self._ipc_windows_show),
+            ("__forge_windows_hide", self._ipc_windows_hide),
         ]:
             self.bridge.register_command(command_name, handler, version="1.0", internal=True)
 
@@ -1182,6 +491,10 @@ class ForgeApp:
 
     def _ipc_window_set_always_on_top(self, enabled: bool) -> bool:
         self.window.set_always_on_top(enabled)
+        return True
+
+    def _ipc_window_set_vibrancy(self, effect: str | None) -> bool:
+        self.window.set_vibrancy(effect)
         return True
 
     def _ipc_window_get_state(self) -> Dict[str, Any]:
@@ -1331,6 +644,44 @@ class ForgeApp:
     def _ipc_window_close_label(self, label: str) -> bool:
         return self.windows.close(label)
 
+    # ─── Multi-Window Label-Targeted IPC Handlers ───
+
+    def _ipc_windows_set_title(self, label: str, title: str) -> bool:
+        self.windows.set_title(label, title)
+        return True
+
+    def _ipc_windows_set_size(self, label: str, width: int | float, height: int | float) -> bool:
+        self.windows.set_size(label, width, height)
+        return True
+
+    def _ipc_windows_set_position(self, label: str, x: int | float, y: int | float) -> bool:
+        self.windows.set_position(label, x, y)
+        return True
+
+    def _ipc_windows_focus(self, label: str) -> bool:
+        self.windows.focus(label)
+        return True
+
+    def _ipc_windows_minimize(self, label: str) -> bool:
+        self.windows.minimize(label)
+        return True
+
+    def _ipc_windows_maximize(self, label: str) -> bool:
+        self.windows.maximize(label)
+        return True
+
+    def _ipc_windows_set_fullscreen(self, label: str, enabled: bool) -> bool:
+        self.windows.set_fullscreen(label, enabled)
+        return True
+
+    def _ipc_windows_show(self, label: str) -> bool:
+        self.windows.show(label)
+        return True
+
+    def _ipc_windows_hide(self, label: str) -> bool:
+        self.windows.hide(label)
+        return True
+
     def _ipc_power_get_battery_info(self) -> Dict[str, Any]:
         self.power._require_capability()
         if not self._is_ready or not self._proxy:
@@ -1390,9 +741,27 @@ class ForgeApp:
         return deduped
 
     def is_origin_allowed(self, origin: str | None) -> bool:
-        """Return whether a caller origin is allowed to use the IPC bridge."""
+        """Return whether a caller origin is allowed to use the IPC bridge.
+
+        In strict_mode, only forge:// origins and explicitly listed origins pass.
+        Without strict_mode, behavior is unchanged (forge://app auto-added).
+        """
         if not origin:
             return True
+
+        # forge:// protocol origins are always trusted (same-app webview)
+        if origin.startswith("forge://"):
+            return True
+
+        allowed_list = self.allowed_origins()
+
+        # Strict mode: if no explicit HTTP/HTTPS origins configured, block external
+        if self.config.security.strict_mode:
+            has_explicit_external = any(
+                not a.startswith("forge://") for a in self.config.security.allowed_origins
+            )
+            if not has_explicit_external:
+                return False
 
         parsed_origin = urlparse(origin)
         normalized_origin = (
@@ -1401,10 +770,8 @@ class ForgeApp:
             else origin
         )
 
-        for allowed in self.allowed_origins():
+        for allowed in allowed_list:
             if allowed.startswith("forge://"):
-                if origin.startswith(allowed):
-                    return True
                 continue
 
             parsed_allowed = urlparse(allowed)
@@ -1484,30 +851,27 @@ class ForgeApp:
 
             logger.debug(f"IPC received: {message[:200]}")
 
-            # Use the bridge's full invoke pipeline (validates, executes, returns JSON)
-            response_json = self.bridge.invoke_command(message)
-
-            logger.debug(f"IPC response: {response_json[:200]}")
-
             # Parse to extract the message ID for the JS callback
-            response = json.loads(response_json)
-            msg_id = response.get("id")
+            def _handle_response(response_json: str) -> None:
+                try:
+                    logger.debug(f"IPC response: {response_json[:200]}")
+                    response = json.loads(response_json)
+                    msg_id = response.get("id")
 
-            if msg_id is not None:
-                js_call = f"window.__forge__._handleMessage({response_json})"
-                logger.debug(f"Sending to JS: {js_call[:200]}")
-                proxy.evaluate_script(js_call)
+                    if msg_id is not None:
+                        js_call = f"window.__forge__._handleMessage({response_json})"
+                        logger.debug(f"Sending to JS: {js_call[:200]}")
+                        proxy.evaluate_script(js_call)
+                except Exception as e:
+                    logger.error(f"Failed to process or send IPC message response: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+            # Schedule full pipeline execution in background
+            self.bridge.invoke_command_threaded(message, _handle_response)
+
         except Exception as e:
-            logger.error(f"Failed to process IPC message: {e}")
-            import traceback
-
-            traceback.print_exc()
-            # Try to send error response back to JS
-            try:
-                error_response = json.dumps({"id": None, "result": None, "error": str(e)})
-                proxy.evaluate_script(f"window.__forge__._handleMessage({error_response})")
-            except Exception:
-                pass  # Last resort — can't send to JS either
+            logger.error(f"Failed to schedule IPC message: {e}")
 
     def _sync_native_menu(self, items: List[Dict[str, Any]] | None = None) -> None:
         """Push the current menu model into the native runtime when available."""
@@ -1681,15 +1045,6 @@ class ForgeApp:
 
         # Create the native window with full config passthrough
         wc = self.config.window
-        # Get persistent state for main window
-        state = self.window_state.get_state("main")
-        w_width = float(state.get("width", wc.width))
-        w_height = float(state.get("height", wc.height))
-        w_x = state.get("x", None)
-        w_y = state.get("y", None)
-        if w_x is not None: w_x = float(w_x)
-        if w_y is not None: w_y = float(w_y)
-
         # Get persistent state for main window
         state = self.window_state.get_state("main")
         w_width = float(state.get("width", wc.width))

@@ -1,0 +1,138 @@
+---
+---
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>Forge Movies</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #121212;
+      color: #fff;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    input {
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #242424;
+      color: white;
+      width: 300px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #1e1e1e;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: scale(1.05);
+    }
+    .poster {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      background: #333;
+    }
+    .content {
+      padding: 15px;
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin: 0 0 10px 0;
+    }
+    p {
+      font-size: 0.9rem;
+      color: #aaa;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+    .loader {
+      text-align: center;
+      padding: 50px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎬 Forge Movies</h1>
+    <input type="text" id="search" placeholder="Search for movies..." />
+  </div>
+
+  <div id="movies" class="grid">
+    <div class="loader">Loading movies from Python backend...</div>
+  </div>
+
+  <script>
+    import { invoke } from '@forge/api';
+
+    const moviesContainer = document.getElementById('movies');
+    const searchInput = document.getElementById('search');
+    
+    // Renders the movies array into HTML
+    function renderMovies(movies) {
+      if (!movies || movies.length === 0) {
+        moviesContainer.innerHTML = '<div class="loader">No movies found.</div>';
+        return;
+      }
+      
+      moviesContainer.innerHTML = movies.map(movie => `
+        <div class="card">
+          <img class="poster" src="https://image.tmdb.org/t/p/w500${movie.poster_path}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\'/%3E'" alt="${movie.title}">
+          <div class="content">
+            <h3>${movie.title}</h3>
+            <p>${movie.overview || 'No overview available.'}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Call the Python backend using Forge IPC
+    async function loadMovies(query = '') {
+      try {
+        let res;
+        if (query) {
+          res = await invoke('search_movies', { query, page: 1 });
+        } else {
+          res = await invoke('fetch_popular_movies', { page: 1 });
+        }
+        
+        if (res.error) throw new Error(res.error);
+        renderMovies(res.results);
+      } catch (err) {
+        moviesContainer.innerHTML = `<div class="loader" style="color: red;">Error loading movies: ${err.message}</div>`;
+      }
+    }
+
+    // Debounce search typing
+    let timeout;
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        loadMovies(e.target.value);
+      }, 500);
+    });
+
+    // Initial load
+    loadMovies();
+  </script>
+</body>
+</html>

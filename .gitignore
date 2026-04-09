@@ -86,3 +86,33 @@ coverage/
 # Misc
 # ==========================
 .cache/
+node_modules/
+*.tgz
+
+# ==========================
+# Node.js & Tooling
+# ==========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ==========================
+# Frontend Frameworks
+# ==========================
+.svelte-kit/
+.nuxt/
+.next/
+out/
+.vercel
+.output
+dist-ssr/
+build/
+dist/
+
+# ==========================
+# Forge Generated Apps
+# ==========================
+*.tgz
+*.tar.gz

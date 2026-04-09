@@ -1,4 +1,4 @@
-# @forge/vite-plugin
+# @forgedesk/vite-plugin
 
 Vite integration for Forge frontends.
 
@@ -10,14 +10,14 @@ Vite integration for Forge frontends.
 ## Install
 
 ```bash
-npm install -D vite @forge/vite-plugin
+npm install -D vite @forgedesk/vite-plugin
 ```
 
 ## Usage
 
 ```js
 import { defineConfig } from "vite";
-import { forgeVitePlugin } from "@forge/vite-plugin";
+import { forgeVitePlugin } from "@forgedesk/vite-plugin";
 
 export default defineConfig({
   plugins: [forgeVitePlugin()],

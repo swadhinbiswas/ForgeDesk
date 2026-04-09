@@ -50,7 +50,7 @@ const argv = process.argv.slice(2);
 
 const launcher = ensurePythonForge();
 if (!launcher) {
-  console.error("Forge CLI is unavailable. Install Python 3.14+ and run: python -m pip install forge-framework");
+  console.error("\x1b[1;31m✖\x1b[0m \x1b[1mForge CLI is unavailable.\x1b[0m\n\x1b[33mInstall Python 3.14+ and run:\x1b[0m \x1b[36mpython -m pip install forge-framework\x1b[0m");
   process.exit(1);
 }
 

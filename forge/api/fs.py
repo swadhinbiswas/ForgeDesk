@@ -36,6 +36,11 @@ def _expand_path_var(p: str) -> Path:
 class FileSystemAPI:
     """
     File system API for Forge applications with Strict Scopes.
+
+    Security:
+        - Paths are resolved to absolute before scope checking
+        - Deny patterns always override allow patterns
+        - Glob matching supports ``*``, ``**``, and ``?``
     """
 
     __forge_capability__ = "filesystem"
@@ -46,10 +51,13 @@ class FileSystemAPI:
         permissions: Union[bool, FileSystemPermissions] = True,
         allowed_dirs: list[Path] | None = None,
     ) -> None:
+        from forge.scope import ScopeValidator
+
         self._base_path = base_path.resolve() if base_path else Path.cwd().resolve()
         
         self._read_dirs: List[Path] = []
         self._write_dirs: List[Path] = []
+        deny_patterns: list[str] = []
 
         for directory in allowed_dirs or []:
             self._read_dirs.append(Path(directory).resolve())
@@ -64,15 +72,25 @@ class FileSystemAPI:
             for p in getattr(permissions, 'write', []):
                 self._write_dirs.append(_expand_path_var(p))
 
+        # Collect deny patterns from the permissions config
+        if hasattr(permissions, 'deny'):
+            deny_patterns = list(getattr(permissions, 'deny', []))
+
+        # Build scope validators for read and write operations
+        self._read_scope = ScopeValidator(
+            allow_patterns=[str(d) for d in self._read_dirs],
+            deny_patterns=deny_patterns,
+            base_dir=self._base_path,
+        )
+        self._write_scope = ScopeValidator(
+            allow_patterns=[str(d) for d in self._write_dirs],
+            deny_patterns=deny_patterns,
+            base_dir=self._base_path,
+        )
+
     def _is_path_allowed(self, resolved_path: Path, mode: str = "read") -> bool:
-        allowed = self._write_dirs if mode == "write" else self._read_dirs
-        for allowed_dir in allowed:
-            try:
-                resolved_path.relative_to(allowed_dir)
-                return True
-            except ValueError:
-                continue
-        return False
+        scope = self._write_scope if mode == "write" else self._read_scope
+        return scope.is_path_allowed(resolved_path)
 
     def _resolve_path(self, path: str, mode: str = "read", allow_absolute: bool = False) -> Path:
         if not path:

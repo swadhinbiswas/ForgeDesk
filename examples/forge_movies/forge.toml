@@ -1,0 +1,8 @@
+[app]
+name = "forge_movies"
+version = "0.1.0"
+description = "A complex movies application to demonstrate multi-file architecture"
+
+[build]
+frontend_command = "npm run build"
+frontend_dist = "src/frontend/dist"

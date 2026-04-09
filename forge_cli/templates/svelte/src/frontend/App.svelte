@@ -1,5 +1,5 @@
 <script>
-  import forge, { invoke } from '@forge/api';
+  import forge, { invoke } from '@forgedesk/api';
 
   let name = 'Developer';
   let greeting = '';

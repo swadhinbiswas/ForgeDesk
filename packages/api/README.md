@@ -1,4 +1,4 @@
-# @forge/api
+# @forgedesk/api
 
 Typed JavaScript bindings for the Forge runtime.
 
@@ -9,13 +9,13 @@ Typed JavaScript bindings for the Forge runtime.
 ## Install
 
 ```bash
-npm install @forge/api
+npm install @forgedesk/api
 ```
 
 ## Usage
 
 ```js
-import forge, { invoke, isForgeAvailable } from "@forge/api";
+import forge, { invoke, isForgeAvailable } from "@forgedesk/api";
 
 if (isForgeAvailable()) {
   const version = await forge.app.version();

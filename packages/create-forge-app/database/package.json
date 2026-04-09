@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "@forgedesk/api": "^2.0.0"
+  },
+  "devDependencies": {
+    "@forgedesk/vite-plugin": "^2.0.0",
+    "vite": "^6.2.0"
+  },
+  "name": "database",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "forge:build": "forge build",
+    "forge:dev": "forge dev",
+    "preview": "vite preview"
+  },
+  "type": "module",
+  "version": "1.0.0"
+}

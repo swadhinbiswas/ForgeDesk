@@ -143,6 +143,16 @@ class WindowAPI:
         self._update_state(visible=True)
         self._require_proxy().set_visible(True)
 
+    def set_vibrancy(self, effect: str | None) -> None:
+        """
+        Dynamically update the native window's vibrancy material effect.
+        Supported materials include 'mica', 'acrylic', 'blur' (Windows),
+        and 'sidebar', 'popover', 'hud_window', etc. (macOS).
+        Set to None to remove vibrancy.
+        """
+        self._update_state(vibrancy=effect)
+        self._require_proxy().set_vibrancy(label="main", vibrancy=effect)
+
     def hide(self) -> None:
         """Hide the native window."""
         self._update_state(visible=False)
@@ -443,3 +453,150 @@ class WindowManagerAPI:
         self._app.emit("window:closed", dict(descriptor))
         self._app._log_runtime_event("window_closed", label=normalized_label)
         return True
+
+    # ─── Label-Targeted Window Controls ───
+
+    def _require_label(self, label: str) -> str:
+        """Normalize and validate a window label, returning the normalized form."""
+        normalized = str(label).strip().lower()
+        if not normalized:
+            raise ValueError("Window label is required")
+        if normalized not in self._windows:
+            raise KeyError(f"Unknown window label: {normalized}")
+        return normalized
+
+    def set_title(self, label: str, title: str) -> None:
+        """Update the title of a specific window by label."""
+        normalized = self._require_label(label)
+        if normalized == "main":
+            self._app.window.set_title(title)
+            self.sync_main_window()
+            return
+        self._windows[normalized]["title"] = title
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.set_title(title)
+            except Exception:
+                pass
+
+    def set_size(self, label: str, width: int | float, height: int | float) -> None:
+        """Resize a specific window by label."""
+        normalized = self._require_label(label)
+        width_val = int(width)
+        height_val = int(height)
+        if width_val <= 0 or height_val <= 0:
+            raise ValueError("Window width and height must be positive.")
+        if normalized == "main":
+            self._app.window.set_size(width_val, height_val)
+            self.sync_main_window()
+            return
+        self._windows[normalized]["width"] = width_val
+        self._windows[normalized]["height"] = height_val
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.set_size(float(width_val), float(height_val))
+            except Exception:
+                pass
+
+    def set_position(self, label: str, x: int | float, y: int | float) -> None:
+        """Move a specific window by label."""
+        normalized = self._require_label(label)
+        x_val = int(x)
+        y_val = int(y)
+        if normalized == "main":
+            self._app.window.set_position(x_val, y_val)
+            self.sync_main_window()
+            return
+        self._windows[normalized]["x"] = x_val
+        self._windows[normalized]["y"] = y_val
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.set_position(float(x_val), float(y_val))
+            except Exception:
+                pass
+
+    def focus(self, label: str) -> None:
+        """Focus a specific window by label."""
+        normalized = self._require_label(label)
+        if normalized == "main":
+            self._app.window.focus()
+            self.sync_main_window()
+            return
+        self._windows[normalized]["focused"] = True
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.focus()
+            except Exception:
+                pass
+
+    def minimize(self, label: str) -> None:
+        """Minimize a specific window by label."""
+        normalized = self._require_label(label)
+        if normalized == "main":
+            self._app.window.minimize()
+            self.sync_main_window()
+            return
+        self._windows[normalized]["minimized"] = True
+        self._windows[normalized]["maximized"] = False
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.set_minimized(True)
+            except Exception:
+                pass
+
+    def maximize(self, label: str) -> None:
+        """Maximize a specific window by label."""
+        normalized = self._require_label(label)
+        if normalized == "main":
+            self._app.window.maximize()
+            self.sync_main_window()
+            return
+        self._windows[normalized]["maximized"] = True
+        self._windows[normalized]["minimized"] = False
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.set_maximized(True)
+            except Exception:
+                pass
+
+    def set_fullscreen(self, label: str, enabled: bool) -> None:
+        """Toggle fullscreen for a specific window by label."""
+        normalized = self._require_label(label)
+        if normalized == "main":
+            self._app.window.set_fullscreen(enabled)
+            self.sync_main_window()
+            return
+        self._windows[normalized]["fullscreen"] = bool(enabled)
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.set_fullscreen(bool(enabled))
+            except Exception:
+                pass
+
+    def show(self, label: str) -> None:
+        """Show a specific window by label."""
+        normalized = self._require_label(label)
+        if normalized == "main":
+            self._app.window.show()
+            self.sync_main_window()
+            return
+        self._windows[normalized]["visible"] = True
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.set_visible(True)
+            except Exception:
+                pass
+
+    def hide(self, label: str) -> None:
+        """Hide a specific window by label."""
+        normalized = self._require_label(label)
+        if normalized == "main":
+            self._app.window.hide()
+            self.sync_main_window()
+            return
+        self._windows[normalized]["visible"] = False
+        if self._app._proxy is not None:
+            try:
+                self._app._proxy.set_visible(False)
+            except Exception:
+                pass

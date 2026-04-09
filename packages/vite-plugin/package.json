@@ -1,5 +1,5 @@
 {
-  "name": "@forge/vite-plugin",
+  "name": "@forgedesk/vite-plugin",
   "version": "2.0.0",
   "description": "Vite integration for Forge frontend projects",
   "license": "MIT",

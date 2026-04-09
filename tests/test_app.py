@@ -89,6 +89,9 @@ class TestForgeApp:
         def set_always_on_top(self, enabled: bool) -> None:
             self.calls.append(("set_always_on_top", (enabled,)))
 
+        def set_vibrancy(self, label: str, vibrancy: str | None) -> None:
+            self.calls.append(("set_vibrancy", (label, vibrancy)))
+
         def set_visible(self, visible: bool) -> None:
             self.calls.append(("set_visible", (visible,)))
 
@@ -1110,6 +1113,7 @@ class TestForgeApp:
             {"command": "__forge_window_unminimize", "args": {}, "id": 19},
             {"command": "__forge_window_maximize", "args": {}, "id": 20},
             {"command": "__forge_window_unmaximize", "args": {}, "id": 21},
+            {"command": "__forge_window_set_vibrancy", "args": {"effect": "sidebar"}, "id": 99},
             {"command": "__forge_window_close", "args": {}, "id": 22},
         ]:
             response = json.loads(app.bridge.invoke_command(json.dumps(payload)))
@@ -1130,6 +1134,7 @@ class TestForgeApp:
             ("set_minimized", (False,)),
             ("set_maximized", (True,)),
             ("set_maximized", (False,)),
+            ("set_vibrancy", ("main", "sidebar")),
             ("close", ()),
         ]
 

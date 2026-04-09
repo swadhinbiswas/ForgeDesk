@@ -24,6 +24,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import venv
 import tarfile
 import time
 import tomllib
@@ -474,6 +475,8 @@ def _project_payload(project_dir: Path) -> dict[str, Any]:
                 "window_scopes": {
                     key: list(value) for key, value in config.security.window_scopes.items()
                 },
+                "strict_mode": bool(config.security.strict_mode),
+                "rate_limit": int(config.security.rate_limit),
             },
             "plugins": {
                 "enabled": bool(config.plugins.enabled),
@@ -505,6 +508,78 @@ def _project_payload(project_dir: Path) -> dict[str, Any]:
     return payload
 
 
+def _check_command_version(cmd: str) -> tuple[str, str | None]:
+    """Run `cmd --version` and return (status, version_string)."""
+    path = shutil.which(cmd)
+    if not path:
+        return "warning", None
+    try:
+        result = subprocess.run(
+            [path, "--version"],
+            capture_output=True, text=True, timeout=5,
+        )
+        version = result.stdout.strip() or result.stderr.strip()
+        # Extract version number (e.g. "v20.11.0" or "10.2.4")
+        match = re.search(r"(\d+\.\d+\.\d+)", version)
+        return "ok", match.group(1) if match else version
+    except Exception:
+        return "warning", None
+
+
+def _check_port_available(port: int) -> bool:
+    """Check if a TCP port is available for binding."""
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            s.bind(("127.0.0.1", port))
+            return True
+    except OSError:
+        return False
+
+
+def _check_webview_available() -> tuple[str, str]:
+    """Check for WebView runtime availability on the current platform."""
+    system = platform.system()
+    if system == "Darwin":
+        # macOS always has WKWebView
+        return "ok", "WKWebView (built-in)"
+    if system == "Windows":
+        try:
+            import winreg
+            key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                r"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+            )
+            winreg.CloseKey(key)
+            return "ok", "WebView2 Runtime"
+        except Exception:
+            return "warning", "WebView2 not found (install from microsoft.com)"
+    # Linux: check for WebKitGTK
+    for lib_name in ["libwebkit2gtk-4.1.so", "libwebkit2gtk-4.0.so"]:
+        for search_dir in ["/usr/lib", "/usr/lib64", f"/usr/lib/{platform.machine()}-linux-gnu"]:
+            lib_path = Path(search_dir) / lib_name
+            if lib_path.exists():
+                return "ok", f"WebKitGTK ({lib_name})"
+    # Try pkg-config fallback
+    try:
+        result = subprocess.run(
+            ["pkg-config", "--exists", "webkit2gtk-4.1"],
+            capture_output=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return "ok", "WebKitGTK 4.1 (pkg-config)"
+        result = subprocess.run(
+            ["pkg-config", "--exists", "webkit2gtk-4.0"],
+            capture_output=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return "ok", "WebKitGTK 4.0 (pkg-config)"
+    except Exception:
+        pass
+    return "warning", "WebKitGTK not found (apt install libwebkit2gtk-4.1-dev)"
+
+
 def _environment_payload() -> dict[str, Any]:
     free_threaded, threading_text = _is_free_threaded()
     python_ok = sys.version_info >= (3, 14)
@@ -516,6 +591,26 @@ def _environment_payload() -> dict[str, Any]:
     except ImportError:
         forge_core_ok = False
         forge_core_detail = "Not compiled (run: maturin develop)"
+
+    # Node.js / npm checks
+    node_status, node_version = _check_command_version("node")
+    node_ok = node_status == "ok" and node_version is not None
+    if node_ok:
+        try:
+            major = int(node_version.split(".")[0])
+            if major < 18:
+                node_status = "warning"
+                node_version = f"{node_version} (>=18 recommended)"
+        except ValueError:
+            pass
+    npm_status, npm_version = _check_command_version("npm")
+
+    # WebView check
+    webview_status, webview_detail = _check_webview_available()
+
+    # Port check (default dev port)
+    dev_port = 5173
+    port_free = _check_port_available(dev_port)
 
     checks = {
         "python": {
@@ -543,6 +638,25 @@ def _environment_payload() -> dict[str, Any]:
         "maturin": {
             "status": _check_status(shutil.which("maturin") is not None),
             "path": shutil.which("maturin"),
+        },
+        "node": {
+            "status": node_status,
+            "version": node_version,
+            "path": shutil.which("node"),
+        },
+        "npm": {
+            "status": npm_status,
+            "version": npm_version,
+            "path": shutil.which("npm"),
+        },
+        "webview": {
+            "status": webview_status,
+            "detail": webview_detail,
+        },
+        "dev_port": {
+            "status": _check_status(port_free),
+            "port": dev_port,
+            "detail": f"Port {dev_port} {'available' if port_free else 'in use'}",
         },
         "uvicorn": {
             "status": "ok" if _module_available("uvicorn") else "warning",
@@ -623,6 +737,8 @@ def _build_validation_payload(config: Any, project_dir: Path, target: str, outpu
             "window_scopes": {
                 key: list(value) for key, value in config.security.window_scopes.items()
             },
+            "strict_mode": bool(config.security.strict_mode),
+            "rate_limit": int(config.security.rate_limit),
         },
         "plugins": {
             "enabled": bool(config.plugins.enabled),
@@ -1442,7 +1558,7 @@ def _run_default_signing_adapter(
 ) -> dict[str, Any]:
     sign_results: list[dict[str, Any]] = []
     verify_results: list[dict[str, Any]] = []
-    target_paths = [path for path in artifacts if Path(path).exists() and Path(path).is_file()]
+    target_paths = [path for path in artifacts if Path(path).exists() and (Path(path).is_file() or Path(path).suffix == ".app")]
     if package_manifest not in target_paths:
         target_paths.append(package_manifest)
 
@@ -1487,10 +1603,32 @@ def _run_default_signing_adapter(
         timestamp_arg = (
             [f"--timestamp={config.signing.timestamp_url}"] if config.signing.timestamp_url else ["--timestamp"]
         )
+        entitlements_path = getattr(config.signing, "entitlements", None)
+        entitlements_arg = ["--entitlements", str(project_dir / entitlements_path)] if entitlements_path else []
+
         for target_path in target_paths:
+            p = Path(target_path)
+            if p.is_dir() and p.suffix == ".app":
+                inner_targets = []
+                for child in p.rglob("*"):
+                    if child.is_file() and (child.suffix in (".dylib", ".so", ".node") or child.parent.name == "MacOS" or ".framework" in child.parts):
+                        if child.name != p.stem:  # skip the main executable as it will be signed by the outer container
+                            inner_targets.append(child)
+                # sign deepest first
+                inner_targets.sort(key=lambda x: len(x.parts), reverse=True)
+                for inner in inner_targets:
+                    _run_signing_hook(
+                        [tool, "--force", "--options=runtime", *timestamp_arg, "--sign", config.signing.identity, str(inner)],
+                        phase="sign",
+                        project_dir=project_dir,
+                        output_dir=output_dir,
+                        artifacts=artifacts,
+                        package_manifest=package_manifest,
+                    )
+
             sign_results.append(
                 _run_signing_hook(
-                    [tool, "--force", "--deep", *timestamp_arg, "--sign", config.signing.identity, target_path],
+                    [tool, "--force", "--options=runtime", *entitlements_arg, *timestamp_arg, "--sign", config.signing.identity, target_path],
                     phase="sign",
                     project_dir=project_dir,
                     output_dir=output_dir,
@@ -1500,7 +1638,8 @@ def _run_default_signing_adapter(
             )
             verify_results.append(
                 _run_signing_hook(
-                    [tool, "--verify", "--deep", target_path],
+                    # For verify we can use --strict 
+                    [tool, "--verify", "--strict", target_path],
                     phase="verify",
                     project_dir=project_dir,
                     output_dir=output_dir,
@@ -1510,31 +1649,39 @@ def _run_default_signing_adapter(
             )
     elif adapter["name"] == "signtool":
         tool = adapter["tool"]
-        for target_path in target_paths:
+        inner_paths = []
+        for p in output_dir.rglob("*"):
+            if p.is_file() and p.suffix.lower() in (".exe", ".dll", ".pyd", ".node") and str(p) not in target_paths:
+                inner_paths.append(str(p))
+
+        for target_path in inner_paths + target_paths:
+            p = Path(target_path)
+            if not p.is_file() and not p.is_dir():
+                continue
+
             sign_command = [tool, "sign", "/fd", "SHA256", "/n", config.signing.identity]
             if config.signing.timestamp_url:
                 sign_command.extend(["/tr", config.signing.timestamp_url, "/td", "SHA256"])
             sign_command.append(target_path)
-            sign_results.append(
-                _run_signing_hook(
-                    sign_command,
-                    phase="sign",
-                    project_dir=project_dir,
-                    output_dir=output_dir,
-                    artifacts=artifacts,
-                    package_manifest=package_manifest,
-                )
+            res = _run_signing_hook(
+                sign_command,
+                phase="sign",
+                project_dir=project_dir,
+                output_dir=output_dir,
+                artifacts=artifacts,
+                package_manifest=package_manifest,
             )
-            verify_results.append(
-                _run_signing_hook(
-                    [tool, "verify", "/pa", target_path],
-                    phase="verify",
-                    project_dir=project_dir,
-                    output_dir=output_dir,
-                    artifacts=artifacts,
-                    package_manifest=package_manifest,
-                )
+            vres = _run_signing_hook(
+                [tool, "verify", "/pa", target_path],
+                phase="verify",
+                project_dir=project_dir,
+                output_dir=output_dir,
+                artifacts=artifacts,
+                package_manifest=package_manifest,
             )
+            if target_path in target_paths:
+                sign_results.append(res)
+                verify_results.append(vres)
 
     return {"adapter": adapter["name"], "sign": sign_results, "verify": verify_results}
 
@@ -1561,15 +1708,38 @@ def _run_notarization(
         )
 
     if platform.system() == "Darwin" and shutil.which("xcrun"):
-        submit_target = next((path for path in artifacts if Path(path).is_file()), package_manifest)
-        return _run_signing_hook(
-            ["xcrun", "notarytool", "submit", submit_target, "--wait"],
+        submit_target = next((path for path in artifacts if Path(path).is_file() and path.endswith(".dmg")), None)
+        if not submit_target:
+            submit_target = next((path for path in artifacts if Path(path).exists() and path.endswith(".app")), package_manifest)
+
+        apple_id = getattr(config.signing, "apple_id", None) or os.environ.get("FORGE_APPLE_ID")
+        password = getattr(config.signing, "apple_password", None) or os.environ.get("FORGE_APPLE_PASSWORD")
+        team_id = getattr(config.signing, "apple_team_id", None) or os.environ.get("FORGE_APPLE_TEAM_ID")
+
+        auth_args = []
+        if apple_id and password and team_id:
+            auth_args = ["--apple-id", apple_id, "--password", password, "--team-id", team_id]
+
+        result = _run_signing_hook(
+            ["xcrun", "notarytool", "submit", submit_target, *auth_args, "--wait"],
             phase="notarize",
             project_dir=project_dir,
             output_dir=output_dir,
             artifacts=artifacts,
             package_manifest=package_manifest,
         )
+
+        if result.get("status") == "ok":
+            _run_signing_hook(
+                ["xcrun", "stapler", "staple", submit_target],
+                phase="notarize",
+                project_dir=project_dir,
+                output_dir=output_dir,
+                artifacts=artifacts,
+                package_manifest=package_manifest,
+            )
+
+        return result
 
     return {"status": "skipped", "command": None, "reason": "no_notarization_adapter"}
 
@@ -1766,12 +1936,44 @@ def _launch_dev_process_with_env(
         if not existing_pythonpath
         else os.pathsep.join([str(project_dir), existing_pythonpath])
     )
+    kwargs: dict[str, Any] = {
+        "cwd": str(project_dir),
+        "env": env,
+        "text": True,
+    }
+    if sys.platform != "win32":
+        kwargs["start_new_session"] = True
     return subprocess.Popen(
         [sys.executable, str(entry_path)],
-        cwd=str(project_dir),
-        env=env,
-        text=True,
+        **kwargs,
     )
+
+
+def _graceful_kill(process: subprocess.Popen, *, timeout: int = 5) -> None:
+    """Gracefully terminate a process, escalating to SIGKILL if needed."""
+    if process.poll() is not None:
+        return
+    try:
+        if sys.platform != "win32" and process.pid:
+            os.killpg(os.getpgid(process.pid), 15)  # SIGTERM to group
+        else:
+            process.terminate()
+    except (OSError, ProcessLookupError):
+        pass
+    try:
+        process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            if sys.platform != "win32" and process.pid:
+                os.killpg(os.getpgid(process.pid), 9)  # SIGKILL
+            else:
+                process.kill()
+        except (OSError, ProcessLookupError):
+            pass
+        try:
+            process.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            pass
 
 
 def _wait_for_http_ready(url: str, timeout_seconds: int) -> None:
@@ -1796,82 +1998,145 @@ def _launch_dev_server(project_dir: Path, config: Any) -> tuple[subprocess.Popen
     if not command or not url:
         return None, {}
 
+    # Port conflict detection
+    dev_port = config.dev.port or 5173
+    if not _check_port_available(dev_port):
+        console.print(
+            f"[forge.warn]⚠ Port {dev_port} is already in use.[/] "
+            f"Kill the existing process or use --port to pick another.",
+        )
+
     working_dir = project_dir / config.dev.dev_server_cwd if config.dev.dev_server_cwd else project_dir
     console.print(f"[green]OK[/] Starting frontend dev server: [cyan]{command}[/]")
+    kwargs: dict[str, Any] = {
+        "cwd": str(working_dir),
+        "env": os.environ.copy(),
+        "text": True,
+    }
+    if sys.platform != "win32":
+        kwargs["start_new_session"] = True
     process = subprocess.Popen(
         shlex.split(command),
-        cwd=str(working_dir),
-        env=os.environ.copy(),
-        text=True,
+        **kwargs,
     )
     try:
         _wait_for_http_ready(url, config.dev.dev_server_timeout)
     except Exception:
-        process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
+        _graceful_kill(process)
         raise
 
     console.print(f"[green]OK[/] Frontend dev server ready at [cyan]{url}[/]")
     return process, {"FORGE_DEV_SERVER_URL": url}
 
 
+# File extensions that require a full Python restart vs frontend-only reload
+_BACKEND_EXTENSIONS = {".py", ".toml"}
+_FRONTEND_EXTENSIONS = {".html", ".css", ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte", ".json", ".md"}
+
+
+def _classify_changes(
+    old_snapshot: dict[str, int], new_snapshot: dict[str, int]
+) -> str:
+    """Classify what kind of reload is needed based on changed files.
+
+    Returns:
+        'backend' — full Python process restart needed (.py, .toml changes)
+        'frontend' — page reload sufficient (.html, .css, .js, etc.)
+        'none' — no changes
+    """
+    changed_files: set[str] = set()
+    all_keys = set(old_snapshot.keys()) | set(new_snapshot.keys())
+    for key in all_keys:
+        if old_snapshot.get(key) != new_snapshot.get(key):
+            changed_files.add(key)
+
+    if not changed_files:
+        return "none"
+
+    for f in changed_files:
+        ext = Path(f).suffix.lower()
+        if ext in _BACKEND_EXTENSIONS:
+            return "backend"
+
+    return "frontend"
+
+
 def _run_dev_loop(project_dir: Path, config: Any, hot_reload: bool) -> None:
+    import watchfiles
+
     entry_path = config.get_entry_path()
     dev_server_process, extra_env = _launch_dev_server(project_dir, config)
-    process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=extra_env)
+    
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
+    
     if not hot_reload:
+        process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=env)
         try:
             raise typer.Exit(process.wait())
         finally:
             if dev_server_process is not None:
-                dev_server_process.terminate()
-                try:
-                    dev_server_process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    dev_server_process.kill()
-                    dev_server_process.wait(timeout=5)
+                _graceful_kill(dev_server_process)
+                
+    console.print("[green]OK[/] Hot reload watcher active (using watchfiles & os.execv strategy)")
+    console.print("[forge.muted]  • .py/.toml changes → full restart via os.execv[/]")
+    console.print("[forge.muted]  • .html/.css/.js changes → page reload[/]")
 
-    snapshot = _watch_snapshot(project_dir, config)
-    console.print("[green]OK[/] Hot reload watcher active")
+    ignored_roots = {
+        (project_dir / config.build.output_dir).resolve(),
+        (project_dir / "target").resolve(),
+        (project_dir / ".venv").resolve(),
+        (project_dir / "node_modules").resolve(),
+    }
+
+    def watch_filter(change: Any, path: str) -> bool:
+        try:
+            resolved = Path(path).resolve()
+        except OSError:
+            return False
+        return _should_watch_path(resolved, project_dir.resolve(), ignored_roots)
 
     try:
-        while True:
+        # Instead of killing the process, we use os.execv to restart the entire CLI process itself.
+        # This gives a fast, clean restart without leaving orphaned zombies.
+        # Dev server is also preserved (if run external) or killed naturally on exit.
+        process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=env)
+        
+        for changes in watchfiles.watch(project_dir, watch_filter=watch_filter, step=500, yield_on_timeout=True):
             if process.poll() is not None:
-                console.print("[yellow]Process exited; restarting...[/]")
-                process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=extra_env)
-                snapshot = _watch_snapshot(project_dir, config)
+                console.print("[yellow]⚠[/] Process exited; restarting...")
+                process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=env)
+                continue
+                
+            if not changes:
+                continue
 
-            time.sleep(0.5)
-            updated_snapshot = _watch_snapshot(project_dir, config)
-            if updated_snapshot != snapshot:
-                console.print("[cyan]Change detected[/] Restarting application...")
-                process.terminate()
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait(timeout=5)
-                process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=extra_env)
-                snapshot = updated_snapshot
+            change_type = "none"
+            for _, path in changes:
+                if Path(path).suffix.lower() in _BACKEND_EXTENSIONS:
+                    change_type = "backend"
+                    break
+                else:
+                    change_type = "frontend"
+
+            if change_type == "backend":
+                console.print("[cyan]⟳[/] Backend change detected → [bold]full restart via execv[/]")
+                _graceful_kill(process)
+                if dev_server_process is not None:
+                    _graceful_kill(dev_server_process)
+                # Restart the CLI itself for a clean state
+                os.execv(sys.executable, [sys.executable, *sys.argv])
+            elif change_type == "frontend":
+                console.print("[cyan]⟳[/] Frontend change detected → [bold]page reload[/]")
+                # Frontend files are served by the dev server (Vite HMR handles this)
+
     except KeyboardInterrupt:
         console.print("\n[yellow]Dev mode stopped.[/]")
-        process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
+        if 'process' in locals():
+            _graceful_kill(process)
         if dev_server_process is not None:
-            dev_server_process.terminate()
-            try:
-                dev_server_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                dev_server_process.kill()
-                dev_server_process.wait(timeout=5)
+            _graceful_kill(dev_server_process)
         raise typer.Exit(0)
 
 
@@ -1883,12 +2148,12 @@ def version() -> None:
 
 @app.command("create")
 def create_project(
-    name: str = typer.Argument(..., help="Project name"),
+    name: Optional[str] = typer.Argument(None, help="Project name"),
     template: str = typer.Option(
         "plain",
         "-t",
         "--template",
-        help="Project template (plain, react, vue, svelte)",
+        help="Project template (plain, react, vue, svelte, astro, next, nuxt, sveltekit, qwik, solid, preact, angular)",
     ),
     window_size: str = typer.Option(
         "1280x800",
@@ -1903,6 +2168,8 @@ def create_project(
         help="Author name",
     ),
 ) -> None:
+    if not name:
+        name = Prompt.ask("Project name", default="my-forge-app")
     """
     Create a new Forge project.
 
@@ -1911,7 +2178,7 @@ def create_project(
     _print_header("Create App", "Scaffold a new Forge workspace")
 
     # Validate template
-    valid_templates = ["plain", "react", "vue", "svelte"]
+    valid_templates = ["plain", "react", "vue", "svelte", "complex"]
     if template not in valid_templates:
         _print_note(f"Invalid template. Choose from: {', '.join(valid_templates)}", level="error")
         raise typer.Exit(1)
@@ -1989,6 +2256,9 @@ def create_project(
     # Create a simple icon placeholder
     _create_placeholder_icon(assets_dir / "icon.png")
     _print_note("Created placeholder icon", level="ok")
+
+    with console.status("[cyan]Setting up Python environment...[/]"):
+        _setup_python_env(project_dir)
 
     _print_command_result(
         "Ready to Forge",
@@ -2431,7 +2701,13 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
             str(output_dir),
         ]
     else:
-        # Fallback to Nuitka (preferred over PyInstaller for Python 3.14)
+        # Validate Nuitka is actually available before attempting a build
+        if not _module_available("nuitka"):
+            raise RuntimeError(
+                "No supported build tool found. "
+                "Install maturin (for Rust+Python hybrid) or Nuitka (pip install nuitka) "
+                "to compile your application. Forge does not produce fallback artifacts."
+            )
         if emit_output:
             _print_note("Using Nuitka for Python compilation", level="ok")
         build_args = [
@@ -2970,8 +3246,219 @@ def doctor(
         _print_note("Doctor check passed.", level="ok")
         return
 
-    _print_note("Doctor found blocking issues.", level="error")
+    # Show remediation hints
+    _print_note("Doctor found blocking issues. Suggested fixes:", level="error")
+    hints = _get_remediation_hints(payload)
+    for hint in hints:
+        console.print(f"  [yellow]→[/] {hint}")
+
     raise typer.Exit(1)
+
+
+def _get_remediation_hints(payload: dict[str, Any]) -> list[str]:
+    """Generate actionable fix suggestions based on doctor results."""
+    hints: list[str] = []
+    checks = payload.get("environment", {}).get("checks", {})
+
+    if checks.get("python", {}).get("status") != "ok":
+        hints.append("Install Python 3.10+: https://python.org/downloads/")
+
+    if checks.get("rust_core", {}).get("status") != "ok":
+        hints.append("Compile the Rust core: cd forge-framework && maturin develop")
+
+    if checks.get("cargo", {}).get("status") != "ok" or checks.get("rustc", {}).get("status") != "ok":
+        hints.append("Install Rust toolchain: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
+
+    if checks.get("maturin", {}).get("status") != "ok":
+        hints.append("Install maturin: pip install maturin")
+
+    if checks.get("node", {}).get("status") not in ("ok", None):
+        hints.append("Install Node.js 18+: https://nodejs.org/")
+
+    project = payload.get("project", {})
+    if not project.get("exists"):
+        hints.append("Create a new project: forge create my-app")
+    elif not project.get("valid"):
+        for err in project.get("errors", []):
+            hints.append(f"Config: {err}")
+
+    return hints
+
+
+@app.command("plugin-add")
+def plugin_add(
+    name: str = typer.Argument(..., help="Plugin package name (e.g., forge-plugin-auth)"),
+    path: Optional[str] = typer.Argument(
+        None,
+        help="Path to project directory (default: current directory)",
+    ),
+) -> None:
+    """
+    Install a Forge plugin into the current project.
+
+    Installs the plugin package via pip and registers it in forge.toml.
+    """
+    _print_header("Plugin Add", f"Install plugin: {name}")
+
+    project_dir = Path(path).resolve() if path else Path.cwd()
+    config_path = project_dir / "forge.toml"
+
+    if not config_path.exists():
+        _print_note(f"No forge.toml found in {project_dir}", level="error")
+        raise typer.Exit(1)
+
+    # Install the package
+    _print_note(f"Installing {name}...", level="ok")
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", name],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        _print_note(f"Package {name} installed", level="ok")
+    except subprocess.CalledProcessError as exc:
+        _print_note(f"Failed to install {name}: {exc.stderr[:200]}", level="error")
+        raise typer.Exit(1)
+
+    # Register in forge.toml
+    try:
+        config_text = config_path.read_text()
+        module_name = name.replace("-", "_")
+
+        if module_name in config_text:
+            _print_note(f"Plugin {module_name} already registered in forge.toml", level="warning")
+        elif "[plugins]" in config_text:
+            # Append to existing plugins.modules
+            if "modules = [" in config_text:
+                config_text = config_text.replace(
+                    "modules = [",
+                    f'modules = ["{module_name}", ',
+                )
+            else:
+                config_text = config_text.replace(
+                    "[plugins]",
+                    f'[plugins]\nmodules = ["{module_name}"]',
+                )
+            config_path.write_text(config_text)
+            _print_note(f"Registered {module_name} in forge.toml", level="ok")
+        else:
+            config_text += f'\n[plugins]\nenabled = true\nmodules = ["{module_name}"]\n'
+            config_path.write_text(config_text)
+            _print_note(f"Added [plugins] section with {module_name} to forge.toml", level="ok")
+
+    except Exception as e:
+        _print_note(f"Installed {name} but could not update forge.toml: {e}", level="warning")
+        _print_note(f"Add '{module_name}' to [plugins].modules manually", level="warning")
+
+
+@app.command("support-bundle")
+def support_bundle(
+    path: Optional[str] = typer.Argument(
+        None,
+        help="Path to project directory (default: current directory)",
+    ),
+    output: Optional[str] = typer.Option(
+        None,
+        "-o",
+        "--output",
+        help="Output path for the support bundle zip",
+    ),
+) -> None:
+    """Generate a diagnostic support bundle for troubleshooting.
+
+    Creates a .zip file containing system info, sanitized config,
+    recent log files, and environment diagnostic checks.
+    """
+    _print_header("Support Bundle", "Collect diagnostics for troubleshooting")
+
+    project_dir = Path(path).resolve() if path else Path.cwd()
+
+    if output:
+        bundle_path = Path(output).resolve()
+    else:
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        bundle_path = project_dir / f"forge-support-{timestamp}.zip"
+
+    _print_note("Collecting system information...", level="ok")
+    _print_note("Snapshotting config...", level="ok")
+    _print_note("Gathering log files...", level="ok")
+
+    try:
+        from forge.diagnostics import generate_support_bundle
+
+        log_dir = project_dir / ".forge-logs"
+        result = generate_support_bundle(
+            bundle_path,
+            project_dir=project_dir,
+            log_dir=log_dir if log_dir.exists() else None,
+        )
+
+        _print_note(f"Bundle contains {len(result['contents'])} files", level="ok")
+        _print_command_result(
+            "Support Bundle Ready",
+            "Path",
+            result["path"],
+            footer=f"Size: {result['size_bytes']:,} bytes",
+        )
+    except Exception as exc:
+        _print_note(f"Failed to generate support bundle: {exc}", level="error")
+        raise typer.Exit(1)
+
+
+@app.command("generate-types")
+def generate_types(
+    path: Path = typer.Argument(Path("."), help="Project directory"),
+    output: Path = typer.Option(Path("src/forge-env.d.ts"), "--output", "-o", help="Output path for the d.ts file"),
+    format: str = typer.Option("text", "--format", help="Output format (text/json)"),
+) -> None:
+    """
+    Generate a strictly typed TypeScript index.d.ts from the Python backend.
+    """
+    _print_header("Type Generation", "Building TypeScript definitions")
+    project_dir = path.resolve()
+    if not project_dir.exists() or not (project_dir / "forge.toml").exists():
+        _print_note("No forge.toml found. Are you in a Forge project?", level="error")
+        raise typer.Exit(1)
+
+    try:
+        from forge.config import ForgeConfig
+        from forge.app import ForgeApp
+        from forge.typegen import TypeGenerator
+
+        # Load configuration
+        config = ForgeConfig.from_file(project_dir / "forge.toml")
+        
+        # Bypassing real GUI window creation by avoiding app.run()
+        # Initializing ForgeApp will register internal commands and plugins
+        _print_note("Introspecting runtime...", level="info")
+        config_path = project_dir / "forge.toml"
+        app = ForgeApp(str(config_path))
+        
+        if hasattr(app, "bridge"):
+            registry = app.bridge.get_command_registry()
+            # Feed registry into TypeGenerator
+            generator = TypeGenerator(registry)
+            dts_content = generator.generate()
+            
+            out_path = project_dir / output
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(dts_content, encoding="utf-8")
+            
+            _print_note(f"Extracted {len(registry)} IPC commands.", level="ok")
+            _print_command_result(
+                "Definitions Ready", "Path", str(output), footer=f"Saved {len(dts_content.splitlines())} lines."
+            )
+            
+            if format == "json":
+                _machine_readable_print({"typegen": "success", "file": str(out_path)})
+        else:
+            _print_note("ForgeApp instance has no bridge configured.", level="error")
+            raise typer.Exit(1)
+
+    except Exception as exc:
+        _print_note(f"Type generation failed: {exc}", level="error")
+        raise typer.Exit(1)
 
 
 def _copy_template(
@@ -3021,16 +3508,16 @@ def _write_frontend_workspace_files(project_dir: Path, template: str, name: str)
     vite_config_path = project_dir / "vite.config.mjs"
 
     dependencies: dict[str, str] = {
-        "@forge/api": "^2.0.0",
+        "@forgedesk/api": "^2.0.0",
     }
     dev_dependencies: dict[str, str] = {
-        "@forge/vite-plugin": "^2.0.0",
+        "@forgedesk/vite-plugin": "^2.0.0",
         "vite": "^6.2.0",
     }
     plugin_import = ""
     plugin_usage = ""
 
-    if template == "react":
+    if template in ["react", "complex"]:
         dependencies.update({"react": "^19.0.0", "react-dom": "^19.0.0"})
         dev_dependencies["@vitejs/plugin-react"] = "^4.4.0"
         plugin_import = 'import react from "@vitejs/plugin-react"\n'
@@ -3066,7 +3553,7 @@ def _write_frontend_workspace_files(project_dir: Path, template: str, name: str)
     vite_config_path.write_text(
         "import { defineConfig } from \"vite\"\n"
         + plugin_import
-        + 'import { forgeVitePlugin } from "@forge/vite-plugin"\n\n'
+        + 'import { forgeVitePlugin } from "@forgedesk/vite-plugin"\n\n'
         + "export default defineConfig({\n"
         + "  root: \"src/frontend\",\n"
         + "  plugins: ["
@@ -3097,6 +3584,45 @@ def _inject_dev_server_defaults(config_path: Path) -> None:
     )
     config_path.write_text(content.replace(marker, replacement), encoding="utf-8")
 
+
+
+
+
+def _setup_python_env(project_dir: Path) -> None:
+    venv_dir = project_dir / ".venv"
+    _print_note("Creating Python virtual environment...", level="ok")
+    
+    try:
+        venv.create(venv_dir, with_pip=True)
+    except Exception as e:
+        _print_note(f"Failed to create virtual environment: {e}", level="error")
+        return
+
+    if sys.platform == "win32":
+        pip_exe = venv_dir / "Scripts" / "pip.exe"
+    else:
+        pip_exe = venv_dir / "bin" / "pip"
+
+    _print_note("Installing Python dependencies...", level="ok")
+    
+    # Check if we are running in the framework source to do an editable install
+    cli_dir = Path(__file__).resolve().parent
+    repo_root = cli_dir.parent
+    
+    deps = ["fastapi", "uvicorn", "rich", "cryptography", "msgspec", "msgpack", "watchfiles"]
+    
+    # If Cargo.toml or pyproject.toml is in repo_root, assume editable install
+    if (repo_root / "pyproject.toml").exists() and (repo_root / "Cargo.toml").exists():
+        deps.append("-e")
+        deps.append(str(repo_root))
+    else:
+        deps.append("forge-framework")
+    
+    try:
+        subprocess.run([str(pip_exe), "install", *deps], check=True)
+        _print_note("Python environment configured successfully", level="ok")
+    except subprocess.CalledProcessError as e:
+        _print_note(f"Failed to install dependencies: {e}", level="warning")
 
 def _create_placeholder_icon(path: Path) -> None:
     """

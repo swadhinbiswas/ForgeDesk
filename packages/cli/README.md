@@ -1,4 +1,4 @@
-# @forge/cli
+# @forgedesk/cli
 
 Node wrapper for the Forge Python CLI.
 
@@ -10,7 +10,7 @@ Node wrapper for the Forge Python CLI.
 ## Install
 
 ```bash
-npm install -D @forge/cli
+npm install -D @forgedesk/cli
 ```
 
 ## Usage

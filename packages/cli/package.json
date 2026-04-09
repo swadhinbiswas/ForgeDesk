@@ -1,5 +1,5 @@
 {
-  "name": "@forge/cli",
+  "name": "@forgedesk/cli",
   "version": "2.0.0",
   "description": "Node wrapper for the Forge Python CLI",
   "license": "MIT",

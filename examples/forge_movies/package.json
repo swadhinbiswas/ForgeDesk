@@ -1,0 +1,9 @@
+{
+  "name": "forge_movies",
+  "version": "1.0.0",
+  "description": "Multi-file application example",
+  "scripts": {
+    "dev": "npm run dev --prefix src/frontend",
+    "build": "npm run build --prefix src/frontend"
+  }
+}

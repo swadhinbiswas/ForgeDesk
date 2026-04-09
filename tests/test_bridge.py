@@ -339,29 +339,21 @@ class TestIPCBridgeWithApp:
         bridge = IPCBridge(mock_app, {"clipboard_secret": clipboard_secret})
         registry = bridge.get_command_registry()
 
-        assert registry == [
-            {
-                "name": "__forge_describe_commands",
-                "capability": None,
-                "version": PROTOCOL_VERSION,
-                "internal": True,
-                "allowed": True,
-            },
-            {
-                "name": "__forge_protocol_info",
-                "capability": None,
-                "version": PROTOCOL_VERSION,
-                "internal": True,
-                "allowed": True,
-            },
-            {
-                "name": "clipboard_secret",
-                "capability": "clipboard",
-                "version": "1.2",
-                "internal": False,
-                "allowed": True,
-            }
-        ]
+        assert len(registry) == 4
+        names = [item["name"] for item in registry]
+        assert "__forge_describe_commands" in names
+        assert "__forge_log" in names
+        assert "__forge_protocol_info" in names
+        assert "clipboard_secret" in names
+
+        clipboard_plugin = next(item for item in registry if item["name"] == "clipboard_secret")
+        assert clipboard_plugin["capability"] == "clipboard"
+        assert clipboard_plugin["version"] == "1.2"
+        assert clipboard_plugin["internal"] is False
+        assert clipboard_plugin["allowed"] is True
+        assert "schema" in clipboard_plugin
+        assert clipboard_plugin["schema"]["return_type"] == "<class 'str'>"
+        assert clipboard_plugin["schema"]["args"] == []
 
     def test_internal_describe_commands_command(self, mock_app: MagicMock) -> None:
         """Test the built-in command registry introspection command."""

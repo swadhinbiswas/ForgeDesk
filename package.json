@@ -7,5 +7,34 @@
   ],
   "engines": {
     "node": ">=18"
+  },
+  "description": "**Forge the future. Ship with Python.**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swadhinbiswas/Forge.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/swadhinbiswas/Forge/issues"
+  },
+  "homepage": "https://github.com/swadhinbiswas/Forge#readme",
+  "devDependencies": {
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.32"
   }
 }
