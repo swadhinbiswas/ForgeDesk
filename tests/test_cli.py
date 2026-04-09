@@ -945,7 +945,10 @@ def test_build_fails_when_nsis_tool_is_missing(tmp_path: Path, monkeypatch) -> N
     monkeypatch.chdir(project_dir)
     monkeypatch.setattr("forge_cli.main._module_available", lambda name: True)
     monkeypatch.setattr("forge_cli.main.platform.system", lambda: "Windows")
-    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name == "makensis" else "/usr/bin/tool")
+    monkeypatch.setattr(
+        "forge_cli.main._find_packaging_tool",
+        lambda name: None if name == "makensis" else "/usr/bin/tool",
+    )
 
     result = runner.invoke(app, ["build", "--result-format", "json"])
 
