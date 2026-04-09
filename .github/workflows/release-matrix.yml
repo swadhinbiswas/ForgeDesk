@@ -93,8 +93,8 @@ jobs:
         shell: bash
         run: |
           python scripts/ci/prepare_release_fixture.py \
-            --source examples/forge_todo \
-            --dest .ci/forge_todo \
+            --source "$GITHUB_WORKSPACE/examples/forge_todo" \
+            --dest "$GITHUB_WORKSPACE/.ci/forge_todo" \
             --formats "${{ matrix.formats }}" \
             --app-id "${{ matrix.app_id }}" \
             --product-name "${{ matrix.product_name }}"
@@ -102,8 +102,12 @@ jobs:
       - name: Build release fixture
         shell: bash
         run: |
-          python -m forge_cli.main release .ci/forge_todo --result-format json > build-result.json
+          set +e
+          python -m forge_cli.main release "$GITHUB_WORKSPACE/.ci/forge_todo" --result-format json > build-result.json
+          release_exit=$?
+          set -e
           cat build-result.json
+          exit $release_exit
 
       - name: Verify release artifacts
         run: python scripts/ci/verify_release_artifacts.py --build-result build-result.json
