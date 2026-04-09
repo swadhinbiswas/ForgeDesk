@@ -70,16 +70,31 @@ jobs:
         if: github.event_name != 'pull_request'
         run: python scripts/ci/require_release_branch.py --json
 
-      - name: Ensure Python build tooling
+      - name: Ensure Python build tooling (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           if [ ! -x "$GITHUB_WORKSPACE/.venv/bin/python" ]; then
             python -m venv .venv
           fi
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-          if ! python -c "import importlib.util,sys; req=['maturin','nuitka','pytest','pytest_cov']; sys.exit(0 if all(importlib.util.find_spec(n) for n in req) else 1)"; then
-            python -m pip install maturin nuitka pytest pytest-cov
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -e .
+          if ! "$GITHUB_WORKSPACE/.venv/bin/python" -c "import importlib.util,sys; req=['maturin','nuitka','pytest','pytest_cov']; sys.exit(0 if all(importlib.util.find_spec(n) for n in req) else 1)"; then
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install maturin nuitka pytest pytest-cov
+          fi
+
+      - name: Ensure Python build tooling (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          if (-not (Test-Path "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe")) {
+            python -m venv .venv
+          }
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install --upgrade pip
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install -e .
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -c "import importlib.util,sys; req=['maturin','nuitka','pytest','pytest_cov']; sys.exit(0 if all(importlib.util.find_spec(n) for n in req) else 1)"
+          if ($LASTEXITCODE -ne 0) {
+            & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install maturin nuitka pytest pytest-cov
           fi
 
       - name: Install Linux packaging tools
@@ -97,8 +112,15 @@ jobs:
         run: |
           choco install -y nsis wixtoolset
 
-      - name: Build native extension
-        run: python -m maturin develop
+      - name: Build native extension (Unix)
+        if: runner.os != 'Windows'
+        run: $GITHUB_WORKSPACE/.venv/bin/python -m maturin develop
+
+      - name: Build native extension (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m maturin develop
 
       - name: Validate repo
         run: |
