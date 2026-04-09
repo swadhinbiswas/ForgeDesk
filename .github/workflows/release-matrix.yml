@@ -183,6 +183,11 @@ jobs:
       - name: Smoke-test installers
         run: python scripts/ci/smoke_installers.py --build-result build-result.json
 
+      - name: Cleanup Flatpak build workdir
+        if: always() && runner.os == 'Linux'
+        shell: bash
+        run: rm -rf "$GITHUB_WORKSPACE/.ci/forge_todo/dist/flatpak-build"
+
       - name: Upload build result
         if: always()
         uses: actions/upload-artifact@v4
