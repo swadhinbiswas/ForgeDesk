@@ -2725,6 +2725,10 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
             "--output-filename=" + app_name,
         ])
 
+        if (project_dir / "forge.toml").exists():
+            build_args.extend([f"--include-data-file={project_dir / 'forge.toml'}=forge.toml"])
+
+
         if config.build.icon and (project_dir / config.build.icon).exists():
             build_args.extend(["--linux-icon=" + str(project_dir / config.build.icon)])
 

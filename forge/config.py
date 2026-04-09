@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from urllib.parse import urlparse
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -526,7 +527,11 @@ class ForgeConfig:
             FileNotFoundError: If no forge.toml is found.
         """
         if start_path is None:
-            start_path = Path.cwd()
+            import __main__
+            if hasattr(sys, "frozen") or hasattr(__main__, "__compiled__"):
+                start_path = Path(__main__.__file__).parent.resolve()
+            else:
+                start_path = Path.cwd()
         else:
             start_path = Path(start_path).resolve()
 
