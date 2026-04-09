@@ -951,12 +951,12 @@ class TestForgeApp:
                     "",
                     "[updater]",
                     "enabled = true",
-                    f'endpoint = "{manifest_path}"',
+                    f'endpoint = "{manifest_path.as_posix()}"',
                     f'public_key = "{public_key}"',
                     'channel = "stable"',
                     "require_signature = true",
                     'staging_dir = ".forge-updater-state"',
-                    f'install_dir = "{install_dir}"',
+                    f'install_dir = "{install_dir.as_posix()}"',
                 ]
             ),
         )

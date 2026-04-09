@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import platform
 import subprocess
 from pathlib import Path
 
@@ -307,7 +308,7 @@ def test_build_supports_json_output_for_web_target(tmp_path: Path, monkeypatch) 
     assert payload["validation"]["ok"] is True
     assert payload["build"]["builder"] == "static-copy"
     assert payload["build"]["target"] == "web"
-    assert any(path.endswith("dist/static/forge.js") for path in payload["build"]["artifacts"])
+    assert any(path.replace("\\", "/").endswith("dist/static/forge.js") for path in payload["build"]["artifacts"])
 
 
 def test_build_returns_nonzero_json_for_missing_frontend(tmp_path: Path, monkeypatch) -> None:
@@ -426,7 +427,8 @@ def test_build_generates_package_descriptors_for_protocol_handlers(tmp_path: Pat
     assert Path(package["manifest_path"]).exists()
     assert "package-manifest" in descriptor_types
     assert "protocol-manifest" in descriptor_types
-    assert "linux-desktop-entry" in descriptor_types
+    if platform.system() == "Linux":
+        assert "linux-desktop-entry" in descriptor_types
 
 
 def test_build_generates_plugin_contract_manifest(tmp_path: Path, monkeypatch) -> None:
