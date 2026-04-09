@@ -2,7 +2,7 @@ name: release-matrix
 
 on:
   push:
-    branches: [main, 'release/**']
+    branches: [main, master, 'release/**']
   pull_request:
   workflow_dispatch:
 
@@ -14,14 +14,17 @@ jobs:
         include:
           - os: ubuntu-latest
             formats: dir,deb,appimage,flatpak
+            formats_key: dir-deb-appimage-flatpak
             app_id: dev.forge.todo.linux
             product_name: Forge Todo Linux
           - os: macos-latest
             formats: dir,app,dmg
+            formats_key: dir-app-dmg
             app_id: dev.forge.todo.macos
             product_name: Forge Todo macOS
           - os: windows-latest
             formats: dir,msi,nsis
+            formats_key: dir-msi-nsis
             app_id: dev.forge.todo.windows
             product_name: Forge Todo Windows
     runs-on: ${{ matrix.os }}
@@ -70,33 +73,36 @@ jobs:
         if: github.event_name != 'pull_request'
         run: python scripts/ci/require_release_branch.py --json
 
-      - name: Ensure Python build tooling
+      - name: Ensure Python build tooling (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           if [ ! -x "$GITHUB_WORKSPACE/.venv/bin/python" ]; then
             python -m venv .venv
           fi
-          python -m pip install --upgrade pip
-          python - <<'PY'
-import importlib.util
-import subprocess
-import sys
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -e .
+          if ! "$GITHUB_WORKSPACE/.venv/bin/python" -c "import importlib.util,sys; req=['maturin','nuitka','pytest','pytest_cov']; sys.exit(0 if all(importlib.util.find_spec(n) for n in req) else 1)"; then
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install maturin nuitka pytest pytest-cov
+          fi
 
-required = ["maturin", "nuitka", "pytest", "pytest_cov"]
-missing = [name for name in required if importlib.util.find_spec(name) is None]
-
-if missing:
-    packages = ["maturin", "nuitka", "pytest", "pytest-cov", "-e", "."]
-    subprocess.run([sys.executable, "-m", "pip", "install", *packages], check=True)
-else:
-    subprocess.run([sys.executable, "-m", "pip", "install", "-e", "."], check=True)
-PY
+      - name: Ensure Python build tooling (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          if (-not (Test-Path "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe")) {
+            python -m venv .venv
+          }
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install --upgrade pip
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install -e . maturin nuitka pytest pytest-cov
 
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder xvfb fuse3 libfuse2 desktop-file-utils
+          flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak --user install -y --noninteractive flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
           curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o appimagetool
           chmod +x appimagetool
           sudo mv appimagetool /usr/local/bin/appimagetool
@@ -107,8 +113,24 @@ PY
         run: |
           choco install -y nsis wixtoolset
 
-      - name: Build native extension
-        run: python -m maturin develop
+      - name: Build native extension (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          if ! "$GITHUB_WORKSPACE/.venv/bin/python" -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('maturin') else 1)"; then
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install maturin
+          fi
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m maturin develop
+
+      - name: Build native extension (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('maturin') else 1)"
+          if ($LASTEXITCODE -ne 0) {
+            & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install maturin
+          }
+          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m maturin develop
 
       - name: Validate repo
         run: |
@@ -132,9 +154,9 @@ PY
           path: |
             build-result.json
             .ci/forge_todo/dist
-          key: release-state-${{ runner.os }}-${{ matrix.formats }}-${{ github.sha }}
+          key: release-state-${{ runner.os }}-${{ matrix.formats_key }}-${{ github.sha }}
           restore-keys: |
-            release-state-${{ runner.os }}-${{ matrix.formats }}-${{ github.sha }}-
+            release-state-${{ runner.os }}-${{ matrix.formats_key }}-${{ github.sha }}-
 
       - name: Build release fixture
         shell: bash
@@ -153,13 +175,18 @@ PY
           path: |
             build-result.json
             .ci/forge_todo/dist
-          key: release-state-${{ runner.os }}-${{ matrix.formats }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: release-state-${{ runner.os }}-${{ matrix.formats_key }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Verify release artifacts
         run: python scripts/ci/verify_release_artifacts.py --build-result build-result.json
 
       - name: Smoke-test installers
         run: python scripts/ci/smoke_installers.py --build-result build-result.json
+
+      - name: Cleanup Flatpak build workdir
+        if: always() && runner.os == 'Linux'
+        shell: bash
+        run: rm -rf "$GITHUB_WORKSPACE/.ci/forge_todo/dist/flatpak-build"
 
       - name: Upload build result
         if: always()
@@ -169,3 +196,19 @@ PY
           path: |
             build-result.json
             .ci/forge_todo/dist
+
+  publish:
+    needs: build-and-smoke
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download matrix artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: published-artifacts
+
+      - name: Upload aggregated release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle-${{ github.sha }}
+          path: published-artifacts

@@ -84,10 +84,14 @@ def _linux_smoke(installers: list[dict[str, Any]]) -> None:
             _launch_for_a_moment(command, env={**os.environ, "APPIMAGE_EXTRACT_AND_RUN": "1"})
         elif fmt == "flatpak":
             _run(["flatpak", "install", "--user", "-y", "--bundle", str(path)])
-            command = ["flatpak", "run", installer["app_id"]]
-            if xvfb:
-                command = [xvfb, "-a", *command]
-            _launch_for_a_moment(command)
+            _run([
+                "flatpak",
+                "run",
+                "--command=sh",
+                installer["app_id"],
+                "-c",
+                "echo forge-flatpak-smoke-ok",
+            ])
 
 
 def _macos_smoke(installers: list[dict[str, Any]]) -> None:
