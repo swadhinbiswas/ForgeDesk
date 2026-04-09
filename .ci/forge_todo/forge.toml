@@ -1,0 +1,41 @@
+[app]
+name = "Forge Todo"
+version = "1.0.0"
+description = "A modern task manager built with Forge"
+authors = ["Forge Team"]
+main_html = "src/frontend/index.html"
+
+[window]
+title = "Forge Todo"
+width = 1380
+height = 900
+resizable = true
+fullscreen = false
+min_width = 900
+min_height = 620
+decorations = true
+always_on_top = false
+transparent = false
+
+[build]
+entry = "src/main.py"
+output_dir = "dist"
+single_binary = true
+
+[dev]
+frontend_dir = "src/frontend"
+hot_reload = true
+port = 5173
+
+[permissions]
+filesystem = true
+clipboard = true
+dialogs = true
+notifications = true
+system_tray = false
+
+[packaging]
+app_id = "dev.forge.todo.linux"
+product_name = "Forge Todo Linux"
+category = "Utility"
+formats = ["dir", "deb", "appimage", "flatpak"]

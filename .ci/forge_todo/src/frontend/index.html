@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge Todo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div>
+                    <p class="eyebrow">Forge Example</p>
+                    <h1>Todo Studio</h1>
+                </div>
+                <div class="brand-actions">
+                    <button id="importBtn" class="ghost-btn">Import</button>
+                    <button id="exportBtn" class="ghost-btn">Export</button>
+                    <button id="seedDemoBtn" class="ghost-btn">Seed demo</button>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div>
+                    <span class="summary-label">Completion</span>
+                    <strong id="completionRate">0%</strong>
+                </div>
+                <div class="progress-bar">
+                    <span id="progressFill"></span>
+                </div>
+                <div class="summary-grid">
+                    <div><span>Total</span><strong id="totalCount">0</strong></div>
+                    <div><span>Active</span><strong id="activeCount">0</strong></div>
+                    <div><span>Done</span><strong id="doneCount">0</strong></div>
+                    <div><span>Overdue</span><strong id="overdueCount">0</strong></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <label class="panel-label" for="searchInput">Search</label>
+                <input id="searchInput" class="input" type="search" placeholder="Search tasks, tags, descriptions">
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-label">Filters</span>
+                    <button id="clearCompletedBtn" class="text-btn">Clear completed</button>
+                </div>
+                <div class="filter-group" id="filterGroup">
+                    <button class="filter-chip active" data-filter="all">All</button>
+                    <button class="filter-chip" data-filter="active">Active</button>
+                    <button class="filter-chip" data-filter="completed">Completed</button>
+                    <button class="filter-chip" data-filter="high">High priority</button>
+                </div>
+            </div>
+
+            <div class="panel priorities">
+                <div><span>High</span><strong id="highCount">0</strong></div>
+                <div><span>Medium</span><strong id="mediumCount">0</strong></div>
+                <div><span>Low</span><strong id="lowCount">0</strong></div>
+            </div>
+
+            <div class="panel storage-panel">
+                <span class="panel-label">Storage</span>
+                <strong id="storageTaskCount">0 tasks persisted</strong>
+                <p id="storagePath" class="storage-path">.forge-data/tasks.json</p>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header class="hero">
+                <div>
+                    <p class="eyebrow">Modern desktop workflow</p>
+                    <h2>Plan the work. Ship the release.</h2>
+                    <p class="hero-copy">A complete Forge todo application with persistent storage, filters, tags, due dates, and a live detail editor.</p>
+                </div>
+                <div class="hero-actions">
+                    <button id="newTaskBtn" class="primary-btn">New task</button>
+                </div>
+            </header>
+
+            <section class="composer card">
+                <div class="composer-grid">
+                    <input id="newTaskTitle" class="input" type="text" placeholder="Add a new task title">
+                    <select id="newTaskPriority" class="input select">
+                        <option value="high">High priority</option>
+                        <option value="medium" selected>Medium priority</option>
+                        <option value="low">Low priority</option>
+                    </select>
+                    <input id="newTaskDueDate" class="input" type="date">
+                    <input id="newTaskTags" class="input" type="text" placeholder="tags: forge, release">
+                    <button id="addTaskBtn" class="primary-btn">Add task</button>
+                </div>
+            </section>
+
+            <section class="workspace">
+                <section class="task-list card">
+                    <div class="section-head">
+                        <div>
+                            <p class="eyebrow">Tasks</p>
+                            <h3 id="taskListTitle">All tasks</h3>
+                        </div>
+                        <span id="taskCountBadge" class="count-badge">0 items</span>
+                    </div>
+                    <div id="taskList" class="task-items"></div>
+                    <div id="emptyState" class="empty-state hidden">
+                        <h4>No tasks yet</h4>
+                        <p>Create a task or seed the demo list to explore the app.</p>
+                    </div>
+                </section>
+
+                <section class="details card">
+                    <div class="section-head">
+                        <div>
+                            <p class="eyebrow">Details</p>
+                            <h3>Selected task</h3>
+                        </div>
+                    </div>
+                    <div id="detailsEmpty" class="details-empty">
+                        <p>Select a task to edit its description, due date, tags, and priority.</p>
+                    </div>
+                    <form id="detailsForm" class="details-form hidden">
+                        <input id="taskId" type="hidden">
+                        <label>
+                            <span>Title</span>
+                            <input id="editTitle" class="input" type="text" required>
+                        </label>
+                        <label>
+                            <span>Description</span>
+                            <textarea id="editDescription" class="input textarea" rows="8" placeholder="Describe the work, acceptance criteria, or notes."></textarea>
+                        </label>
+                        <div class="details-grid">
+                            <label>
+                                <span>Priority</span>
+                                <select id="editPriority" class="input select">
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Due date</span>
+                                <input id="editDueDate" class="input" type="date">
+                            </label>
+                        </div>
+                        <label>
+                            <span>Tags</span>
+                            <input id="editTags" class="input" type="text" placeholder="comma,separated,tags">
+                        </label>
+                        <label class="toggle-row">
+                            <input id="editCompleted" type="checkbox">
+                            <span>Mark as completed</span>
+                        </label>
+                        <div class="detail-actions">
+                            <button type="button" id="duplicateTaskBtn" class="ghost-btn detail-ghost">Duplicate</button>
+                            <button type="submit" class="primary-btn">Save changes</button>
+                            <button type="button" id="deleteTaskBtn" class="danger-btn">Delete task</button>
+                        </div>
+                    </form>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="forge.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

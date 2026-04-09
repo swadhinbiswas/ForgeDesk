@@ -1,0 +1,64 @@
+{
+  "forge_version": "2.0.0",
+  "ok": false,
+  "target": "desktop",
+  "project_dir": "/home/swadhin/Forge/forge-framework/.ci/forge_todo",
+  "config_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/forge.toml",
+  "validation": {
+    "ok": true,
+    "target": "desktop",
+    "project_dir": "/home/swadhin/Forge/forge-framework/.ci/forge_todo",
+    "output_dir": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist",
+    "entry_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/src/main.py",
+    "frontend_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/src/frontend",
+    "icon_path": null,
+    "build_tool": {
+      "name": "nuitka",
+      "mode": "python",
+      "available": true,
+      "path": "/home/swadhin/Forge/forge-framework/.venv/bin/python"
+    },
+    "packaging": {
+      "app_id": "dev.forge.todo",
+      "product_name": "Forge Todo",
+      "formats": [
+        "dir"
+      ],
+      "category": "Utility",
+      "protocol_schemes": [],
+      "signing": {
+        "enabled": false,
+        "adapter": null,
+        "identity": null,
+        "sign_command": null,
+        "verify_command": null,
+        "notarize": false,
+        "timestamp_url": null
+      },
+      "security": {
+        "allowed_commands": [],
+        "denied_commands": [],
+        "expose_command_introspection": true,
+        "allowed_origins": [],
+        "window_scopes": {},
+        "strict_mode": false,
+        "rate_limit": 0
+      },
+      "plugins": {
+        "enabled": false,
+        "modules": [],
+        "paths": [],
+        "contracts": []
+      }
+    },
+    "warnings": [],
+    "errors": []
+  },
+  "build": {
+    "status": "failed",
+    "error": "Release build exited with code 1",
+    "stderr": "Nuitka-Options: Used command line options:\nNuitka-Options:   --onefile --assume-yes-for-downloads --output-dir=/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist --output-filename=forge_todo --include-data-file=/home/swadhin/Forge/forge-framework/.ci/forge_todo/forge.toml=forge.toml ~/Forge/forge-framework/.ci/forge_todo/src/main.py\nFATAL: Error, standalone mode on Linux requires 'patchelf' to be installed. Use 'apt/dnf/yum install patchelf' first.\n",
+    "stdout": ""
+  },
+  "release": null
+}

@@ -1,0 +1,198 @@
+{
+  "forge_version": "2.0.0",
+  "ok": true,
+  "target": "desktop",
+  "project_dir": "/home/swadhin/Forge/forge-framework/.ci/forge_todo",
+  "config_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/forge.toml",
+  "validation": {
+    "ok": true,
+    "target": "desktop",
+    "project_dir": "/home/swadhin/Forge/forge-framework/.ci/forge_todo",
+    "output_dir": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist",
+    "entry_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/src/main.py",
+    "frontend_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/src/frontend",
+    "icon_path": null,
+    "build_tool": {
+      "name": "nuitka",
+      "mode": "python",
+      "available": true,
+      "path": "/home/swadhin/Forge/forge-framework/.venv/bin/nuitka"
+    },
+    "packaging": {
+      "app_id": "dev.forge.todo",
+      "product_name": "Forge Todo",
+      "formats": [
+        "dir"
+      ],
+      "category": "Utility",
+      "protocol_schemes": [],
+      "signing": {
+        "enabled": false,
+        "adapter": null,
+        "identity": null,
+        "sign_command": null,
+        "verify_command": null,
+        "notarize": false,
+        "timestamp_url": null
+      },
+      "security": {
+        "allowed_commands": [],
+        "denied_commands": [],
+        "expose_command_introspection": true,
+        "allowed_origins": [],
+        "window_scopes": {},
+        "strict_mode": false,
+        "rate_limit": 0
+      },
+      "plugins": {
+        "enabled": false,
+        "modules": [],
+        "paths": [],
+        "contracts": []
+      }
+    },
+    "warnings": [],
+    "errors": []
+  },
+  "build": {
+    "status": "ok",
+    "target": "desktop",
+    "builder": "nuitka",
+    "output_dir": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist",
+    "artifacts": [
+      "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/frontend",
+      "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-package.json",
+      "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-protocols.json",
+      "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-installer-dir.json"
+    ],
+    "package": {
+      "manifest_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-package.json",
+      "descriptors": [
+        {
+          "type": "package-manifest",
+          "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-package.json"
+        },
+        {
+          "type": "protocol-manifest",
+          "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-protocols.json"
+        },
+        {
+          "type": "installer-dir",
+          "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-installer-dir.json"
+        }
+      ],
+      "files": [
+        "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-package.json",
+        "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-protocols.json",
+        "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-installer-dir.json"
+      ]
+    },
+    "installers": [],
+    "signing": {
+      "enabled": false,
+      "adapter": "none",
+      "sign": {
+        "status": "skipped",
+        "phase": "sign",
+        "command": null
+      },
+      "verify": {
+        "status": "skipped",
+        "phase": "verify",
+        "command": null
+      }
+    },
+    "notarization": {
+      "status": "skipped",
+      "command": null
+    },
+    "provenance": {
+      "workspace_root": "/home/swadhin/Forge/forge-framework/.ci/forge_todo",
+      "source_commit": "abc123"
+    },
+    "version_alignment": {
+      "aligned": true
+    }
+  },
+  "release": {
+    "manifest_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-release.json",
+    "manifest": {
+      "format_version": 1,
+      "forge_version": "2.0.0",
+      "target": "desktop",
+      "app": {
+        "name": "Forge Todo",
+        "version": "1.0.0",
+        "app_id": "dev.forge.todo",
+        "product_name": "Forge Todo"
+      },
+      "protocol": {
+        "schemes": []
+      },
+      "packaging": {
+        "manifest_path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-package.json",
+        "descriptors": [
+          {
+            "type": "package-manifest",
+            "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-package.json"
+          },
+          {
+            "type": "protocol-manifest",
+            "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-protocols.json"
+          },
+          {
+            "type": "installer-dir",
+            "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-installer-dir.json"
+          }
+        ],
+        "files": [
+          "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-package.json",
+          "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-protocols.json",
+          "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-installer-dir.json"
+        ]
+      },
+      "signing": {
+        "enabled": false,
+        "adapter": "none",
+        "sign": {
+          "status": "skipped",
+          "phase": "sign",
+          "command": null
+        },
+        "verify": {
+          "status": "skipped",
+          "phase": "verify",
+          "command": null
+        }
+      },
+      "notarization": {
+        "status": "skipped",
+        "command": null
+      },
+      "provenance": {
+        "workspace_root": "/home/swadhin/Forge/forge-framework/.ci/forge_todo",
+        "source_commit": "abc123"
+      },
+      "version_alignment": {
+        "aligned": true
+      },
+      "artifacts": [
+        {
+          "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-package.json",
+          "sha256": "cbe8ee4e46780e5e6d59f51ad66c56dbb339497b6b05b679ce0860134cfa0223",
+          "size": 627
+        },
+        {
+          "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-protocols.json",
+          "sha256": "22829eb94537944cb9ed4c620a36ee8f589dd6cb568d30887e176899ec621fa0",
+          "size": 81
+        },
+        {
+          "path": "/home/swadhin/Forge/forge-framework/.ci/forge_todo/dist/forge-installer-dir.json",
+          "sha256": "d760139e4232dd6a4708e7f26fadb7255c789008cff941910c7177d1ea6c0047",
+          "size": 156
+        }
+      ]
+    }
+  }
+}
