@@ -355,8 +355,7 @@ class TodoStore:
 if os.name == "posix" and os.uname().sysname == "Linux":
     os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
 
-config_path = BASE_DIR / "forge.toml"
-app = ForgeApp(config_path=str(config_path))
+app = ForgeApp()
 store = TodoStore()
 
 

@@ -64,12 +64,8 @@ def main():
         os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
         print("Forcing X11 backend and disabling WebKit compositing for Linux compatibility...")
 
-    # Get path to the local forge.toml
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    config_path = os.path.join(base_dir, "forge.toml")
-
     # Initialize the Forge V2 App
-    app = ForgeApp(config_path=config_path)
+    app = ForgeApp()
 
     # Register our performance API
     perf_api = PerformanceAPI()
