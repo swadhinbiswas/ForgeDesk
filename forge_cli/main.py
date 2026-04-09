@@ -1411,19 +1411,26 @@ def _build_linux_appimage_installer(
     binary_dest = usr_bin / primary_binary.name
     shutil.copy2(primary_binary, binary_dest)
 
+    desktop_content = "\n".join(
+        [
+            "[Desktop Entry]",
+            "Type=Application",
+            f"Name={product_name}",
+            f"Exec={primary_binary.name}",
+            "Terminal=false",
+            f"Categories={config.packaging.category or 'Utility'};",
+        ]
+    ) + "\n"
+
     desktop_file = usr_share / f"{slug}.desktop"
     desktop_file.write_text(
-        "\n".join(
-            [
-                "[Desktop Entry]",
-                "Type=Application",
-                f"Name={product_name}",
-                f"Exec={primary_binary.name}",
-                "Terminal=false",
-                f"Categories={config.packaging.category or 'Utility'};",
-            ]
-        )
-        + "\n",
+        desktop_content,
+        encoding="utf-8",
+    )
+
+    appdir_desktop = appdir / f"{slug}.desktop"
+    appdir_desktop.write_text(
+        desktop_content,
         encoding="utf-8",
     )
     apprun = appdir / "AppRun"

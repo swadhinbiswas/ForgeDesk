@@ -676,6 +676,11 @@ def test_build_generates_linux_appimage_installer(tmp_path: Path, monkeypatch) -
     payload = json.loads(result.stdout)
     installer = next(item for item in payload["build"]["installers"] if item["format"] == "appimage")
     assert Path(installer["path"]).exists()
+    appdir = Path(installer["appdir"])
+    root_desktop = appdir / "cli-test.desktop"
+    shared_desktop = appdir / "usr" / "share" / "applications" / "cli-test.desktop"
+    assert root_desktop.exists()
+    assert shared_desktop.exists()
 
 
 def test_build_generates_linux_flatpak_installer(tmp_path: Path, monkeypatch) -> None:
