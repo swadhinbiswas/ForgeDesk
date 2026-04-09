@@ -681,6 +681,7 @@ def _select_desktop_build_tool(project_dir: Path) -> dict[str, Any]:
     cargo_toml = project_dir / "Cargo.toml"
     maturin_path = shutil.which("maturin")
     nuitka_available = _module_available("nuitka")
+    nuitka_path = shutil.which("nuitka")
 
     if cargo_toml.exists() and maturin_path:
         return {
@@ -690,12 +691,12 @@ def _select_desktop_build_tool(project_dir: Path) -> dict[str, Any]:
             "path": maturin_path,
         }
 
-    if nuitka_available:
+    if nuitka_available or nuitka_path:
         return {
             "name": "nuitka",
             "mode": "python",
             "available": True,
-            "path": sys.executable,
+            "path": nuitka_path or sys.executable,
         }
 
     return {
@@ -2702,7 +2703,8 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
         ]
     else:
         # Validate Nuitka is actually available before attempting a build
-        if not _module_available("nuitka"):
+        nuitka_path = shutil.which("nuitka") or shutil.which("nuitka3")
+        if not _module_available("nuitka") and not nuitka_path:
             raise RuntimeError(
                 "No supported build tool found. "
                 "Install maturin (for Rust+Python hybrid) or Nuitka (pip install nuitka) "
@@ -2710,14 +2712,16 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
             )
         if emit_output:
             _print_note("Using Nuitka for Python compilation", level="ok")
-        build_args = [
-            sys.executable,
-            "-m",
-            "nuitka",
+        
+        build_args = [sys.executable, "-m", "nuitka"]
+        if not _module_available("nuitka") and nuitka_path:
+            build_args = [nuitka_path]
+
+        build_args.extend([
             "--standalone",
             "--output-dir=" + str(output_dir),
             "--output-filename=" + app_name,
-        ]
+        ])
 
         if config.build.icon and (project_dir / config.build.icon).exists():
             build_args.extend(["--linux-icon=" + str(project_dir / config.build.icon)])

@@ -336,7 +336,7 @@ def test_build_returns_nonzero_json_when_no_desktop_builder_available(tmp_path: 
         "forge_cli.main._module_available",
         lambda name: False if name == "nuitka" else True,
     )
-    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name == "maturin" else "/usr/bin/tool")
+    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name in ("maturin", "nuitka", "nuitka3") else "/usr/bin/tool")
 
     result = runner.invoke(app, ["build", "--result-format", "json"])
 
