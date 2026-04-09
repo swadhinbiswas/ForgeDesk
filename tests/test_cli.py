@@ -9,7 +9,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from forge_cli.main import app, _launch_dev_server, _project_payload, _watch_snapshot
+from forge_cli.main import app, _launch_dev_server, _project_payload, _resolve_project_dir, _watch_snapshot
 
 
 runner = CliRunner()
@@ -84,6 +84,34 @@ def test_project_payload_reports_valid_project(tmp_path: Path) -> None:
     assert payload["plugins"]["enabled"] is False
     assert payload["template"]["valid"] is True
     assert payload["errors"] == []
+
+
+def test_resolve_project_dir_uses_cwd_relative_path(tmp_path: Path, monkeypatch) -> None:
+    project_dir = tmp_path / "app"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    (project_dir / "forge.toml").write_text("[app]\nname='x'\nversion='0.1.0'\n", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    assert _resolve_project_dir("app") == project_dir.resolve()
+
+
+def test_resolve_project_dir_falls_back_to_module_root(tmp_path: Path, monkeypatch) -> None:
+    module_root = tmp_path / "forge-framework"
+    fake_module_file = module_root / "forge_cli" / "main.py"
+    fake_module_file.parent.mkdir(parents=True, exist_ok=True)
+    fake_module_file.write_text("", encoding="utf-8")
+
+    fallback_project = module_root / ".ci" / "forge_todo"
+    fallback_project.mkdir(parents=True, exist_ok=True)
+    (fallback_project / "forge.toml").write_text("[app]\nname='x'\nversion='0.1.0'\n", encoding="utf-8")
+
+    cwd_project = tmp_path / ".ci" / "forge_todo"
+    cwd_project.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr("forge_cli.main.__file__", str(fake_module_file))
+    monkeypatch.chdir(tmp_path)
+
+    assert _resolve_project_dir(".ci/forge_todo") == fallback_project.resolve()
 
 
 def test_info_supports_json_output(tmp_path: Path, monkeypatch) -> None:

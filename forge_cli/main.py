@@ -171,6 +171,23 @@ def _parse_version(version: str) -> tuple[int, int, int]:
     return tuple(parts[:3])  # type: ignore[return-value]
 
 
+def _resolve_project_dir(path: str | None) -> Path:
+    if not path:
+        return Path.cwd()
+
+    candidate = Path(path).resolve()
+    if (candidate / "forge.toml").exists():
+        return candidate
+
+    if not Path(path).is_absolute():
+        module_root = Path(__file__).resolve().parents[1]
+        fallback = (module_root / path).resolve()
+        if (fallback / "forge.toml").exists():
+            return fallback
+
+    return candidate
+
+
 def _version_satisfies_range(version: str, version_range: str) -> bool:
     current = _parse_version(version)
     for raw_constraint in [item.strip() for item in version_range.split(",") if item.strip()]:
@@ -2307,7 +2324,7 @@ def dev_mode(
     _print_header("Dev Mode", "Launch the desktop runtime with live feedback")
 
     # Find project directory
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
 
     if not config_path.exists():
@@ -2393,7 +2410,7 @@ def serve_app(
     _print_header("Web Server", "Run the Forge app as an ASGI service")
 
     # Find project directory
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
 
     if not config_path.exists():
@@ -2526,7 +2543,7 @@ def build_app(
         raise typer.Exit(2)
 
     # Find project directory
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
     normalized_target = target.lower()
 
@@ -2858,7 +2875,7 @@ def package_app(
         _print_note(f"Unsupported output format: {result_format}", level="error")
         raise typer.Exit(2)
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
     payload: dict[str, Any] = {
         "forge_version": VERSION,
@@ -2945,7 +2962,7 @@ def sign_app(
         _print_note(f"Unsupported output format: {result_format}", level="error")
         raise typer.Exit(2)
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
     payload: dict[str, Any] = {
         "forge_version": VERSION,
@@ -3062,7 +3079,7 @@ def release_app(
         _print_note(f"Unsupported output format: {result_format}", level="error")
         raise typer.Exit(2)
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
     normalized_target = target.lower()
     payload: dict[str, Any] = {
@@ -3156,7 +3173,7 @@ def show_info(
 
     Shows details about your system, Python installation, and Forge project.
     """
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     payload = {
         "forge_version": VERSION,
         "environment": _environment_payload(),
@@ -3220,7 +3237,7 @@ def doctor(
     ),
 ) -> None:
     """Validate environment and project prerequisites for Forge development."""
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     payload = _doctor_payload(project_dir)
 
     if output == "json":
@@ -3323,7 +3340,7 @@ def plugin_add(
     """
     _print_header("Plugin Add", f"Install plugin: {name}")
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
 
     if not config_path.exists():
@@ -3395,7 +3412,7 @@ def support_bundle(
     """
     _print_header("Support Bundle", "Collect diagnostics for troubleshooting")
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
 
     if output:
         bundle_path = Path(output).resolve()
