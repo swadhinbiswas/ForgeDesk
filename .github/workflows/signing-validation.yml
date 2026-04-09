@@ -1,6 +1,11 @@
 name: signing-validation
 
 on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+      - 'release-*'
   workflow_dispatch:
 
 jobs:
