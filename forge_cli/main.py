@@ -2734,15 +2734,18 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
 
         build_args.append(str(entry_path))
 
-    # Prepare subprocess environment for patchelf on Linux
-    subprocess_env = None
+    # Prepare subprocess environment
+    subprocess_env = os.environ.copy()
+    
+    # For Nuitka on Linux, ensure patchelf is available
     if builder == "nuitka" and sys.platform == "linux":
-        subprocess_env = os.environ.copy()
         patchelf_path = shutil.which("patchelf")
         if not patchelf_path:
             potential_patchelf = Path(sys.executable).parent / "patchelf"
             if potential_patchelf.exists():
-                subprocess_env["PATH"] = str(potential_patchelf.parent) + ":" + subprocess_env.get("PATH", "")
+                # Prepend venv bin to PATH for patchelf access
+                current_path = subprocess_env.get("PATH", "/usr/local/bin:/usr/bin:/bin")
+                subprocess_env["PATH"] = str(potential_patchelf.parent) + ":" + current_path
 
     subprocess.run(build_args, check=True, capture_output=True, text=True, env=subprocess_env)
 
