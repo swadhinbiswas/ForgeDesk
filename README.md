@@ -1,10 +1,10 @@
-# ⚡ Forge Framework
+# ⚡ ForgeDesk
 
 **Forge the future. Ship with Python.**
 
 Build lightweight, cross-platform desktop applications using Python as the backend and any web technology (HTML/CSS/JS, React, Vue, Svelte) as the frontend — connected via a seamless IPC bridge.
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.2-blue)
 ![Python](https://img.shields.io/badge/python-3.14%2B%20(NoGIL)-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
@@ -37,7 +37,7 @@ Or install the Node-facing packages:
 npm install @forgedesk/api
 npm install -D @forgedesk/cli
 npm install -D @forgedesk/vite-plugin vite
-npm create forge-app@latest my-app
+npm create @forgedesk/create-forge-app@latest my-app
 ```
 
 The npm wrappers bootstrap the Python runtime by delegating to `forgedesk`.
@@ -57,7 +57,7 @@ forge create my-app --template svelte
 Or scaffold from npm:
 
 ```bash
-npm create forge-app@latest my-app -- --template react
+npm create @forgedesk/create-forge-app@latest my-app -- --template react
 ```
 
 If your npm is pointed to a mirror that has not synced the latest package yet, use:
@@ -575,7 +575,7 @@ forge dev
 ```bash
 # Clone the repository
 git clone https://github.com/swadhinbiswas/ForgeDesk.git
-cd forge
+cd ForgeDesk/forge-framework
 
 # Install in development mode
 pip install -e ".[dev]"
