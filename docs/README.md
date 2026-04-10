@@ -1,49 +1,34 @@
-# Starlight Starter Kit: Basics
+# ForgeDesk Documentation
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+This folder contains the production documentation site for ForgeDesk, built with Astro + Starlight.
 
-```
-npm create astro@latest -- --template starlight
-```
+## Docs Architecture
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+- `src/content/docs/install` → installation journey (prerequisites, create project, troubleshooting)
+- `src/content/docs/frontend` → frontend-specific integration guides
+- `src/content/docs/blog` → release notes and project updates
+- `src/content/docs/api-reference.md` → core API reference
 
-## 🚀 Project Structure
+## Local Development
 
-Inside of your Astro + Starlight project, you'll see the following folders and files:
-
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   └── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
+```bash
+npm install
+npm run dev
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+## Build
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+```bash
+npx astro build
+```
 
-Static assets, like favicons, can be placed in the `public/` directory.
+## Deploy to Cloudflare Pages
 
-## 🧞 Commands
+Use these settings in Cloudflare Pages:
 
-All commands are run from the root of the project, from a terminal:
+- Framework preset: `Astro`
+- Build command: `npx astro build`
+- Build output directory: `docs/dist`
+- Root directory: `docs`
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+If using monorepo builds, set project root to `forge-framework/docs`.

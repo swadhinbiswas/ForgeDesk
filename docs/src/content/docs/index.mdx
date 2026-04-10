@@ -8,8 +8,11 @@ hero:
     file: ../../assets/houston.webp
   actions:
     - text: Get Started
-      link: /getting-started/
+      link: /install/
       icon: right-arrow
+    - text: Installation Guide
+      link: /install/prerequisites/
+      icon: download
     - text: View on GitHub
       link: https://github.com/swadhinbiswas/ForgeDesk
       icon: external
@@ -18,7 +21,7 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## Next generation Python Desktop Apps
+## Create small, fast, secure desktop applications
 
 <CardGrid stagger>
 	<Card title="Bring Your Own Frontend" icon="star">
@@ -26,11 +29,20 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 	</Card>
 	<Card title="Python Backend" icon="rocket">
 		Harness the power of Python, including native libraries and machine learning right on your users' device.
-</Card>
-<Card title="Tauri-Like Architecture" icon="laptop">
-Minimal memory footprint and native performance using system WebViews without bundling Chromium.
-</Card>
-<Card title="Secure by Design" icon="setting">
-"Deny-by-Default" capability management explicitly restricts file system and native OS access.
-</Card>
+	</Card>
+	<Card title="Native WebView Runtime" icon="laptop">
+		Minimal memory footprint and native performance using system WebViews without bundling Chromium.
+	</Card>
+	<Card title="Secure by Design" icon="shield-check">
+		Deny-by-default capability management explicitly restricts file system and native OS access.
+	</Card>
 </CardGrid>
+
+## Build Path
+
+1. Install system prerequisites for Linux, macOS, or Windows.
+2. Install the ForgeDesk Python package and optional frontend tooling.
+3. Create your first app from the CLI templates.
+4. Run with hot reload, then build signed release artifacts.
+
+Follow the full install flow in [Installation](/install/).
