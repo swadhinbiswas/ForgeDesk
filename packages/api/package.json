@@ -1,6 +1,6 @@
 {
   "name": "@forgedesk/api",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Typed JavaScript API bindings for Forge applications",
   "license": "MIT",
   "homepage": "https://forge-framework.dev",
