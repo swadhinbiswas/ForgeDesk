@@ -3730,10 +3730,28 @@ def _setup_python_env(project_dir: Path) -> None:
         direct = shutil.which("uv")
         if direct:
             return direct
-        try:
-            subprocess.run([sys.executable, "-m", "pip", "install", "--user", "uv"], check=True)
-        except Exception:
+
+        install_attempts = [
+            [sys.executable, "-m", "pip", "install", "--user", "uv"],
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--user",
+                "--break-system-packages",
+                "uv",
+            ],
+        ]
+        for command in install_attempts:
+            try:
+                subprocess.run(command, check=True)
+                break
+            except Exception:
+                continue
+        else:
             return None
+
         return shutil.which("uv")
 
     uv_path = _ensure_uv()
