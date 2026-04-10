@@ -1,6 +1,6 @@
 [package]
 name = "forge-core"
-version = "2.0.1"
+version = "2.0.2"
 edition = "2021"
 description = "Native Rust core for Forge Framework - NoGIL-aware Python desktop/web engine"
 

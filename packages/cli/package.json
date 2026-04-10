@@ -1,6 +1,6 @@
 {
   "name": "@forgedesk/cli",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Node wrapper for the Forge Python CLI",
   "license": "MIT",
   "homepage": "https://forge-framework.dev",
