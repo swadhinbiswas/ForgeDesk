@@ -10,7 +10,7 @@ include = ["forge/js/*.js"]
 
 [project]
 name = "forge-framework"
-version = "2.0.0"
+version = "2.0.1"
 description = "Build powerful, cross-platform desktop and web applications using Python 3.14+ (NoGIL) and web technologies"
 readme = "README.md"
 license = {text = "MIT"}
