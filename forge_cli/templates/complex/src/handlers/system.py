@@ -3,7 +3,7 @@ IPC Handlers for the frontend.
 """
 
 from forge import ForgeApp
-from ..services.system import SystemService
+from services.system import SystemService
 
 def register_system_commands(app: ForgeApp):
     """
