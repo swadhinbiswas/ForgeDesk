@@ -2247,11 +2247,17 @@ def version() -> None:
 @app.command("create")
 def create_project(
     name: Optional[str] = typer.Argument(None, help="Project name"),
-    template: str = typer.Option(
-        "plain",
+    template: Optional[str] = typer.Option(
+        None,
         "-t",
         "--template",
-        help="Project template (plain, react, vue, svelte, astro, next, nuxt, sveltekit, qwik, solid, preact, angular)",
+        help="Project template (plain, react, vue, svelte, complex)",
+    ),
+    framework: Optional[str] = typer.Option(
+        None,
+        "-f",
+        "--framework",
+        help="Framework alias for template (plain, react, vue, svelte, complex)",
     ),
     window_size: str = typer.Option(
         "1280x800",
@@ -2275,8 +2281,17 @@ def create_project(
     """
     _print_header("Create App", "Scaffold a new Forge workspace")
 
-    # Validate template
     valid_templates = ["plain", "react", "vue", "svelte", "complex"]
+
+    if template and framework and template != framework:
+        _print_note("Provide either --template or --framework, or use the same value for both.", level="error")
+        raise typer.Exit(1)
+
+    selected_template = framework or template
+    if not selected_template:
+        selected_template = Prompt.ask("Choose template", choices=valid_templates, default="plain")
+
+    template = selected_template.lower().strip()
     if template not in valid_templates:
         _print_note(f"Invalid template. Choose from: {', '.join(valid_templates)}", level="error")
         raise typer.Exit(1)
@@ -3709,18 +3724,75 @@ def _inject_dev_server_defaults(config_path: Path) -> None:
 
 def _setup_python_env(project_dir: Path) -> None:
     venv_dir = project_dir / ".venv"
-    _print_note("Creating Python virtual environment...", level="ok")
-    
-    try:
-        venv.create(venv_dir, with_pip=True)
-    except Exception as e:
-        _print_note(f"Failed to create virtual environment: {e}", level="error")
-        return
+    _print_note("Preparing Python environment (uv-first)...", level="ok")
 
-    if sys.platform == "win32":
-        pip_exe = venv_dir / "Scripts" / "pip.exe"
+    def _ensure_uv() -> str | None:
+        def _locate_uv() -> str | None:
+            direct = shutil.which("uv")
+            if direct:
+                return direct
+            home = Path.home()
+            candidates = [
+                home / ".local" / "bin" / "uv",
+                home / ".cargo" / "bin" / "uv",
+                home / "AppData" / "Local" / "uv" / "bin" / "uv.exe",
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    return str(candidate)
+            return None
+
+        existing = _locate_uv()
+        if existing:
+            return existing
+
+        try:
+            if sys.platform == "win32":
+                subprocess.run(
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command",
+                        "irm https://astral.sh/uv/install.ps1 | iex",
+                    ],
+                    check=True,
+                )
+            else:
+                subprocess.run(
+                    [
+                        "sh",
+                        "-c",
+                        "set -e; if command -v curl >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; elif command -v wget >/dev/null 2>&1; then wget -qO- https://astral.sh/uv/install.sh | sh; else exit 1; fi",
+                    ],
+                    check=True,
+                )
+        except Exception:
+            return None
+
+        return _locate_uv()
+
+    uv_path = _ensure_uv()
+    python_exe = venv_dir / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+
+    uv_env = os.environ.copy()
+    uv_env.setdefault("UV_LINK_MODE", "copy")
+
+    if uv_path:
+        try:
+            subprocess.run(
+                [uv_path, "venv", str(venv_dir), "--python", "3.14", "--allow-existing"],
+                check=True,
+                env=uv_env,
+            )
+            _print_note("Created .venv using uv", level="ok")
+        except subprocess.CalledProcessError as exc:
+            _print_note(f"uv venv failed: {exc}", level="error")
+            return
     else:
-        pip_exe = venv_dir / "bin" / "pip"
+        _print_note("uv is required but could not be installed automatically.", level="error")
+        return
 
     _print_note("Installing Python dependencies...", level="ok")
     
@@ -3738,7 +3810,11 @@ def _setup_python_env(project_dir: Path) -> None:
         deps.append("forge-framework")
     
     try:
-        subprocess.run([str(pip_exe), "install", *deps], check=True)
+        subprocess.run(
+            [uv_path, "pip", "install", "--python", str(python_exe), *deps],
+            check=True,
+            env=uv_env,
+        )
         _print_note("Python environment configured successfully", level="ok")
     except subprocess.CalledProcessError as e:
         _print_note(f"Failed to install dependencies: {e}", level="warning")

@@ -234,6 +234,27 @@ def test_create_generates_frontend_workspace_files(tmp_path: Path, monkeypatch) 
     assert 'dev_server_url = "http://127.0.0.1:5173"' in forge_toml
 
 
+def test_create_prompts_for_template_when_not_provided(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("forge_cli.main._setup_python_env", lambda _project_dir: None)
+
+    def fake_prompt(message: str, *args, **kwargs):
+        if message == "Choose template":
+            return "vue"
+        return kwargs.get("default", "")
+
+    monkeypatch.setattr("forge_cli.main.Prompt.ask", fake_prompt)
+
+    result = runner.invoke(
+        app,
+        ["create", "prompted-app", "--author", "Forge Tester"],
+    )
+
+    assert result.exit_code == 0
+    package_json = json.loads((tmp_path / "prompted-app" / "package.json").read_text(encoding="utf-8"))
+    assert package_json["dependencies"]["vue"]
+
+
 def test_templates_use_forge_api_package() -> None:
     template_files = [
         Path("forge_cli/templates/plain/src/frontend/main.js"),

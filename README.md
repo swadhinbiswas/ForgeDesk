@@ -34,9 +34,9 @@ pip install forge-framework
 Or install the Node-facing packages:
 
 ```bash
-npm install @forge/api
-npm install -D @forge/cli
-npm install -D @forge/vite-plugin vite
+npm install @forgedesk/api
+npm install -D @forgedesk/cli
+npm install -D @forgedesk/vite-plugin vite
 npm create forge-app@latest my-app
 ```
 
@@ -58,6 +58,12 @@ Or scaffold from npm:
 
 ```bash
 npm create forge-app@latest my-app -- --template react
+```
+
+If your npm is pointed to a mirror that has not synced the latest package yet, use:
+
+```bash
+npx --registry=https://registry.npmjs.org @forgedesk/create-forge-app@latest my-app -- --template react
 ```
 
 Generated projects retain template contract metadata in `forge.toml` so CLI diagnostics can detect incompatible or stale template outputs.
@@ -99,17 +105,17 @@ Desktop package outputs now also emit `forge-plugins.json`, which records discov
 
 Forge now includes first-party package scaffolding for dual ecosystem distribution:
 
-- [packages/api/README.md](packages/api/README.md) — `@forge/api` typed JS bindings
-- [packages/cli/README.md](packages/cli/README.md) — `@forge/cli` Node wrapper around the Python CLI
-- [packages/vite-plugin/README.md](packages/vite-plugin/README.md) — `@forge/vite-plugin` frontend integration for Vite
-- [packages/create-forge-app/README.md](packages/create-forge-app/README.md) — `create-forge-app` npm scaffolder
+- [packages/api/README.md](packages/api/README.md) — `@forgedesk/api` typed JS bindings
+- [packages/cli/README.md](packages/cli/README.md) — `@forgedesk/cli` Node wrapper around the Python CLI
+- [packages/vite-plugin/README.md](packages/vite-plugin/README.md) — `@forgedesk/vite-plugin` frontend integration for Vite
+- [packages/create-forge-app/README.md](packages/create-forge-app/README.md) — `@forgedesk/create-forge-app` npm scaffolder
 
 This is the first step toward a Tauri-style install flow where frontend teams can start with npm while backend/runtime users can keep using pip.
 
 Forge can now be prepared for publication to both registries:
 
 - PyPI package: `forge-framework`
-- npm packages: `@forge/api`, `@forge/cli`, `@forge/vite-plugin`, and `create-forge-app`
+- npm packages: `@forgedesk/api`, `@forgedesk/cli`, `@forgedesk/vite-plugin`, and `@forgedesk/create-forge-app`
 
 Release quality is enforced in CI with version-alignment checks, release-branch gating, release-manifest verification, and installer smoke tests before publishing.
 
@@ -289,7 +295,7 @@ app.run()
 ### Calling Python from JavaScript
 
 ```javascript
-import forge, { invoke, on } from "@forge/api";
+import forge, { invoke, on } from "@forgedesk/api";
 
 // Call a Python command
 const result = await invoke("greet", { name: "Alice" });
@@ -539,7 +545,7 @@ Packaging/signing notes:
 - On Linux, builds with configured custom protocols also emit a `.desktop` registration descriptor for `x-scheme-handler/...` integration.
 - When `[signing].sign_command` or `[signing].verify_command` are configured, Forge runs them during `forge build` with `FORGE_BUILD_OUTPUT_DIR`, `FORGE_BUILD_ARTIFACTS`, and `FORGE_PACKAGE_MANIFEST` exported.
 - Without custom commands, Forge uses default signing adapters where available: GPG on Linux, `codesign` on macOS, and `signtool` on Windows. `[signing].adapter` can force a concrete adapter. If `[signing].notarize` is enabled, Forge can also run `notarize_command` or `xcrun notarytool` on macOS.
-- Generated frontend templates now default to `@forge/api` plus `@forge/vite-plugin`, so modern frontend stacks can stay npm-first while still targeting the Forge runtime.
+- Generated frontend templates now default to `@forgedesk/api` plus `@forgedesk/vite-plugin`, so modern frontend stacks can stay npm-first while still targeting the Forge runtime.
 - The repository now includes release-hardening workflows in [.github/workflows/release-matrix.yml](.github/workflows/release-matrix.yml) and [.github/workflows/signing-validation.yml](.github/workflows/signing-validation.yml) plus smoke/signing helpers under [scripts/ci](scripts/ci).
 
 ## 🎯 Examples

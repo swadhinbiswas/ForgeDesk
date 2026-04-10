@@ -1,16 +1,16 @@
 {
-  "name": "create-forge-app",
+  "name": "@forgedesk/create-forge-app",
   "version": "2.0.0",
   "description": "Scaffold Forge applications from npm",
   "license": "MIT",
   "homepage": "https://forge-framework.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/forge-framework/forge.git",
+    "url": "https://github.com/swadhinbiswas/Forge.git",
     "directory": "packages/create-forge-app"
   },
   "bugs": {
-    "url": "https://github.com/forge-framework/forge/issues"
+    "url": "https://github.com/swadhinbiswas/Forge/issues"
   },
   "type": "module",
   "bin": {

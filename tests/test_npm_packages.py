@@ -44,7 +44,7 @@ def test_create_forge_app_scaffolder_targets_create_command() -> None:
     package_json = _read_json(ROOT / "packages" / "create-forge-app" / "package.json")
     wrapper = (ROOT / "packages" / "create-forge-app" / "bin" / "create-forge-app.js").read_text(encoding="utf-8")
 
-    assert package_json["name"] == "create-forge-app"
+    assert package_json["name"] == "@forgedesk/create-forge-app"
     assert package_json["bin"]["create-forge-app"] == "./bin/create-forge-app.js"
     assert '"create"' in wrapper
     assert "forge_cli.main" in wrapper

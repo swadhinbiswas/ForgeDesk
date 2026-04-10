@@ -2,6 +2,11 @@ name: publish-npm
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to npm (true) or only pack (false)'
+        required: false
+        default: 'false'
   release:
     types: [published]
 
@@ -35,13 +40,13 @@ jobs:
         run: python scripts/ci/verify_version_alignment.py --workspace-root . --json
 
       - name: Publish package
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event.inputs.publish == 'true'
         working-directory: ${{ matrix.package-dir }}
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Pack package
-        if: github.event_name != 'release'
+        if: github.event_name != 'release' && github.event.inputs.publish != 'true'
         working-directory: ${{ matrix.package-dir }}
         run: npm pack
