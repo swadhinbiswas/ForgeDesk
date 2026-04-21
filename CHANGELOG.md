@@ -5,9 +5,16 @@ All notable changes to Forge Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - 2026-04-12
+## [3.0.0] - 2026-04-21
 
 ### Added
+
+#### Infrastructure & Workflow
+- **Enterprise CI/CD Pipelines** — implemented full GitHub Actions matrices (`ci.yml` and `publish.yml`) for Rust/Python/Node multi-platform testing, Maturin compilation, and automatic PyPI/npm publishing securely via OIDC.
+- **Astro-Style CLI UI** — entirely redesigned interactive scaffolding UI (`forge create`) using `questionary` and `rich`, themed identically to create-astro's beautiful prompts.
+- **Iconify SVGs** — modernized documentation by replacing static unicode emojis with crisp, dynamic SVG icons throughout styling.
+- **Production Governance** — authored formal branching strategies and deployment workflows via `PRODUCTION_BRANCH_RULES.md` and `RELEASE_PLAN_v3.md`.
+
 
 #### Architecture
 - **Python 3.14+ NoGIL/free-threaded** support — true parallel command execution
@@ -74,6 +81,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thread pool uses NoGIL-aware `ThreadPoolExecutor`
 
 ### Fixed
+- Fixed `error TS18003` in NPM workspace builds for API stub generation.
+- Fixed interactive CLI prompts hanging in CI/headless environments by properly piping offline arguments.
+- Removed dangling debug scripts and obsolete testing files from root directory.
+
+### Fixed
+- Fixed `error TS18003` in NPM workspace builds for API stub generation.
+- Fixed interactive CLI prompts hanging in CI/headless environments by properly piping offline arguments.
+- Removed dangling debug scripts and obsolete testing files from root directory.
+
+### Fixed
+- **NPM Workspaces** — Fixed `error TS18003` in NPM workspace builds for API stub generation.
+- **CLI E2E Auto** — Fixed interactive CLI prompts hanging in CI/headless environments by properly piping offline arguments.
+- **Repo Hygiene** — Removed dangling debug scripts and obsolete testing files from root directory.
 - WebKitGTK Wayland compositor crash on Linux
 - CLI complex template absolute import paths
 
