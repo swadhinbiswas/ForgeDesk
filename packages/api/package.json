@@ -63,7 +63,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "mkdir -p dist && cp index.js dist/index.js && cp index.d.ts dist/index.d.ts",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
