@@ -1,125 +1,173 @@
-# ForgeDesk
+<div align="center">
+  <img src="branding/forgedesk-logo.svg" alt="ForgeDesk Logo" width="220" />
+</div>
 
-Build small, fast, secure desktop applications with Python + native system WebViews.
+<h1 align="center">ForgeDesk</h1>
 
-![ForgeDesk Logo](branding/forgedesk-logo.svg)
+<div align="center">
+  <strong>The fast, modern, and secure way to build desktop applications with Python.</strong>
+</div>
+<br />
 
-![Version](https://img.shields.io/badge/version-2.0.2-blue)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+<div align="center">
+  <a href="https://pypi.org/project/forgedesk/"><img src="https://img.shields.io/pypi/v/forgedesk.svg?style=for-the-badge&color=blue" alt="PyPI version" /></a>
+  <a href="https://www.npmjs.com/package/@forgedesk/api"><img src="https://img.shields.io/npm/v/@forgedesk/api.svg?style=for-the-badge&color=cb3837" alt="NPM version" /></a>
+  <img src="https://img.shields.io/badge/python-3.14+ (Free--Threading)-blue?style=for-the-badge" alt="Python" />
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge" alt="Platform" />
+  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License" />
+</div>
 
-## Why ForgeDesk
+---
 
-- Native system WebView runtime (no bundled Chromium)
-- Python-first backend with JavaScript bridge (`@forgedesk/api`)
-- CLI-first developer workflow (`forge create`, `forge dev`, `forge build`)
-- Security-focused runtime model with scoped capabilities
-- Works with modern frontends (React, Vue, Svelte, Astro, and more)
+**ForgeDesk** is a next-generation framework designed to give you the ultimate desktop app development experience. It combines the heavy data-processing capabilities of **Python**, the memory safety and performance of a **Rust** backend, and the UI flexibility of **Modern Web Frameworks**.
 
-## Brand Philosophy
+By leveraging OS-native WebViews (via `wry` and `tao`) instead of bundling Chromium, ForgeDesk produces incredibly lightweight binaries that launch instantly and consume a fraction of the RAM of typical Electron apps.
 
-ForgeDesk is built around **crafted power with discipline**.
+## <img src="https://api.iconify.design/lucide/sparkles.svg" width="28" height="28" align="top" /> Why Choose ForgeDesk?
 
-- **Forge** means strength, precision, and reliable construction.
-- **Desk** means practical developer workflow and day-to-day shipping velocity.
+- <img src="https://api.iconify.design/logos/python.svg" width="20" height="20" align="top" /> **Python-First & Blazing Fast**: Built natively for Python 3.14 Free-Threading (`NoGIL`). Say goodbye to the Global Interpreter Lock and hello to true multi-core processing, bridged through a highly optimized Rust core layer.
+- <img src="https://api.iconify.design/lucide/palette.svg?color=%23ff5e00" width="20" height="20" align="top" /> **Beautiful CLI Experience**: An interactive, Astro-inspired terminal setup wizard. Scaffold your entire application architecture in seconds.
+- <img src="https://api.iconify.design/lucide/zap.svg?color=%23eab308" width="20" height="20" align="top" /> **Bring Your Own UI**: First-class, out-of-the-box support for **React**, **Next.js**, **Vue**, **Svelte**, **Astro**, and Vanilla JS.
+- <img src="https://api.iconify.design/lucide/wind.svg?color=%2306b6d4" width="20" height="20" align="top" /> **Zero-Config Tailwind CSS**: The CLI can automatically install and configure Tailwind CSS, PostCSS, and inject your CSS entry directives with a single keypress.
+- <img src="https://api.iconify.design/lucide/lock.svg?color=%23ef4444" width="20" height="20" align="top" /> **Security by Design**: A meticulously scoped file and URL runtime model ensures your users are always safe from path traversal and unauthorized IPC cross-site scripting.
+- <img src="https://api.iconify.design/lucide/package.svg" width="24" height="24" align="top" /> **NPM Ecosystem Integration**: Native `@forgedesk/api` packages that feel completely natural for frontend developers, alongside seamless Vite + HMR integration.
 
-The identity reflects this: a forged gradient frame for trust and structure, with a spark core representing momentum and creation.
+---
 
-For complete usage rules, see [Brand Guide](branding/BRAND_GUIDE.md).
+## <img src="https://api.iconify.design/lucide/rocket.svg" width="28" height="28" align="top" /> Quick Start
 
-## Installation
-
-### Python runtime
+Getting started is incredibly easy. Ensure you have Python 3.14+ and Node.js installed, then run the ForgeDesk wizard:
 
 ```bash
-pip install forgedesk
+# 1. Install the CLI
+uv pip install forgedesk
+# (or `pip install forgedesk`)
+
+# 2. Launch the interactive scaffolding wizard
+forge create
 ```
 
-### Node ecosystem (optional)
+**The beautiful terminal UI will ask you seamlessly to configure:**
+1. Your project directory name.
+2. Your favorite UI framework (React, Next.js, Vue, Svelte, Astro).
+3. Your preferred Node package manager (`npm`, `pnpm`, `bun`).
+4. Whether you'd like **Tailwind CSS** automatically configured.
 
 ```bash
-npm install @forgedesk/api
-npm install -D @forgedesk/cli @forgedesk/vite-plugin vite
-npx @forgedesk/create-forge-app@latest my-app
-```
+# 3. Enter your project directory
+cd your-new-app
 
-## Quick Start
-
-```bash
-forge create my-app --template plain
-cd my-app
+# 4. Start the development server (Hot Module Replacement included!)
 forge dev
 ```
 
-Build release artifacts:
-
+When you are ready to ship to production, building a highly optimized binary is just as easy:
 ```bash
 forge build
 ```
 
-## Minimal Example
+---
 
-### Python (`src/main.py`)
+## <img src="https://api.iconify.design/lucide/brain.svg" width="28" height="28" align="top" /> Architecture & IPC Bridge
+
+ForgeDesk provides a seamless IPC (Inter-Process Communication) bridge between your Python backend and your JavaScript frontend. You write your system logic in Python, and your UI logic in TypeScript/JavaScript.
+
+### 1. The Backend (Python)
+Define your backend logic using decorators. ForgeDesk handles the asynchronous routing and thread pool management underneath.
 
 ```python
+# src/main.py
 from forge import ForgeApp
+import platform
 
 app = ForgeApp()
 
 @app.command
-def greet(name: str) -> str:
-    return f"Hello, {name}!"
+def fetch_system_data(username: str) -> dict:
+    """Fetch system stats to display on the UI."""
+    return {
+        "message": f"Welcome back, {username}!",
+        "os": platform.system(),
+        "status": "ready"
+    }
 
-app.run()
+if __name__ == "__main__":
+    app.run()
 ```
 
-### Frontend
+### 2. The Frontend (TypeScript / React)
+Call your Python commands natively from your frontend code using our typed NPM package.
 
-```ts
+```typescript
+// src/frontend/App.tsx
 import { invoke } from "@forgedesk/api";
+import { useEffect, useState } from "react";
 
-const msg = await invoke("greet", { name: "World" });
-console.log(msg);
+export default function App() {
+    const [sysData, setSysData] = useState<{message: string, os: string}>();
+
+    useEffect(() => {
+        async function loadData() {
+            const data = await invoke("fetch_system_data", { username: "Developer" });
+            setSysData(data);
+        }
+        loadData();
+    }, []);
+
+    return (
+        <div className="p-8 bg-slate-900 text-white min-h-screen">
+            <h1 className="text-3xl font-bold">{sysData?.message}</h1>
+            <p className="mt-4 text-emerald-400">Running on: {sysData?.os}</p>
+        </div>
+    );
+}
 ```
 
-## Core CLI Commands
+---
 
-| Command | Purpose |
-|---|---|
-| `forge create <name>` | Scaffold a new project |
-| `forge dev` | Run app in development mode with hot reload |
-| `forge build` | Build production artifacts |
-| `forge doctor` | Validate environment and project setup |
-| `forge package` | Emit package/install metadata |
-| `forge sign` | Run signing and verification workflow |
-| `forge release` | Build + generate release manifest |
+## <img src="https://api.iconify.design/lucide/package.svg" width="24" height="24" align="top" /> The Ecosystem
 
-## Documentation
+ForgeDesk is highly modular to ensure a separation of concerns and a fast developer experience:
 
-- Docs source: [docs](docs)
-- Installation guide: [docs/src/content/docs/install](docs/src/content/docs/install)
-- API reference: [docs/src/content/docs/api-reference.md](docs/src/content/docs/api-reference.md)
-- Blog/release notes: [docs/src/content/docs/blog](docs/src/content/docs/blog)
-- Branding assets: [branding](branding)
+- **<img src="https://api.iconify.design/logos/python.svg" width="20" height="20" align="top" /> PyPI Packages**: 
+  - `forgedesk`: The core application framework, CLI, Backend Runtime, and PyO3/Rust WebView integrations.
+- **<img src="https://api.iconify.design/lucide/globe.svg" width="20" height="20" align="top" /> NPM Packages**: 
+  - `@forgedesk/api`: The frontend IPC bindings for communicating with Python.
+  - `@forgedesk/vite-plugin`: Seamless Vite integration, ensuring frontend Hot Module Replacement (HMR) works perfectly inside the desktop window during development.
+  - `create-forge-app`: Node-centric initializers for bootstrapping applications directly via `npx` or `bunx`.
 
-## Packages
+---
 
-- Python (PyPI): `forgedesk`
-- npm: `@forgedesk/api`
-- npm: `@forgedesk/cli`
-- npm: `@forgedesk/vite-plugin`
-- npm: `@forgedesk/create-forge-app`
+## <img src="https://api.iconify.design/lucide/shield-check.svg" width="28" height="28" align="top" /> Enterprise Ready
 
-## Development
+ForgeDesk v3.0.0+ introduces full enterprise-level CI/CD and security rules. If you are examining our codebase or planning to contribute, please review our internal protocols:
+
+- [Production Branch Rules & Engineering Strategy](PRODUCTION_BRANCH_RULES.md)
+- [Official Release & Deployment Plan](RELEASE_PLAN_v3.md)
+- [Security Protocol](SECURITY.md)
+
+---
+
+## <img src="https://api.iconify.design/lucide/handshake.svg" width="28" height="28" align="top" /> Contributing
+
+We love contributions! ForgeDesk is built by the community, for the community. To run the framework locally for development:
 
 ```bash
+# Clone the repository
 git clone https://github.com/swadhinbiswas/ForgeDesk.git
 cd ForgeDesk/forge-framework
-pip install -e ".[dev]"
+
+# Create a virtual environment using uv
+uv venv
+source .venv/bin/activate
+
+# Install the package in editable mode with development dependencies
+uv pip install -e ".[dev]"
+
+# Run the test suite
 pytest
 ```
 
-## License
+## <img src="https://api.iconify.design/lucide/file-text.svg" width="28" height="28" align="top" /> License
 
-MIT — see [LICENSE](LICENSE).
+ForgeDesk is open-source software licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.

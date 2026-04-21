@@ -2288,15 +2288,34 @@ def create_project(
 
     Scaffolds a new project with the specified template and configuration.
     """
-    _print_header("Create App", "Scaffold a new Forge workspace")
+    
+    console.print()
+    console.print("  [bold #ff5e00]Welcome to Forge![/]")
+    console.print()
+
 
     if not name:
         try:
             import questionary
-            name = questionary.text("Project name:", default="my-forge-app").ask()
+            from questionary import Style
+            custom_style_astro = Style([
+                ('qmark', 'fg:#ff5e00 bold'),
+                ('question', 'bold'),
+                ('answer', 'fg:#2ecc71 bold'),
+                ('pointer', 'fg:#ff5e00 bold'),
+                ('highlighted', 'fg:#ff5e00 bold'),
+                ('selected', 'fg:#2ecc71'),
+            ])
+            name = questionary.text(
+                "Directory What should we name this new project?",
+                default="my-forge-app",
+                style=custom_style_astro,
+                qmark="◆"
+            ).ask()
+            if not name: raise typer.Exit(1)
         except ImportError:
             name = Prompt.ask("Project name", default="my-forge-app")
-        if not name: raise typer.Exit(1)
+            if not name: raise typer.Exit(1)
 
     valid_templates = ["plain", "react", "vue", "svelte", "complex", "astro", "nextjs"]
 
@@ -2308,23 +2327,34 @@ def create_project(
     if not selected_template:
         try:
             import questionary
+            from questionary import Style
+            custom_style_astro = Style([
+                ('qmark', 'fg:#ff5e00 bold'),
+                ('question', 'bold'),
+                ('answer', 'fg:#2ecc71 bold'),
+                ('pointer', 'fg:#ff5e00 bold'),
+                ('highlighted', 'fg:#ff5e00 bold'),
+                ('selected', 'fg:#2ecc71'),
+            ])
             selected_template = questionary.select(
-                "Choose template:",
-                                choices=[
-                    questionary.Choice("React (Recommended, Fast + React 19)", value="react"),
-                    questionary.Choice("Next.js (React + Tailwind + Shadcn UI)", value="nextjs"),
-                    questionary.Choice("Astro (Fast Static App)", value="astro"),
-                    questionary.Choice("Complex (React + TypeScript + IPC Demo)", value="complex"),
-                    questionary.Choice("Vue (Vue 3 + Vite)", value="vue"),
-                    questionary.Choice("Svelte (Svelte 5 + Vite)", value="svelte"),
-                    questionary.Choice("Plain (Vanilla JS/HTML)", value="plain")
+                "Template  How would you like to start your new project?",
+                choices=[
+                    questionary.Choice("React     (Fast + Vite + React 19)", value="react"),
+                    questionary.Choice("Next.js   (React + Tailwind + Shadcn UI)", value="nextjs"),
+                    questionary.Choice("Astro     (Fast Static App Site)", value="astro"),
+                    questionary.Choice("Complex   (React + TypeScript + IPC Demo)", value="complex"),
+                    questionary.Choice("Vue       (Vue 3 + Vite)", value="vue"),
+                    questionary.Choice("Svelte    (Svelte 5 + Vite)", value="svelte"),
+                    questionary.Choice("Vanilla   (Plain JS/HTML)", value="plain")
                 ],
-                default="react"
+                default="react",
+                style=custom_style_astro,
+                qmark="◆"
             ).ask()
+            if not selected_template: raise typer.Exit(1)
         except ImportError:
             selected_template = Prompt.ask("Choose template", choices=valid_templates, default="plain")
-            
-        if not selected_template: raise typer.Exit(1)
+            if not selected_template: raise typer.Exit(1)
 
     template = selected_template.lower().strip()
     if template not in valid_templates:
@@ -2341,39 +2371,80 @@ def create_project(
         raise typer.Exit(1)
 
 
-    # Get author name if not provided
-    if not author:
-        default_author = os.environ.get("USER", os.environ.get("USERNAME", "Developer"))
-        try:
-            import questionary
-            author = questionary.text("Author name:", default=default_author).ask()
-        except ImportError:
-            author = Prompt.ask("Author name", default=default_author)
-        if not author: raise typer.Exit(1)
 
-    if package_manager is None:
-        try:
-            import questionary
-            package_manager = questionary.select(
-                "Choose a package manager:",
-                choices=["npm", "pnpm", "bun", "yarn", "skip"],
-                default="npm"
+    # Interactive Prompts - Astro CLI Style
+    try:
+        import questionary
+        from questionary import Style
+
+        custom_style_astro = Style([
+            ('qmark', 'fg:#ff5e00 bold'),       # Astro orange mark
+            ('question', 'bold'),
+            ('answer', 'fg:#2ecc71 bold'),      # Green answers
+            ('pointer', 'fg:#ff5e00 bold'),
+            ('highlighted', 'fg:#ff5e00 bold'), # Orange highlighted
+            ('selected', 'fg:#2ecc71'),         # Green selected
+            ('separator', 'fg:#cc5454'),
+            ('instruction', ''),
+            ('text', ''),
+            ('disabled', 'fg:#858585 italic')
+        ])
+        
+
+
+        if not author:
+            default_author = os.environ.get("USER", os.environ.get("USERNAME", "Developer"))
+            author = questionary.text(
+                "Author    Who is the author of this project?",
+                default=default_author,
+                style=custom_style_astro,
+                qmark="◆"
             ).ask()
-        except ImportError:
-            package_manager = Prompt.ask("Package manager", choices=["npm", "pnpm", "bun", "yarn", "skip"], default="npm")
-        if not package_manager: raise typer.Exit(1)
+            if not author: raise typer.Exit(1)
 
-    if tailwind is None:
-        if template in ["react", "vue", "svelte", "plain", "complex"]:
-            try:
-                import questionary
-                tailwind = questionary.confirm("Include Tailwind CSS?", default=True).ask()
-            except ImportError:
+        if package_manager is None:
+            package_manager = questionary.select(
+                "Packages  Which package manager would you like to use?",
+                choices=["npm", "pnpm", "bun", "yarn", "skip (I'll install manually)"],
+                default="npm",
+                style=custom_style_astro,
+                qmark="◆"
+            ).ask()
+            if not package_manager: raise typer.Exit(1)
+            if "skip" in package_manager:
+                package_manager = "skip"
+
+        if tailwind is None:
+            if template in ["react", "vue", "svelte", "plain", "complex"]:
+                tailwind = questionary.confirm(
+                    "Tailwind  Would you like to install Tailwind CSS?",
+                    default=True,
+                    style=custom_style_astro,
+                    qmark="◆",
+                    instruction=" "
+                ).ask()
+                if tailwind is None: raise typer.Exit(1)
+            else:
+                tailwind = False
+
+    except ImportError:
+        # Fallback
+        if not author:
+            default_author = os.environ.get("USER", os.environ.get("USERNAME", "Developer"))
+            author = Prompt.ask("Author name", default=default_author)
+            if not author: raise typer.Exit(1)
+
+        if package_manager is None:
+            package_manager = Prompt.ask("Package manager", choices=["npm", "pnpm", "bun", "yarn", "skip"], default="npm")
+            if not package_manager: raise typer.Exit(1)
+
+        if tailwind is None:
+            if template in ["react", "vue", "svelte", "plain", "complex"]:
                 ans = Prompt.ask("Include Tailwind CSS? [y/N]", default="y")
                 tailwind = ans.lower().startswith('y')
-            if tailwind is None: raise typer.Exit(1)
-        else:
-            tailwind = False
+            else:
+                tailwind = False
+
 
 
     # Create project directory
@@ -3781,46 +3852,28 @@ def _write_frontend_workspace_files(project_dir: Path, template: str, name: str,
         })
         
         # Write Tailwind config
-        (project_dir / "tailwind.config.js").write_text(
-            "/** @type {import('tailwindcss').Config} */
-"
-            "export default {
-"
-            "  content: [
-"
-            "    \"./src/frontend/**/*.{js,ts,jsx,tsx,vue,svelte,html}\",
-"
-            "  ],
-"
-            "  theme: {
-"
-            "    extend: {},
-"
-            "  },
-"
-            "  plugins: [],
-"
-            "}
-",
-            encoding="utf-8"
-        )
+        tailwind_config_content = """/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./src/frontend/**/*.{js,ts,jsx,tsx,vue,svelte,html}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+"""
+        (project_dir / "tailwind.config.js").write_text(tailwind_config_content, encoding="utf-8")
         
         # Write PostCSS config
-        (project_dir / "postcss.config.js").write_text(
-            "export default {
-"
-            "  plugins: {
-"
-            "    tailwindcss: {},
-"
-            "    autoprefixer: {},
-"
-            "  },
-"
-            "}
-",
-            encoding="utf-8"
-        )
+        postcss_config_content = """export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+"""
+        (project_dir / "postcss.config.js").write_text(postcss_config_content, encoding="utf-8")
         
         # Inject tailwind directives into main css file
         css_file = project_dir / "src" / "frontend" / "index.css"
@@ -3830,11 +3883,7 @@ def _write_frontend_workspace_files(project_dir: Path, template: str, name: str,
         if css_file.exists():
             original_css = css_file.read_text("utf-8")
             css_file.write_text(
-                "@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-" + original_css,
+                "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n" + original_css,
                 encoding="utf-8"
             )
 
