@@ -27,7 +27,7 @@ parking_lot = "0.12"        # Faster mutexes than std (important for free-thread
 # So we do NOT need separate gtk/gdk/raw-window-handle deps for Linux.
 tao = "0.34"
 wry = { version = "0.54", features = ["devtools"] }
-muda = "0.15"
+muda = "0.18"
 tray-icon = "0.19"
 rfd = "0.15"
 
