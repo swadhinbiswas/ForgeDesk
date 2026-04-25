@@ -24,13 +24,17 @@ permissions:
   security-events: write
 
 env:
-  CARGO_TERM_COLOR: always
-  CARGO_INCREMENTAL: 0
-  # Only treat warnings as errors on Linux (muda unsafe warnings on Windows are pedantic)
-  RUSTFLAGS: ${{ runner.os == 'Linux' && '-D warnings' || '' }}
-  UV_SYSTEM_PYTHON: 1
-  PYTHON_VERSION: '3.14'
-  NODE_VERSION: '20'
+CARGO_TERM_COLOR: always
+CARGO_INCREMENTAL: 0
+# Only treat warnings as errors on Linux (muda unsafe warnings on Windows are pedantic)
+RUSTFLAGS: ${{ runner.os == 'Linux' && '-D warnings' || '' }}
+# Use system linker on Linux so it can find libxdo in standard paths
+CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: ld
+# Ensure libxdo is findable at build time
+LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+UV_SYSTEM_PYTHON: 1
+PYTHON_VERSION: '3.14'
+NODE_VERSION: '20'
 
 jobs:
   # ──────────────────────────────────────────────────────────
@@ -93,15 +97,14 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-xdotool-dev \
-            libxcb-shape0-dev \
-            libxcb-xfixes0-dev \
-            libxdo-dev
+sudo apt-get install -y \
+ libwebkit2gtk-4.1-dev \
+ build-essential \
+ libxdo-dev \
+ libssl-dev \
+ libayatana-xdotool-dev \
+ libxcb-shape0-dev \
+ libxcb-xfixes0-dev
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
