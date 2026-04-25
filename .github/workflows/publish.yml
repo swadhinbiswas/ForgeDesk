@@ -112,7 +112,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
-          manylinux: manylinux2014
+          manylinux: ${{ matrix.os == 'ubuntu-latest' && 'manylinux2014' || 'off' }}
 
       - name: Verify wheel
         run: |
