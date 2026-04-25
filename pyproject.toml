@@ -10,7 +10,7 @@ include = ["forge/js/*.js"]
 
 [project]
 name = "forgedesk"
-version = "3.0.1"
+version = "3.0.2"
 description = "Build powerful, cross-platform desktop and web applications using Python 3.14+ (NoGIL) and web technologies"
 readme = "README.md"
 license = {text = "MIT"}

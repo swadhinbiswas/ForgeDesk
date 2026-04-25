@@ -1,6 +1,6 @@
 {
   "name": "@forgedesk/create-forge-app",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Scaffold Forge applications from npm",
   "license": "MIT",
   "homepage": "https://forge-framework.dev",

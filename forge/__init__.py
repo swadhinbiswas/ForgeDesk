@@ -26,7 +26,7 @@ if sys.platform.startswith("linux") and os.environ.get("XDG_SESSION_TYPE") == "w
     # Prevent WebKitGTK (WPE) crashing persistently via Protocol Error 71 on Wayland
     os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
 
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 __all__ = [
     "ForgeApp",
     "ForgeConfig",
