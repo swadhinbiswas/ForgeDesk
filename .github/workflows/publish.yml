@@ -107,12 +107,23 @@ jobs:
             libxcb-shape0-dev \
             libxcb-xfixes0-dev
 
-      - name: Build wheels (Maturin)
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist
-          manylinux: ${{ matrix.os == 'ubuntu-latest' && 'manylinux2014' || '' }}
+      - name: Setup virtualenv
+        run: |
+          python -m venv .venv
+
+      - name: Install maturin
+        run: |
+          .venv/bin/python -m pip install maturin
+
+      - name: Build wheels (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: .venv/bin/python -m maturin build --release --out dist --target ${{ matrix.target }} --manylinux 2014
+        shell: bash
+
+      - name: Build wheels (macOS/Windows)
+        if: matrix.os != 'ubuntu-latest'
+        run: .venv/bin/python -m maturin build --release --out dist --target ${{ matrix.target }}
+        shell: bash
 
       - name: Verify wheel
         run: |
