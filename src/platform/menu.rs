@@ -1,6 +1,5 @@
+use muda::{CheckMenuItem, Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu};
 use pyo3::prelude::*;
-use muda::{Menu, Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, MenuId};
-use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -157,7 +156,12 @@ impl MenuManager {
             } else if child.checkable {
                 // Checkbox item
                 let label = child.label.as_deref().unwrap_or("");
-                let check_item = CheckMenuItem::new(label, child.enabled, child.checked, None::<muda::accelerator::Accelerator>);
+                let check_item = CheckMenuItem::new(
+                    label,
+                    child.enabled,
+                    child.checked,
+                    None::<muda::accelerator::Accelerator>,
+                );
                 if let Some(user_id) = &child.id {
                     let mut id_map = self.id_map.lock().unwrap();
                     let mut rev_map = self.reverse_map.lock().unwrap();

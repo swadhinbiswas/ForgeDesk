@@ -589,9 +589,9 @@ impl NativeWindow {
                                             use tao::platform::windows::WindowExtWindows;
                                             let hwnd = runtime_window.window.hwnd() as isize;
                                             if let Some(ref old_menu) = active_muda_menu {
-                                                let _ = old_menu.remove_for_hwnd(hwnd);
+                                                let _ = unsafe { old_menu.remove_for_hwnd(hwnd) };
                                             }
-                                            let _ = new_menu.init_for_hwnd(hwnd);
+                                            let _ = unsafe { new_menu.init_for_hwnd(hwnd) };
                                         }
                                     }
                                 }
@@ -1111,7 +1111,7 @@ fn build_muda_submenu(
     item: &crate::menu::NativeMenuItem,
     reverse_map: &mut std::collections::HashMap<String, String>,
 ) -> Result<(), String> {
-    use muda::{CheckMenuItem, IsMenuItem, MenuItem, PredefinedMenuItem, Submenu};
+    use muda::{CheckMenuItem, MenuItem, PredefinedMenuItem, Submenu};
 
     if item.item_type == "separator" {
         parent_menu
@@ -1190,7 +1190,7 @@ fn build_muda_submenu_child(
     item: &crate::menu::NativeMenuItem,
     reverse_map: &mut std::collections::HashMap<String, String>,
 ) -> Result<(), String> {
-    use muda::{CheckMenuItem, IsMenuItem, MenuItem, PredefinedMenuItem, Submenu};
+    use muda::{CheckMenuItem, MenuItem, PredefinedMenuItem, Submenu};
 
     if item.item_type == "separator" {
         parent
