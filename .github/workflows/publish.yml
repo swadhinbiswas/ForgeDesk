@@ -284,7 +284,19 @@ jobs:
           echo "📊 Total size:"
           du -sh dist/
 
+      - name: Check if version already exists on PyPI
+        run: |
+          VERSION="${{ needs.preflight.outputs.version }}"
+          if pip index versions forgedesk 2>/dev/null | grep -q "$VERSION"; then
+            echo "⏭️  forgedesk==$VERSION already exists on PyPI, skipping publish"
+            echo "ALREADY_PUBLISHED=true" >> "$GITHUB_ENV"
+          else
+            echo "ALREADY_PUBLISHED=false" >> "$GITHUB_ENV"
+            echo "📦 Publishing forgedesk==$VERSION to PyPI..."
+          fi
+
       - name: Publish to PyPI
+        if: env.ALREADY_PUBLISHED != 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
