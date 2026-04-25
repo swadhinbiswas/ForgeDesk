@@ -1,7 +1,7 @@
 {
   "name": "forge-monorepo",
   "private": true,
-  "version": "2.0.2",
+  "version": "3.0.0",
   "workspaces": [
     "packages/*"
   ],
@@ -23,16 +23,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/swadhinbiswas/Forge.git"
+    "url": "git+https://github.com/swadhinbiswas/ForgeDesk.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/swadhinbiswas/Forge/issues"
+    "url": "https://github.com/swadhinbiswas/ForgeDesk/issues"
   },
-  "homepage": "https://github.com/swadhinbiswas/Forge#readme",
+  "homepage": "https://github.com/swadhinbiswas/ForgeDesk#readme",
   "devDependencies": {
     "vitepress": "^1.6.4",
     "vue": "^3.5.32"
