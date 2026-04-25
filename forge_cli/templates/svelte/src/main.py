@@ -1,13 +1,16 @@
 """
-{{PROJECT_NAME}} - Python Backend (Svelte Template)
+{{PROJECT_NAME}} - Python Backend
 
-This is the main entry point for your Forge application.
-Define your Python commands here and expose them to the frontend.
+This is the main entry point for your Forge desktop application.
+Define Python commands here and call them from your frontend via IPC.
+
+Quick start:
+    ./forge dev        # Start development server
+    ./forge build      # Build production binary
 """
 
 from forge import ForgeApp
 
-# Create the app instance
 app = ForgeApp()
 
 
@@ -29,6 +32,11 @@ def get_system_info() -> dict:
     }
 
 
-# Run the application
+@app.command
+def add_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+
+
 if __name__ == "__main__":
     app.run(debug=True)

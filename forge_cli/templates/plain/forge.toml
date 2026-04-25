@@ -31,7 +31,17 @@ port = 5173
 filesystem = true
 clipboard = true
 dialogs = true
+notifications = true
 system_tray = false
+
+[protocol]
+schemes = ["{{PROJECT_NAME}}"]
+
+[packaging]
+app_id = "dev.forge.{{PROJECT_NAME}}"
+product_name = "{{PROJECT_NAME}}"
+formats = ["dir"]
+category = "Utility"
 
 [tool.forge_template]
 name = "plain"

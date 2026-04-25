@@ -4036,26 +4036,23 @@ def _copy_template(
         width: Window width.
         height: Window height.
     """
-    for item in template_dir.rglob("*"):
-        if item.is_file():
-            rel_path = item.relative_to(template_dir)
+    # rglob("*") skips dotfiles; use os.walk to catch .gitignore etc.
+    for root, _dirs, files in os.walk(template_dir):
+        for filename in files:
+            src = Path(root) / filename
+            rel_path = src.relative_to(template_dir)
             dest = project_dir / rel_path
             dest.parent.mkdir(parents=True, exist_ok=True)
 
-            # Read and process template
             try:
-                content = item.read_text(encoding="utf-8")
-
-                # Replace placeholders
+                content = src.read_text(encoding="utf-8")
                 content = content.replace("{{PROJECT_NAME}}", name)
                 content = content.replace("{{AUTHOR}}", author)
                 content = content.replace("{{WINDOW_WIDTH}}", str(width))
                 content = content.replace("{{WINDOW_HEIGHT}}", str(height))
-
                 dest.write_text(content, encoding="utf-8")
             except UnicodeDecodeError:
-                # Binary file - copy as-is
-                shutil.copy2(item, dest)
+                shutil.copy2(src, dest)
 
 
 def _write_frontend_workspace_files(

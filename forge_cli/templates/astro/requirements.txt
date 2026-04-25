@@ -1,0 +1,8 @@
+forgedesk
+fastapi
+uvicorn
+rich
+cryptography
+msgspec
+msgpack
+watchfiles

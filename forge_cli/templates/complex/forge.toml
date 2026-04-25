@@ -1,7 +1,7 @@
 [app]
 name = "{{PROJECT_NAME}}"
-version = "0.1.0"
-description = "A complex structured Forge application."
+version = "1.0.0"
+description = "A complex structured Forge application"
 authors = ["{{AUTHOR}}"]
 
 [window]
@@ -9,15 +9,39 @@ title = "{{PROJECT_NAME}}"
 width = {{WINDOW_WIDTH}}
 height = {{WINDOW_HEIGHT}}
 resizable = true
+fullscreen = false
+min_width = 400
+min_height = 300
+decorations = true
+always_on_top = false
+transparent = false
 
 [build]
-backend = "main:app"
-frontend_dir = "src/frontend"
+entry = "src/main.py"
+icon = "assets/icon.png"
+output_dir = "dist"
+single_binary = true
 
 [dev]
 frontend_dir = "src/frontend"
 hot_reload = true
 port = 5173
+
+[permissions]
+filesystem = true
+clipboard = true
+dialogs = true
+notifications = true
+system_tray = false
+
+[protocol]
+schemes = ["{{PROJECT_NAME}}"]
+
+[packaging]
+app_id = "dev.forge.{{PROJECT_NAME}}"
+product_name = "{{PROJECT_NAME}}"
+formats = ["dir"]
+category = "Utility"
 
 [tool.forge_template]
 name = "complex"

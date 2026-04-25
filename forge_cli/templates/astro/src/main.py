@@ -1,38 +1,28 @@
 """
 {{PROJECT_NAME}} - Python Backend
 
-This is the main entry point for your Forge application.
-Define your Python commands here and expose them to the frontend.
+This is the main entry point for your Forge desktop application.
+Define Python commands here and call them from your frontend via IPC.
+
+Quick start:
+    ./forge dev        # Start development server
+    ./forge build      # Build production binary
 """
 
 from forge import ForgeApp
 
-# Create the app instance
 app = ForgeApp()
 
 
 @app.command
 def greet(name: str) -> str:
-    """
-    Greet a user by name.
-
-    Args:
-        name: The name to greet.
-
-    Returns:
-        A greeting message.
-    """
+    """Greet a user by name."""
     return f"Hello, {name}! Welcome to {{PROJECT_NAME}} 🚀"
 
 
 @app.command
 def get_system_info() -> dict:
-    """
-    Get system information.
-
-    Returns:
-        Dictionary with OS, Python version, and platform info.
-    """
+    """Get system information."""
     import platform
 
     return {
@@ -44,19 +34,9 @@ def get_system_info() -> dict:
 
 @app.command
 def add_numbers(a: int, b: int) -> int:
-    """
-    Add two numbers together.
-
-    Args:
-        a: First number.
-        b: Second number.
-
-    Returns:
-        The sum of a and b.
-    """
+    """Add two numbers together."""
     return a + b
 
 
-# Run the application
 if __name__ == "__main__":
     app.run(debug=True)
