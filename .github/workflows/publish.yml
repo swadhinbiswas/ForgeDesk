@@ -191,8 +191,9 @@ jobs:
 
       - name: Publish packages
         run: |
-          set -euo pipefail
+          set -uo pipefail
           VERSION="${{ needs.preflight.outputs.version }}"
+          FAILED_PKGS=""
           for pkg_dir in packages/api packages/cli packages/vite-plugin packages/create-forge-app; do
             if [ -d "$pkg_dir" ]; then
               PKG_NAME=$(node -p "require('./$pkg_dir/package.json').name")
@@ -205,11 +206,21 @@ jobs:
               fi
 
               cd "$pkg_dir"
-              npm publish --access public --provenance
+              if npm publish --access public --provenance; then
+                echo "✅ Published $PKG_NAME@$VERSION"
+              else
+                echo "❌ FAILED to publish $PKG_NAME@$VERSION"
+                FAILED_PKGS="$FAILED_PKGS $PKG_NAME"
+              fi
               cd ../..
-              echo "✅ Published $PKG_NAME@$VERSION"
             fi
           done
+
+          if [ -n "$FAILED_PKGS" ]; then
+            echo ""
+            echo "❌ Some packages failed to publish:$FAILED_PKGS"
+            exit 1
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
