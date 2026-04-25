@@ -80,10 +80,10 @@ extensions = [
 forge = "forge_cli.main:main"
 
 [project.urls]
-Homepage = "https://github.com/forge-framework/forge"
+Homepage = "https://github.com/swadhinbiswas/ForgeDesk"
 Documentation = "https://forge-framework.dev/docs"
-Repository = "https://github.com/forge-framework/forge"
-Issues = "https://github.com/forge-framework/forge/issues"
+Repository = "https://github.com/swadhinbiswas/ForgeDesk"
+Issues = "https://github.com/swadhinbiswas/ForgeDesk/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
