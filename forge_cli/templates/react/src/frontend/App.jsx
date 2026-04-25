@@ -1,117 +1,144 @@
-import { useState } from 'react'
-import forge, { invoke } from '@forgedesk/api'
+import { useState, useEffect, useCallback } from 'react'
+import { invoke } from '@forgedesk/api'
 import './App.css'
 
 function App() {
-  const [name, setName] = useState('')
-  const [greeting, setGreeting] = useState('')
-  const [systemInfo, setSystemInfo] = useState(null)
-  const [loadingGreet, setLoadingGreet] = useState(false)
-  const [loadingInfo, setLoadingInfo] = useState(false)
-  const [errorGreet, setErrorGreet] = useState(null)
-  const [errorInfo, setErrorInfo] = useState(null)
+  const [todos, setTodos] = useState([])
+  const [text, setText] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [loading, setLoading] = useState(true)
 
-  const handleGreet = async () => {
-    setLoadingGreet(true)
-    setErrorGreet(null)
-    setGreeting('')
+  const loadTodos = useCallback(async () => {
     try {
-      const result = await invoke('greet', { name: name || 'Developer' })
-      setGreeting(result)
-      try { await forge.clipboard.write(result); } catch(e) {}
+      const data = await invoke('todo_list')
+      setTodos(data)
     } catch (err) {
-      setErrorGreet(err.message || String(err))
+      console.error('Failed to load todos:', err)
     } finally {
-      setLoadingGreet(false)
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadTodos() }, [loadTodos])
+
+  const addTodo = async () => {
+    if (!text.trim()) return
+    try {
+      await invoke('todo_add', { text: text.trim() })
+      setText('')
+      await loadTodos()
+    } catch (err) {
+      console.error('Failed to add todo:', err)
     }
   }
 
-  const handleGetInfo = async () => {
-    setLoadingInfo(true)
-    setErrorInfo(null)
-    setSystemInfo(null)
+  const toggleTodo = async (id) => {
     try {
-      const info = await invoke('get_system_info')
-      setSystemInfo(info)
+      await invoke('todo_toggle', { id })
+      await loadTodos()
     } catch (err) {
-      setErrorInfo(err.message || String(err))
-    } finally {
-      setLoadingInfo(false)
+      console.error('Failed to toggle todo:', err)
     }
   }
+
+  const deleteTodo = async (id) => {
+    try {
+      await invoke('todo_delete', { id })
+      await loadTodos()
+    } catch (err) {
+      console.error('Failed to delete todo:', err)
+    }
+  }
+
+  const clearCompleted = async () => {
+    try {
+      await invoke('todo_clear_completed')
+      await loadTodos()
+    } catch (err) {
+      console.error('Failed to clear completed:', err)
+    }
+  }
+
+  const filtered = todos.filter(t => {
+    if (filter === 'active') return !t.done
+    if (filter === 'completed') return t.done
+    return true
+  })
+
+  const left = todos.filter(t => !t.done).length
 
   return (
-    <>
-      <div id="noise"></div>
-      <div className="glow-bg"></div>
+    <div className="app">
+      <header className="app-header">
+        <h1>{{PROJECT_NAME}}</h1>
+        <p className="subtitle">What needs to be done?</p>
+      </header>
 
-      <div className="container">
-        <header>
-          <div className="logo-container">
-            <div className="logo">⚡</div>
-          </div>
-          <h1>{{PROJECT_NAME}}</h1>
-          <p className="tagline">Welcome to the future of Desktop Apps mapped with Python.</p>
-        </header>
+      <main className="todo-container">
+        <div className="input-wrapper">
+          <input
+            type="text"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addTodo()}
+            placeholder="What needs to be done?"
+            autoComplete="off"
+          />
+          <button onClick={addTodo} className="btn-primary">Add</button>
+        </div>
 
-        <main>
-          <section className="card glass">
-            <div className="card-header">
-              <div className="dot-group">
-                <span className="dot red"></span>
-                <span className="dot yellow"></span>
-                <span className="dot green"></span>
-              </div>
-              <h2>Command Execution</h2>
-            </div>
-            <div className="card-body">
-              <p className="desc">Enter a name to call the <code>greet</code> python command via IPC.</p>
-              <div className="input-group">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name..."
-                  autoComplete="off"
-                />
-                <button onClick={handleGreet} disabled={loadingGreet}>
-                  {loadingGreet ? 'Running...' : 'Run'}
+        <div className="filters">
+          {['all', 'active', 'completed'].map(f => (
+            <button
+              key={f}
+              className={`filter ${filter === f ? 'active' : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {f[0].toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="loading">Loading todos...</div>
+        ) : (
+          <ul className="todo-list">
+            {filtered.map(todo => (
+              <li key={todo.id} className={`todo-item ${todo.done ? 'completed' : ''}`}>
+                <label className="todo-check">
+                  <input
+                    type="checkbox"
+                    checked={todo.done}
+                    onChange={() => toggleTodo(todo.id)}
+                  />
+                  <span className="checkmark"></span>
+                </label>
+                <span className="todo-text">{todo.text}</span>
+                <button
+                  className="btn-delete"
+                  onClick={() => deleteTodo(todo.id)}
+                  title="Delete"
+                >
+                  &times;
                 </button>
-              </div>
-              {greeting && <div className="output-box success show">{greeting}</div>}
-              {errorGreet && <div className="output-box error show">{errorGreet}</div>}
-            </div>
-          </section>
+              </li>
+            ))}
+          </ul>
+        )}
 
-          <section className="card glass">
-            <div className="card-header">
-              <div className="dot-group">
-                <span className="dot red"></span>
-                <span className="dot yellow"></span>
-                <span className="dot green"></span>
-              </div>
-              <h2>System Telemetry</h2>
-            </div>
-            <div className="card-body">
-              <p className="desc">Fetching live diagnostics seamlessly from Python.</p>
-              <button className="secondary-btn" onClick={handleGetInfo} disabled={loadingInfo}>
-                {loadingInfo ? 'Fetching...' : 'Fetch System Info'}
-              </button>
-              {systemInfo && (
-                <div className="output-box info show">
-                  {JSON.stringify(systemInfo, null, 2)}
-                </div>
-              )}
-              {errorInfo && <div className="output-box error show">{errorInfo}</div>}
-            </div>
-          </section>
-        </main>
+        <div className="todo-footer">
+          <span>{left} item{left !== 1 ? 's' : ''} left</span>
+          <button className="btn-text" onClick={clearCompleted}>
+            Clear completed
+          </button>
+        </div>
+      </main>
 
-        <footer>
-          <p>Powered by <strong>Forge Framework</strong></p>
-        </footer>
-      </div>
-    </>
+      <footer className="app-footer">
+        <p>Press <kbd>Enter</kbd> to add a todo</p>
+        <p className="powered">Powered by <strong>Forge</strong> + React + Python</p>
+      </footer>
+    </div>
   )
 }
 

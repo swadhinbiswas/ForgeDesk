@@ -1,43 +1,34 @@
 # {{PROJECT_NAME}}
 
-A complex Forge desktop application with modular architecture.
+A complex Forge desktop todo list application with modular architecture.
 
-## Project Structure
+## Features
 
-```
-{{PROJECT_NAME}}/
-├── src/
-│   ├── main.py              # App entry point
-│   ├── config.py            # Configuration
-│   ├── handlers/            # IPC command handlers
-│   │   ├── __init__.py
-│   │   └── system.py
-│   ├── services/            # Business logic
-│   │   ├── __init__.py
-│   │   └── system.py
-│   ├── backend/
-│   │   └── __init__.py
-│   └── frontend/            # React frontend
-│       ├── index.html
-│       ├── main.jsx
-│       ├── App.jsx
-│       ├── App.css
-│       └── index.css
-├── assets/
-│   └── icon.png
-├── forge.toml
-├── package.json
-├── requirements.txt
-└── .gitignore
-```
+- Add, toggle, and delete todos
+- Filter by All / Active / Completed
+- Clear all completed todos
+- Modular backend: handlers/ + services/
 
 ## Architecture
 
 This template demonstrates separation of concerns:
 
-- **Handlers** (`src/handlers/`): Define IPC routes exposed to frontend
-- **Services** (`src/services/`): Contain business logic and data processing
-- **Config** (`src/config.py`): Centralized configuration
+```
+src/
+├── main.py              # App entry point
+├── config.py            # Configuration
+├── handlers/            # IPC command handlers
+│   ├── __init__.py
+│   ├── todo.py          # Todo IPC routes
+│   └── system.py        # System IPC routes
+├── services/            # Business logic
+│   ├── __init__.py
+│   ├── todo.py          # Todo domain logic
+│   └── system.py        # System utilities
+├── backend/
+│   └── __init__.py
+└── frontend/            # React frontend
+```
 
 ## Quick Start
 
@@ -52,17 +43,13 @@ cd {{PROJECT_NAME}}
 
 | Command | Args | Description |
 |---------|------|-------------|
-| `greet` | `{name: string}` | Returns a greeting |
-| `get_system_info` | — | Returns OS info |
-| `analyze_data` | `{payload: string}` | Processes data via service layer |
-
-## Frontend
-
-```jsx
-import { invoke } from "@forgedesk/api";
-
-const result = await invoke("greet", { name: "Complex" });
-```
+| `todo_add` | `{text: string}` | Add a new todo |
+| `todo_list` | — | Get all todos |
+| `todo_toggle` | `{id: number}` | Toggle completion |
+| `todo_delete` | `{id: number}` | Delete a todo |
+| `todo_clear_completed` | — | Remove all completed |
+| `get_system_info` | — | Get OS info |
+| `analyze_data` | `{payload: string}` | Process data via service |
 
 ## Learn More
 

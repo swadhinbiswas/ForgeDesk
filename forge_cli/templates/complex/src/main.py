@@ -1,8 +1,10 @@
 """
-{{PROJECT_NAME}} - Complex Template Backend
+{{PROJECT_NAME}} - Complex Template Backend (Modular)
 
-This template demonstrates a modular Forge application structure
-with handlers (IPC routes) and services (business logic).
+This template demonstrates a modular Forge application structure:
+- handlers/  -> IPC command handlers (routes)
+- services/  -> Business logic (domain layer)
+- config.py  -> Centralized configuration
 
 Quick start:
     ./forge dev        # Start development server
@@ -16,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from forge import ForgeApp
+from handlers.todo import register_todo_commands
 from handlers.system import register_system_commands
 import config
 
@@ -23,6 +26,7 @@ import config
 def create_app() -> ForgeApp:
     """Factory function for initializing the Forge App."""
     app = ForgeApp()
+    register_todo_commands(app)
     register_system_commands(app)
 
     @app.command

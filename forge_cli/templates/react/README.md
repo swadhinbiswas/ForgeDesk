@@ -1,13 +1,20 @@
 # {{PROJECT_NAME}}
 
-A Forge desktop application built with React and Python.
+A Forge desktop todo list application built with React and Python.
+
+## Features
+
+- Add, toggle, and delete todos
+- Filter by All / Active / Completed
+- Clear all completed todos
+- React hooks for state management
 
 ## Project Structure
 
 ```
 {{PROJECT_NAME}}/
 ├── src/
-│   ├── main.py              # Python backend (IPC commands)
+│   ├── main.py              # Python backend
 │   ├── backend/
 │   │   └── __init__.py
 │   └── frontend/            # React frontend
@@ -37,21 +44,21 @@ cd {{PROJECT_NAME}}
 
 | Command | Args | Description |
 |---------|------|-------------|
-| `greet` | `{name: string}` | Returns a greeting |
-| `get_system_info` | — | Returns OS info |
-| `add_numbers` | `{a: number, b: number}` | Sum two numbers |
+| `todo_add` | `{text: string}` | Add a new todo |
+| `todo_list` | — | Get all todos |
+| `todo_toggle` | `{id: number}` | Toggle completion |
+| `todo_delete` | `{id: number}` | Delete a todo |
+| `todo_clear_completed` | — | Remove all completed |
+| `get_system_info` | — | Get OS info |
 
 ## Frontend
 
 ```jsx
 import { invoke } from "@forgedesk/api";
 
-const result = await invoke("greet", { name: "React" });
+const todos = await invoke("todo_list");
+await invoke("todo_add", { text: "Learn React" });
 ```
-
-## Configuration
-
-Edit `forge.toml` to customize window, permissions, and packaging.
 
 ## Learn More
 

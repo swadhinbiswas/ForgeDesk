@@ -1,21 +1,21 @@
-/* Astro + Forge Template Styles */
+/* Astro + Forge Todo Template */
 :root {
     --bg: #0b0d17;
-    --card: #15192b;
+    --surface: #15192b;
+    --surface-hover: #1c2038;
+    --border: rgba(255,255,255,0.08);
     --text: #e2e8f0;
-    --muted: #94a3b8;
+    --text-muted: #94a3b8;
     --accent: #ff5e00;
+    --accent-hover: #ff8c42;
     --accent-glow: rgba(255, 94, 0, 0.3);
-    --success: #2ecc71;
-    --border: rgba(255, 255, 255, 0.08);
-    --glass: rgba(21, 25, 43, 0.7);
+    --success: #22c55e;
+    --danger: #ef4444;
+    --radius: 16px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     font-family: 'Inter', system-ui, sans-serif;
@@ -24,6 +24,9 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     line-height: 1.6;
+    display: flex;
+    justify-content: center;
+    padding: 48px 16px;
 }
 
 .astro-bg {
@@ -36,7 +39,7 @@ body {
 .stars {
     position: absolute;
     inset: 0;
-    background-image: 
+    background-image:
         radial-gradient(2px 2px at 20px 30px, #fff, transparent),
         radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
         radial-gradient(1px 1px at 90px 40px, #fff, transparent),
@@ -47,16 +50,9 @@ body {
     opacity: 0.4;
 }
 
-.container {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 48px 20px;
-}
+.app { width: 100%; max-width: 520px; position: relative; z-index: 1; }
 
-header {
-    text-align: center;
-    margin-bottom: 40px;
-}
+.app-header { text-align: center; margin-bottom: 32px; }
 
 .logo-container {
     display: inline-flex;
@@ -65,164 +61,174 @@ header {
     width: 64px;
     height: 64px;
     border-radius: 16px;
-    background: linear-gradient(135deg, var(--accent), #ff8c42);
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
     margin-bottom: 20px;
     box-shadow: 0 8px 32px var(--accent-glow);
 }
 
-.logo {
-    font-size: 28px;
-}
+.logo { font-size: 28px; }
 
-h1 {
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    margin-bottom: 8px;
-}
+.app-header h1 { font-size: 36px; font-weight: 700; letter-spacing: -1px; }
+.subtitle { color: var(--text-muted); margin-top: 4px; font-size: 15px; }
 
-.tagline {
-    color: var(--muted);
-    font-size: 15px;
-}
-
-.card {
-    background: var(--glass);
+.todo-container {
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    margin-bottom: 20px;
-    overflow: hidden;
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
     backdrop-filter: blur(12px);
 }
 
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border);
-}
-
-.dot-group {
-    display: flex;
-    gap: 6px;
-}
-
-.dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-}
-
-.dot.red { background: #ff5f56; }
-.dot.yellow { background: #ffbd2e; }
-.dot.green { background: #27c93f; }
-
-.card-header h2 {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.card-body {
-    padding: 20px;
-}
-
-.desc {
-    color: var(--muted);
-    font-size: 14px;
-    margin-bottom: 16px;
-}
-
-.desc code {
-    background: rgba(255,255,255,0.06);
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 13px;
-    color: var(--accent);
-}
-
-.input-group {
+.input-wrapper {
     display: flex;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
 }
 
-.input-group input {
+.input-wrapper input {
     flex: 1;
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.04);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 12px 16px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 15px;
     outline: none;
     transition: border-color 0.2s;
 }
+.input-wrapper input:focus { border-color: var(--accent); }
+.input-wrapper input::placeholder { color: var(--text-muted); }
 
-.input-group input:focus {
-    border-color: var(--accent);
-}
-
-.input-group input::placeholder {
-    color: var(--muted);
-}
-
-button {
+.btn-primary {
     background: var(--accent);
     color: white;
     border: none;
     border-radius: 10px;
-    padding: 10px 20px;
+    padding: 12px 20px;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
+    transition: background 0.2s;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
-button:hover {
-    opacity: 0.9;
-}
-
-button:active {
-    transform: scale(0.97);
-}
-
-.secondary-btn {
-    background: rgba(255,255,255,0.08);
+.filter {
+    background: transparent;
     border: 1px solid var(--border);
-    color: var(--text);
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.filter:hover { color: var(--text); border-color: var(--text-muted); }
+.filter.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+.todo-list { list-style: none; }
+
+.todo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    transition: opacity 0.2s;
+}
+.todo-item:last-child { border-bottom: none; }
+.todo-item.completed { opacity: 0.5; }
+.todo-item.completed .todo-text { text-decoration: line-through; color: var(--text-muted); }
+
+.todo-check {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.todo-check input { opacity: 0; width: 0; height: 0; }
+.checkmark {
+    position: absolute;
+    top: 0; left: 0;
+    width: 22px; height: 22px;
+    border: 2px solid var(--text-muted);
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+.todo-check input:checked + .checkmark {
+    background: var(--success);
+    border-color: var(--success);
+}
+.todo-check input:checked + .checkmark::after {
+    content: '';
+    position: absolute;
+    left: 6px; top: 2px;
+    width: 5px; height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
-.output-box {
-    background: rgba(0,0,0,0.25);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-family: 'SF Mono', monospace;
-    font-size: 13px;
-    min-height: 44px;
-    display: none;
+.todo-text {
+    flex: 1;
+    font-size: 15px;
     word-break: break-word;
-    white-space: pre-wrap;
 }
 
-.output-box.show {
-    display: block;
-    animation: fadeIn 0.3s ease;
+.btn-delete {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s;
+    line-height: 1;
+    padding: 0 4px;
+}
+.todo-item:hover .btn-delete { opacity: 1; }
+.btn-delete:hover { color: var(--danger); }
+
+.todo-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+.btn-text {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: color 0.2s;
 }
+.btn-text:hover { color: var(--danger); }
 
-footer {
+.app-footer {
     text-align: center;
-    padding: 24px 0;
-    color: var(--muted);
+    margin-top: 24px;
+    color: var(--text-muted);
     font-size: 13px;
 }
-
-footer strong {
-    color: var(--text);
+.app-footer kbd {
+    background: rgba(255,255,255,0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
 }
+.powered { margin-top: 8px; }
+.powered strong { color: var(--text); }

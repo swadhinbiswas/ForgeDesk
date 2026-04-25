@@ -5,66 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{PROJECT_NAME}}</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Use Inter font for a modern look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="noise"></div>
-    <div class="glow-bg"></div>
-
-    <div class="container">
-        <header>
-            <div class="logo-container">
-                <div class="logo">⚡</div>
-            </div>
+    <div class="app">
+        <header class="app-header">
             <h1>{{PROJECT_NAME}}</h1>
-            <p class="tagline">Welcome to the future of Desktop Apps mapped with Python.</p>
+            <p class="subtitle">What needs to be done?</p>
         </header>
 
-        <main>
-            <!-- Demo 1: Greet -->
-            <section class="card glass">
-                <div class="card-header">
-                    <div class="dot-group">
-                        <span class="dot red"></span>
-                        <span class="dot yellow"></span>
-                        <span class="dot green"></span>
-                    </div>
-                    <h2>Command Execution</h2>
-                </div>
-                <div class="card-body">
-                    <p class="desc">Enter a name to call the <code>greet</code> python command via IPC.</p>
-                    <div class="input-group">
-                        <input type="text" id="nameInput" placeholder="Enter your name..." autocomplete="off">
-                        <button id="greetBtn">Run</button>
-                    </div>
-                    <div id="greetResult" class="result output-box"></div>
-                </div>
-            </section>
+        <main class="todo-container">
+            <div class="input-wrapper">
+                <input type="text" id="todoInput" placeholder="What needs to be done?" autocomplete="off" />
+                <button id="addBtn" class="btn-primary">Add</button>
+            </div>
 
-            <!-- Demo 2: System Info & Logs -->
-            <section class="card glass">
-                <div class="card-header">
-                    <div class="dot-group">
-                        <span class="dot red"></span>
-                        <span class="dot yellow"></span>
-                        <span class="dot green"></span>
-                    </div>
-                    <h2>System Telemetry</h2>
-                </div>
-                <div class="card-body">
-                    <p class="desc">Fetching live diagnostics seamlessly from Python.</p>
-                    <button id="sysInfoBtn" class="secondary-btn">Fetch System Info</button>
-                    <div id="sysInfoResult" class="result output-box"></div>
-                </div>
-            </section>
+            <div class="filters">
+                <button class="filter active" data-filter="all">All</button>
+                <button class="filter" data-filter="active">Active</button>
+                <button class="filter" data-filter="completed">Completed</button>
+            </div>
+
+            <ul id="todoList" class="todo-list"></ul>
+
+            <div class="todo-footer">
+                <span id="itemsLeft">0 items left</span>
+                <button id="clearCompleted" class="btn-text">Clear completed</button>
+            </div>
         </main>
 
-        <footer>
-            <p>Powered by <strong>Forge Framework</strong></p>
+        <footer class="app-footer">
+            <p>Press <kbd>Enter</kbd> to add a todo</p>
+            <p class="powered">Powered by <strong>Forge</strong> + Python</p>
         </footer>
     </div>
-    
+
     <script type="module" src="main.js"></script>
 </body>
 </html>

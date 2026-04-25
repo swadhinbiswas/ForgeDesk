@@ -1,6 +1,13 @@
 # {{PROJECT_NAME}}
 
-A Forge desktop application built with Python and web technologies.
+A Forge desktop todo list application built with Python and web technologies.
+
+## Features
+
+- Add, toggle, and delete todos
+- Filter by All / Active / Completed
+- Clear all completed todos
+- Thread-safe backend with real-time updates
 
 ## Project Structure
 
@@ -40,24 +47,30 @@ cd {{PROJECT_NAME}}
 
 ## Backend Commands
 
-The following Python commands are exposed to the frontend via IPC:
-
 | Command | Args | Description |
 |---------|------|-------------|
-| `greet` | `{name: string}` | Returns a greeting message |
-| `get_system_info` | — | Returns OS, Python version, platform |
-| `add_numbers` | `{a: number, b: number}` | Returns sum of two numbers |
+| `todo_add` | `{text: string}` | Add a new todo |
+| `todo_list` | — | Get all todos |
+| `todo_toggle` | `{id: number}` | Toggle completion |
+| `todo_delete` | `{id: number}` | Delete a todo |
+| `todo_clear_completed` | — | Remove all completed |
+| `get_system_info` | — | Get OS info |
 
 ## Frontend
 
-The frontend is built with Vite and communicates with the Python backend
-through the `@forgedesk/api` IPC bridge.
+The frontend communicates with the Python backend through the `@forgedesk/api` IPC bridge.
 
 ```javascript
 import { invoke } from "@forgedesk/api";
 
-const result = await invoke("greet", { name: "World" });
-console.log(result); // "Hello, World! Welcome to {{PROJECT_NAME}} 🚀"
+// Add a todo
+await invoke("todo_add", { text: "Buy groceries" });
+
+// List all todos
+const todos = await invoke("todo_list");
+
+// Toggle completion
+await invoke("todo_toggle", { id: 1 });
 ```
 
 ## Configuration
@@ -66,9 +79,7 @@ Edit `forge.toml` to customize:
 - Window size, title, decorations
 - Permissions (filesystem, clipboard, dialogs, etc.)
 - Packaging formats (AppImage, DMG, MSI, etc.)
-- Auto-updater settings
 
 ## Learn More
 
 - [Forge Documentation](https://forge-framework.dev/docs)
-- [API Reference](https://forge-framework.dev/docs/api)

@@ -1,117 +1,135 @@
 <script>
   import { onMount } from 'svelte';
-  import forge, { invoke } from '@forgedesk/api';
+  import { invoke } from '@forgedesk/api';
   import './style.css';
 
-  let name = '';
-  let greeting = '';
-  let systemInfo = null;
-  let loadingGreet = false;
-  let loadingInfo = false;
-  let errorGreet = null;
-  let errorInfo = null;
+  let todos = [];
+  let text = '';
+  let filter = 'all';
+  let loading = true;
+  const filters = ['all', 'active', 'completed'];
 
-  async function handleGreet() {
-    loadingGreet = true;
-    errorGreet = null;
-    greeting = '';
+  $: filtered = filter === 'active'
+    ? todos.filter(t => !t.done)
+    : filter === 'completed'
+    ? todos.filter(t => t.done)
+    : todos;
+
+  $: left = todos.filter(t => !t.done).length;
+
+  async function loadTodos() {
     try {
-      const result = await invoke('greet', { name: name || 'Developer' });
-      greeting = result;
-      try { await forge.clipboard.write(result); } catch(e) {}
+      todos = await invoke('todo_list');
     } catch (err) {
-      errorGreet = err.message || String(err);
+      console.error('Failed to load todos:', err);
     } finally {
-      loadingGreet = false;
+      loading = false;
     }
   }
 
-  async function handleGetInfo() {
-    loadingInfo = true;
-    errorInfo = null;
-    systemInfo = null;
+  async function addTodo() {
+    if (!text.trim()) return;
     try {
-      const info = await invoke('get_system_info');
-      systemInfo = info;
+      await invoke('todo_add', { text: text.trim() });
+      text = '';
+      await loadTodos();
     } catch (err) {
-      errorInfo = err.message || String(err);
-    } finally {
-      loadingInfo = false;
+      console.error('Failed to add todo:', err);
     }
   }
+
+  async function toggleTodo(id) {
+    try {
+      await invoke('todo_toggle', { id });
+      await loadTodos();
+    } catch (err) {
+      console.error('Failed to toggle todo:', err);
+    }
+  }
+
+  async function deleteTodo(id) {
+    try {
+      await invoke('todo_delete', { id });
+      await loadTodos();
+    } catch (err) {
+      console.error('Failed to delete todo:', err);
+    }
+  }
+
+  async function clearCompleted() {
+    try {
+      await invoke('todo_clear_completed');
+      await loadTodos();
+    } catch (err) {
+      console.error('Failed to clear completed:', err);
+    }
+  }
+
+  onMount(loadTodos);
 </script>
 
-<div id="noise"></div>
-<div class="glow-bg"></div>
-
-<div class="container">
-  <header>
-    <div class="logo-container">
-      <div class="logo">⚡</div>
-    </div>
+<div class="app">
+  <header class="app-header">
     <h1>{{PROJECT_NAME}}</h1>
-    <p class="tagline">Welcome to the future of Desktop Apps mapped with Python.</p>
+    <p class="subtitle">What needs to be done?</p>
   </header>
 
-  <main>
-    <section class="card glass">
-      <div class="card-header">
-        <div class="dot-group">
-          <span class="dot red"></span>
-          <span class="dot yellow"></span>
-          <span class="dot green"></span>
-        </div>
-        <h2>Command Execution</h2>
-      </div>
-      <div class="card-body">
-        <p class="desc">Enter a name to call the <code>greet</code> python command via IPC.</p>
-        <div class="input-group">
-          <input
-            type="text"
-            bind:value={name}
-            placeholder="Enter your name..."
-            autocomplete="off"
-          />
-          <button on:click={handleGreet} disabled={loadingGreet}>
-            {#if loadingGreet}Running...{:else}Run{/if}
-          </button>
-        </div>
-        {#if greeting}
-          <div class="output-box success show">{greeting}</div>
-        {/if}
-        {#if errorGreet}
-          <div class="output-box error show">{errorGreet}</div>
-        {/if}
-      </div>
-    </section>
+  <main class="todo-container">
+    <div class="input-wrapper">
+      <input
+        type="text"
+        bind:value={text}
+        on:keydown={e => e.key === 'Enter' && addTodo()}
+        placeholder="What needs to be done?"
+        autocomplete="off"
+      />
+      <button on:click={addTodo} class="btn-primary">Add</button>
+    </div>
 
-    <section class="card glass">
-      <div class="card-header">
-        <div class="dot-group">
-          <span class="dot red"></span>
-          <span class="dot yellow"></span>
-          <span class="dot green"></span>
-        </div>
-        <h2>System Telemetry</h2>
-      </div>
-      <div class="card-body">
-        <p class="desc">Fetching live diagnostics seamlessly from Python.</p>
-        <button class="secondary-btn" on:click={handleGetInfo} disabled={loadingInfo}>
-          {#if loadingInfo}Fetching...{:else}Fetch System Info{/if}
+    <div class="filters">
+      {#each filters as f}
+        <button
+          class="filter {filter === f ? 'active' : ''}"
+          on:click={() => filter = f}
+        >
+          {f[0].toUpperCase() + f.slice(1)}
         </button>
-        {#if systemInfo}
-          <div class="output-box info show">
-            {JSON.stringify(systemInfo, null, 2)}
-          </div>
-        {/if}
-        {#if errorInfo}
-          <div class="output-box error show">{errorInfo}</div>
-        {/if}
-      </div>
-    </section>
+      {/each}
+    </div>
+
+    {#if loading}
+      <div class="loading">Loading todos...</div>
+    {:else}
+      <ul class="todo-list">
+        {#each filtered as todo (todo.id)}
+          <li class="todo-item {todo.done ? 'completed' : ''}">
+            <label class="todo-check">
+              <input
+                type="checkbox"
+                checked={todo.done}
+                on:change={() => toggleTodo(todo.id)}
+              />
+              <span class="checkmark"></span>
+            </label>
+            <span class="todo-text">{todo.text}</span>
+            <button class="btn-delete" on:click={() => deleteTodo(todo.id)} title="Delete">
+              &times;
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
+    <div class="todo-footer">
+      <span>{left} item{left !== 1 ? 's' : ''} left</span>
+      <button class="btn-text" on:click={clearCompleted}>
+        Clear completed
+      </button>
+    </div>
   </main>
 
-  <footer>
-    <p>Powered by <strong>Forge Framework</strong></p>
+  <footer class="app-footer">
+    <p>Press <kbd>Enter</kbd> to add a todo</p>
+    <p class="powered">Powered by <strong>Forge</strong> + Svelte + Python</p>
   </footer>
 </div>

@@ -1,27 +1,13 @@
 # {{PROJECT_NAME}}
 
-A Forge desktop application built with Svelte 5 and Python.
+A Forge desktop todo list application built with Svelte 5 and Python.
 
-## Project Structure
+## Features
 
-```
-{{PROJECT_NAME}}/
-├── src/
-│   ├── main.py              # Python backend
-│   ├── backend/
-│   │   └── __init__.py
-│   └── frontend/            # Svelte frontend
-│       ├── index.html
-│       ├── main.js
-│       ├── App.svelte
-│       └── style.css
-├── assets/
-│   └── icon.png
-├── forge.toml
-├── package.json
-├── requirements.txt
-└── .gitignore
-```
+- Add, toggle, and delete todos
+- Filter by All / Active / Completed
+- Clear all completed todos
+- Svelte 5 runes for reactivity
 
 ## Quick Start
 
@@ -36,16 +22,20 @@ cd {{PROJECT_NAME}}
 
 | Command | Args | Description |
 |---------|------|-------------|
-| `greet` | `{name: string}` | Returns a greeting |
-| `get_system_info` | — | Returns OS info |
-| `add_numbers` | `{a: number, b: number}` | Sum two numbers |
+| `todo_add` | `{text: string}` | Add a new todo |
+| `todo_list` | — | Get all todos |
+| `todo_toggle` | `{id: number}` | Toggle completion |
+| `todo_delete` | `{id: number}` | Delete a todo |
+| `todo_clear_completed` | — | Remove all completed |
+| `get_system_info` | — | Get OS info |
 
 ## Frontend
 
 ```javascript
 import { invoke } from "@forgedesk/api";
 
-const result = await invoke("greet", { name: "Svelte" });
+const todos = await invoke("todo_list");
+await invoke("todo_add", { text: "Learn Svelte" });
 ```
 
 ## Learn More
