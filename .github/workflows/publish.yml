@@ -138,7 +138,7 @@ jobs:
 
       - name: Build wheels (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: uv run maturin build --release --out dist --target ${{ matrix.target }} --manylinux auto
+        run: uv run maturin build --release --out dist --target ${{ matrix.target }} --manylinux off
 
       - name: Build wheels (macOS)
         if: matrix.os == 'macos-latest'

@@ -45,7 +45,7 @@ jobs:
 
       - name: Build wheel and sdist
         run: |
-          uv run maturin build --release --out dist --manylinux auto
+          uv run maturin build --release --out dist --manylinux off
           uv run python -m build --sdist --outdir dist
 
       - name: Check distributions
