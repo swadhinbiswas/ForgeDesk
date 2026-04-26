@@ -38,6 +38,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+
+      - name: Install uv
+
+        uses: astral-sh/setup-uv@v3
+
+        with:
+
+          version: "latest"
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
@@ -81,12 +89,12 @@ jobs:
         shell: bash
         run: |
           if [ ! -x "$GITHUB_WORKSPACE/.venv/bin/python" ]; then
-            python -m venv .venv
+            uv venv
           fi
-          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
-          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -e .
-          if ! "$GITHUB_WORKSPACE/.venv/bin/python" -c "import importlib.util,sys; req=['maturin','nuitka','pytest','pytest_cov']; sys.exit(0 if all(importlib.util.find_spec(n) for n in req) else 1)"; then
-            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install maturin nuitka pytest pytest-cov
+          uv pip install --upgrade pip
+          uv pip install -e .
+          if ! uv run python -c "import importlib.util,sys; req=['maturin','nuitka','pytest','pytest_cov']; sys.exit(0 if all(importlib.util.find_spec(n) for n in req) else 1)"; then
+            uv pip install maturin nuitka pytest pytest-cov
           fi
 
       - name: Ensure Python build tooling (Windows)
@@ -94,10 +102,10 @@ jobs:
         shell: powershell
         run: |
           if (-not (Test-Path "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe")) {
-            python -m venv .venv
+            uv venv
           }
-          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install --upgrade pip
-          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install -e . maturin nuitka pytest pytest-cov
+          uv pip install --upgrade pip
+          uv pip install -e . maturin nuitka pytest pytest-cov
 
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
@@ -120,20 +128,20 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          if ! "$GITHUB_WORKSPACE/.venv/bin/python" -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('maturin') else 1)"; then
-            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install maturin
+          if ! uv run python -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('maturin') else 1)"; then
+            uv pip install maturin
           fi
-          "$GITHUB_WORKSPACE/.venv/bin/python" -m maturin develop
+          uv run maturin develop
 
       - name: Build native extension (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('maturin') else 1)"
+          uv run python -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('maturin') else 1)"
           if ($LASTEXITCODE -ne 0) {
-            & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m pip install maturin
+            uv pip install maturin
           }
-          & "$env:GITHUB_WORKSPACE\.venv\Scripts\python.exe" -m maturin develop
+          uv run maturin develop
 
       - name: Validate repo
         run: |

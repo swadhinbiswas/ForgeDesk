@@ -21,12 +21,20 @@ jobs:
         with:
           python-version: '3.14'
 
+      - name: Install uv
+
+        uses: astral-sh/setup-uv@v3
+
+        with:
+
+          version: "latest"
+
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Create virtualenv
         shell: bash
         run: |
-          python -m venv .venv
+          uv venv
           echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
           echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/.venv" >> "$GITHUB_ENV"
 
@@ -41,8 +49,8 @@ jobs:
 
       - name: Install tooling
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e . maturin nuitka pytest pytest-cov
+          uv pip install --upgrade pip
+          uv pip install -e . maturin nuitka pytest pytest-cov
           sudo apt-get update
           sudo apt-get install -y gnupg xvfb fuse libfuse2
           curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o appimagetool
@@ -50,7 +58,7 @@ jobs:
           sudo mv appimagetool /usr/local/bin/appimagetool
 
       - name: Build native extension
-        run: python -m maturin develop
+        run: uv run maturin develop
 
       - name: Generate CI GPG key
         run: |
@@ -99,24 +107,32 @@ jobs:
         with:
           python-version: '3.14'
 
+      - name: Install uv
+
+        uses: astral-sh/setup-uv@v3
+
+        with:
+
+          version: "latest"
+
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Create virtualenv
         shell: powershell
         run: |
-          python -m venv .venv
+          uv venv
           "$env:GITHUB_WORKSPACE\.venv\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "VIRTUAL_ENV=$env:GITHUB_WORKSPACE\.venv" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install tooling
         shell: powershell
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e . maturin nuitka pytest pytest-cov
+          uv pip install --upgrade pip
+          uv pip install -e . maturin nuitka pytest pytest-cov
           choco install -y nsis wixtoolset
 
       - name: Build native extension
-        run: python -m maturin develop
+        run: uv run maturin develop
 
       - name: Generate self-signed code signing certificate
         shell: powershell
@@ -168,12 +184,20 @@ jobs:
         with:
           python-version: '3.14'
 
+      - name: Install uv
+
+        uses: astral-sh/setup-uv@v3
+
+        with:
+
+          version: "latest"
+
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Create virtualenv
         shell: bash
         run: |
-          python -m venv .venv
+          uv venv
           echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
           echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/.venv" >> "$GITHUB_ENV"
 
@@ -198,12 +222,12 @@ jobs:
       - name: Install tooling
         if: steps.macos_gate.outputs.enabled == 'true'
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e . maturin nuitka pytest pytest-cov
+          uv pip install --upgrade pip
+          uv pip install -e . maturin nuitka pytest pytest-cov
 
       - name: Build native extension
         if: steps.macos_gate.outputs.enabled == 'true'
-        run: python -m maturin develop
+        run: uv run maturin develop
 
       - name: Import signing certificate
         if: steps.macos_gate.outputs.enabled == 'true'
