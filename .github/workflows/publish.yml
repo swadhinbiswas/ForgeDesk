@@ -122,7 +122,8 @@ jobs:
             build-essential \
             libxdo-dev \
             libxcb-shape0-dev \
-            libxcb-xfixes0-dev
+            libxcb-xfixes0-dev \
+            patchelf
 
       - name: Setup virtualenv
         run: |
@@ -138,7 +139,7 @@ jobs:
 
       - name: Build wheels (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: uv run maturin build --release --out dist --target ${{ matrix.target }} --manylinux off
+        run: uv run maturin build --release --out dist --target ${{ matrix.target }} --compatibility manylinux_2_39
 
       - name: Build wheels (macOS)
         if: matrix.os == 'macos-latest'

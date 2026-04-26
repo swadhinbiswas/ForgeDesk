@@ -32,7 +32,7 @@ jobs:
       - name: Install Linux native build deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libglib2.0-dev libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev libxdo-dev libxcb-shape0-dev libxcb-xfixes0-dev fuse3 libfuse2
+          sudo apt-get install -y pkg-config libglib2.0-dev libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev libxdo-dev libxcb-shape0-dev libxcb-xfixes0-dev fuse3 libfuse2 patchelf
 
       - name: Install build tooling
         run: |
@@ -45,7 +45,7 @@ jobs:
 
       - name: Build wheel and sdist
         run: |
-          uv run maturin build --release --out dist --manylinux off
+          uv run maturin build --release --out dist --compatibility manylinux_2_39
           uv run python -m build --sdist --outdir dist
 
       - name: Check distributions
