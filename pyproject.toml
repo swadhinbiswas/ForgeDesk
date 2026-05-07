@@ -6,7 +6,15 @@ build-backend = "maturin"
 module-name = "forge.forge_core"
 features = ["pyo3/extension-module"]
 python-source = "."
-include = ["forge/js/*.js"]
+python-packages = ["forge", "forge_cli"]
+include = [
+    "forge/js/*.js",
+    "forge_cli/templates/**/*",
+]
+exclude = [
+    "**/__pycache__",
+    "**/*.pyc",
+]
 
 [project]
 name = "forgedesk"
@@ -84,14 +92,6 @@ Homepage = "https://github.com/swadhinbiswas/ForgeDesk"
 Documentation = "https://forgedesk.eu.cc/docs"
 Repository = "https://github.com/swadhinbiswas/ForgeDesk"
 Issues = "https://github.com/swadhinbiswas/ForgeDesk/issues"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["forge*", "forge_cli*"]
-
-[tool.setuptools.package-data]
-forge = ["js/*.js"]
-forge_cli = ["templates/**/*.html", "templates/**/*.css", "templates/**/*.js", "templates/**/*.jsx", "templates/**/*.vue", "templates/**/*.svelte", "templates/**/*.toml"]
 
 [tool.black]
 line-length = 100
