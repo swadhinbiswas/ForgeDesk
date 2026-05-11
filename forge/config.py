@@ -191,12 +191,12 @@ class WebSocketPermissions:
 class PermissionsConfig:
     """API permissions configuration."""
 
-    filesystem: bool | FileSystemPermissions = True
-    tasks: bool = True
+    filesystem: bool | FileSystemPermissions = False
+    tasks: bool = False
     shell: bool | ShellPermissions = False
-    clipboard: bool = True
-    dialogs: bool = True
-    notifications: bool = True
+    clipboard: bool = False
+    dialogs: bool = False
+    notifications: bool = False
     system_tray: bool = False
     global_shortcut: bool = False
     updater: bool = False

@@ -1,5 +1,5 @@
 ---
-title: "Getting Started with Forge"
+title: "Getting Started with ForgeDesk"
 description: "Start building powerful, lightweight Python desktop applications."
 ---
 
@@ -13,7 +13,7 @@ Forge provides a secure, zero-copy architecture that combines the ergonomics of 
 
 Before starting, ensure you have the following installed:
 
-- **Python 3.10+** (Python 3.14+ is recommended to fully utilize NoGIL performance)
+- **Python 3.14+** (recommended for full NoGIL/Free-Threaded performance)
 - **Rust toolchain** (Required for compiling the native WebView core)
 - **Node.js 18+** (Optional but recommended, for frontend package management and dev servers)
 
@@ -135,8 +135,9 @@ It bundles your Python interpreter (via PyInstaller or Nuitka) and the optimized
 
 You now have a fully functional Forge app. Explore the deeper capabilities of the framework:
 
-- **[Architecture & Zero-Copy](/architecture/)** — Learn how Forge achieves massive throughput via shared memory and `forge-memory://`.
-- **[Complete API Reference](/api-complete-reference/)** — Explore OS integration, Hardware Serial, App Lifecycle, Keychains, and more.
-- **[Deployment & Security](/deployment-security/)** — Understand Forge's strict IPC scope modeling, Content Security Policies, and capability scoping.
+- **[Getting Started](/quick-start/)** — Build your first app in 5 minutes.
+- **[Architecture Deep Dive](/architecture/)** — Understand the Rust ↔ Python ↔ JS bridge.
+- **[Complete API Reference](/api-complete-reference/)** — Explore all built-in APIs and capabilities.
+- **[Deployment & Security](/deployment-security/)** — Understand ForgeDesk's strict IPC scope modeling, Content Security Policies, and capability scoping.
 - **[Frontend Integration](/frontend-integration/)** — Deep dive into using Vue, Svelte, Angular, or Vanilla JS.
 

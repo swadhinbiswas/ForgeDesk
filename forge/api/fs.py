@@ -22,7 +22,7 @@ from forge.config import FileSystemPermissions
 def _expand_path_var(p: str) -> Path:
     p = os.path.expandvars(p)
     p = os.path.expanduser(p)
-    if p.startswith("$APPDATA"):
+    if "$APPDATA" in p:
         if sys.platform == "win32":
             appdata = os.environ.get("APPDATA", "~\\AppData\\Roaming")
             p = p.replace("$APPDATA", appdata)
@@ -30,7 +30,20 @@ def _expand_path_var(p: str) -> Path:
             p = p.replace("$APPDATA", "~/Library/Application Support")
         else:
             p = p.replace("$APPDATA", "~/.config")
-        p = os.path.expanduser(p)
+            
+    if "$APPDIR" in p:
+        p = p.replace("$APPDIR", os.path.abspath(os.getcwd()))
+        
+    if "$DATADIR" in p:
+        if sys.platform == "win32":
+            datadir = os.environ.get("LOCALAPPDATA", "~\\AppData\\Local")
+            p = p.replace("$DATADIR", datadir)
+        elif sys.platform == "darwin":
+            p = p.replace("$DATADIR", "~/Library/Application Support")
+        else:
+            p = p.replace("$DATADIR", "~/.local/share")
+
+    p = os.path.expanduser(p)
     return Path(p).resolve()
 
 class FileSystemAPI:
@@ -111,6 +124,8 @@ class FileSystemAPI:
             input_path = Path(path)
 
         if input_path.is_absolute():
+            if not allow_absolute:
+                raise ValueError(f"Absolute paths are not allowed: {path}")
             resolved = input_path.resolve()
         else:
             resolved = (self._base_path / input_path).resolve()

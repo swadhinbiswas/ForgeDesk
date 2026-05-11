@@ -1,11 +1,11 @@
 ---
 title: "Documentation Index"
-description: "Complete guide to Forge Framework documentation"
+description: "Complete guide to ForgeDesk documentation"
 ---
 
-## Welcome to Forge Framework Documentation
+## Welcome to ForgeDesk Documentation
 
-Forge is a **next-generation desktop application framework** combining the power of Rust with Python and modern web technologies. This documentation covers everything you need to build production-grade desktop applications.
+ForgeDesk is a **next-generation desktop application framework** combining the power of Rust with Python and modern web technologies. This documentation covers everything you need to build production-grade desktop applications.
 
 ## Getting Started
 
@@ -17,7 +17,7 @@ Start with these guides if you're new to Forge:
    - Comparison with alternatives (Tauri, Electron, PyQt)
    - Key features overview
 
-2. **[Building Apps](./building-apps/)** - Step-by-step guide to creating your first Forge app
+2. **[Building Apps](/building-apps/)** - Step-by-step guide to creating your first ForgeDesk app
    - Project structure and setup
    - fork.toml configuration
    - Backend setup with Python
@@ -83,7 +83,7 @@ Master production deployment and optimization:
 ## By Use Case
 
 ### I want to build a simple app
-→ Start with [Building Apps](./building-apps/), then reference [Best Practices](./best-practices/)
+→ Start with [Building Apps](/building-apps/), then reference [Best Practices](/best-practices/)
 
 ### I need to fetch data from the backend
 → Read [IPC Communication](./ipc-communication/) and [Frontend Integration](.//frontend-integration/)
@@ -193,7 +193,7 @@ Forge supports:
 - **macOS** - Native Cocoa framework
 - **Linux** - XDG desktop standards + Qt
 
-See [Building Apps](./building-apps.md#platform-specific-considerations) for platform-specific patterns.
+See [Building Apps](/building-apps/) for platform-specific patterns.
 
 ## Performance Benchmarks
 
@@ -227,7 +227,7 @@ Found an issue in the docs? Want to contribute improvements?
 
 ## Support
 
-- **Questions?** Check the [FAQ section](./framework-overview.md#faq) in Framework Overview
+- **Questions?** Check the FAQ section in [Framework Overview](/framework-overview/)
 - **Issues?** See [Troubleshooting](.//deployment-security/#troubleshooting-guide)
 - **Community?** Join us on GitHub Discussions
 

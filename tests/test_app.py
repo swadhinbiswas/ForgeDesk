@@ -25,6 +25,16 @@ def _write_config(tmp_path: Path, permissions: str = "") -> Path:
     frontend_dir.mkdir(parents=True, exist_ok=True)
     (frontend_dir / "index.html").write_text("<html></html>", encoding="utf-8")
 
+    if not permissions:
+        permissions = "\n".join([
+            "[permissions]",
+            "tasks = true",
+            "filesystem = true",
+            "clipboard = true",
+            "dialogs = true",
+            "system_tray = true",
+        ])
+
     config_file = tmp_path / "forge.toml"
     config_file.write_text(
         "\n".join(

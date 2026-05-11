@@ -42,6 +42,19 @@ def expand_scope_path(pattern: str, base_dir: Path | None = None) -> str:
             appdata = os.path.expanduser("~/.config")
         p = p.replace("$APPDATA", appdata)
 
+    if "$APPDIR" in p:
+        appdir = str(base_dir) if base_dir else os.path.abspath(os.getcwd())
+        p = p.replace("$APPDIR", appdir)
+
+    if "$DATADIR" in p:
+        if sys.platform == "win32":
+            datadir = os.environ.get("LOCALAPPDATA", os.path.expanduser("~\\AppData\\Local"))
+        elif sys.platform == "darwin":
+            datadir = os.path.expanduser("~/Library/Application Support")
+        else:
+            datadir = os.path.expanduser("~/.local/share")
+        p = p.replace("$DATADIR", datadir)
+
     p = os.path.expandvars(p)
     p = os.path.expanduser(p)
 

@@ -48,7 +48,7 @@ function pythonLaunchers() {
 
 function findLauncher() {
   for (const launcher of pythonLaunchers()) {
-    const probe = spawnSync(launcher.command, [...launcher.args, "-m", "forge_cli.main", "--help"], {
+    const probe = spawnSync(launcher.command, [...launcher.args, "-m", "forge_cli", "--help"], {
       stdio: "ignore",
     });
     if (probe.status === 0) {
@@ -142,7 +142,7 @@ function findLauncher() {
     if (attempt.status !== 0) {
       continue;
     }
-    const probe = spawnSync(runtimePython, ["-m", "forge_cli.main", "--help"], { stdio: "ignore" });
+    const probe = spawnSync(runtimePython, ["-m", "forge_cli", "--help"], { stdio: "ignore" });
     if (probe.status === 0) {
       installed = true;
       break;
@@ -153,7 +153,7 @@ function findLauncher() {
     return null;
   }
 
-  const probeRuntime = spawnSync(runtimePython, ["-m", "forge_cli.main", "--help"], { stdio: "ignore" });
+  const probeRuntime = spawnSync(runtimePython, ["-m", "forge_cli", "--help"], { stdio: "ignore" });
   if (probeRuntime.status === 0) {
     return { command: runtimePython, args: [] };
   }
@@ -169,7 +169,7 @@ if (!launcher) {
 
 const argv = process.argv.slice(2);
 process.exit(
-  spawnSync(launcher.command, [...launcher.args, "-m", "forge_cli.main", "create", ...argv], {
+  spawnSync(launcher.command, [...launcher.args, "-m", "forge_cli", "create", ...argv], {
     stdio: "inherit",
   }).status ?? 1,
 );

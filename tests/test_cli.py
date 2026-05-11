@@ -122,7 +122,7 @@ def test_info_supports_json_output(tmp_path: Path, monkeypatch) -> None:
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["forge_version"] == "3.0.0"
+    assert payload["forge_version"] == "3.0.4"
     assert payload["project"]["app"] == {"name": "CLI Test", "version": "1.2.3"}
     assert payload["project"]["entry_exists"] is True
     assert payload["project"]["template"]["name"] == "plain"

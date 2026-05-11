@@ -63,10 +63,11 @@ app = typer.Typer(
     name="forge",
     help="Forge CLI - Build desktop and web apps with Python 3.14+",
     add_completion=False,
+    no_args_is_help=True,
 )
 
 # Version
-VERSION = "3.0.0"
+VERSION = "3.0.4"
 
 _STATUS_ICON = {
     "ok": "✓",

@@ -5,6 +5,7 @@ import starlight from '@astrojs/starlight';
 // https://astro.build/config
 export default defineConfig({
         site: 'https://docs.forgedesk.eu.cc',
+        output: 'static',
         integrations: [
                 starlight({
                         title: 'ForgeDesk',
@@ -26,16 +27,7 @@ export default defineConfig({
                         },
                         sidebar: [
                                 {
-                                        label: 'Guides',
-                                        autogenerate: { directory: 'guides' },
-                                },
-                                {
-                                        label: 'References',
-                                        autogenerate: { directory: 'references' },
-                                        collapsed: true,
-                                },
-                                {
-                                        label: 'Quick Start',
+                                        label: 'Getting Started',
                                         autogenerate: { directory: 'quick-start' },
                                 },
                                 {
@@ -43,25 +35,34 @@ export default defineConfig({
                                         autogenerate: { directory: 'core-concepts' },
                                 },
                                 {
-                                        label: 'Security',
-                                        autogenerate: { directory: 'security' },
+                                        label: 'Guides',
+                                        autogenerate: { directory: 'guides' },
                                 },
                                 {
                                         label: 'Develop',
                                         autogenerate: { directory: 'develop' },
                                 },
                                 {
+                                        label: 'Security',
+                                        autogenerate: { directory: 'security' },
+                                },
+                                {
                                         label: 'Distribute',
                                         autogenerate: { directory: 'distribute' },
+                                },
+                                {
+                                        label: 'Plugins',
+                                        autogenerate: { directory: 'plugins' },
                                 },
                                 {
                                         label: 'Learn',
                                         autogenerate: { directory: 'learn' },
                                 },
                                 {
-                                        label: 'Plugins',
-                                        autogenerate: { directory: 'plugins' },
-                                }
+                                        label: 'References',
+                                        autogenerate: { directory: 'references' },
+                                        collapsed: true,
+                                },
                         ],
                 }),
         ],

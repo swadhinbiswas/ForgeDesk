@@ -58,7 +58,6 @@ clipboard = false
         assert config.dev.dev_server_timeout == 15
         assert config.permissions.filesystem is True
         assert config.permissions.clipboard is False
-
     def test_load_missing_file(self) -> None:
         """Test that loading a non-existent file raises FileNotFoundError."""
         with pytest.raises(FileNotFoundError):
@@ -160,7 +159,7 @@ name = "Minimal Config"
         assert config.window.width == 1200
         assert config.window.height == 800
         assert config.dev.hot_reload is True
-        assert config.permissions.filesystem is True
+        assert config.permissions.filesystem is False
 
     def test_get_base_dir(self, tmp_path: Path) -> None:
         """Test getting the base directory."""

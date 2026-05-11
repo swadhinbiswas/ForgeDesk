@@ -3,9 +3,9 @@ title: "Framework Overview"
 description: "Complete overview of the Forge Framework architecture, capabilities, and design philosophy"
 ---
 
-## What is Forge?
+## What is ForgeDesk?
 
-**Forge** is a next-generation desktop application framework that unites Python 3.10+ (including the new 3.13/3.14 free-threaded runtime) with modern web technologies (React, Vue, Svelte, etc.) and a lightweight Rust-based native core. It lets you build **fast, secure, and maintainable** desktop applications.
+**ForgeDesk** is a next-generation desktop application framework that unites Python 3.14+ (with the new free-threaded runtime) with modern web technologies (React, Vue, Svelte, etc.) and a lightweight Rust-based native core. It lets you build **fast, secure, and maintainable** desktop applications.
 
 Think of it as **"Tauri for Python"**. It combines the native OS integration and footprint efficiency of Rust (`wry`/`tao`) with the unparalleled developer productivity and ecosystem of Python.
 
@@ -80,7 +80,7 @@ Ship lightweight, secure internal tools. Manage updates securely and maintain a 
 
 ## Next Steps
 
-- **[Getting Started](/getting-started/)** — Build your first app in 5 minutes.
+- **[Getting Started](/quick-start/)** — Build your first app in 5 minutes.
 - **[Architecture Deep Dive](/architecture/)** — Understand the Rust ↔ Python ↔ JS bridge.
 - **[Complete API Reference](/api-complete-reference/)** — Explore all built-in APIs and capabilities.
 - **[Deployment & Security](/deployment-security/)** — Learn how to lock down your app before release.
