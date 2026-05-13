@@ -1,23 +1,26 @@
 """Tests for SystemAPI, AutostartAPI, and LifecycleAPI (low coverage modules)."""
+
 from __future__ import annotations
 
 import os
 from unittest.mock import MagicMock, patch
-import pytest
 
+import pytest
 
 # ─── SystemAPI Tests ───
 
-class TestSystemAPI:
 
+class TestSystemAPI:
     def test_get_version(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI(app_name="Test", app_version="1.2.3")
         assert api.get_version() == "1.2.3"
         assert api.version() == "1.2.3"
 
     def test_get_platform(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI()
         plat = api.get_platform()
         assert plat in {"linux", "macos", "windows"} or isinstance(plat, str)
@@ -25,6 +28,7 @@ class TestSystemAPI:
 
     def test_get_info(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI(app_name="TestApp", app_version="3.0.0")
         info = api.get_info()
         assert info["app_name"] == "TestApp"
@@ -37,6 +41,7 @@ class TestSystemAPI:
 
     def test_get_env(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI()
         os.environ["FORGE_TEST_VAR"] = "hello"
         assert api.get_env("FORGE_TEST_VAR") == "hello"
@@ -46,24 +51,28 @@ class TestSystemAPI:
 
     def test_get_cwd(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI()
         cwd = api.get_cwd()
         assert os.path.isdir(cwd)
 
     def test_exit_app(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI()
         with pytest.raises(SystemExit):
             api.exit_app()
 
     def test_exit_alias(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI()
         with pytest.raises(SystemExit):
             api.exit()
 
     def test_open_url(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI()
         with patch("forge.api.system.webbrowser.open") as mock_open:
             api.open_url("https://example.com")
@@ -71,15 +80,19 @@ class TestSystemAPI:
 
     def test_open_file_linux(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI()
-        with patch.object(api, "get_platform", return_value="linux"), \
-             patch("forge.api.system.subprocess.run") as mock_run:
+        with (
+            patch.object(api, "get_platform", return_value="linux"),
+            patch("forge.api.system.subprocess.run") as mock_run,
+        ):
             api.open_file("/tmp/test.txt")
             mock_run.assert_called_once()
             assert mock_run.call_args[0][0][0] == "xdg-open"
 
     def test_platform_mapping(self):
         from forge.api.system import SystemAPI
+
         api = SystemAPI()
         with patch("forge.api.system.platform.system", return_value="Darwin"):
             assert api.get_platform() == "macos"
@@ -93,6 +106,7 @@ class TestSystemAPI:
 
 # ─── AutostartAPI Tests ───
 
+
 def _make_app(has_capability: bool = True):
     app = MagicMock()
     app.config.app.name = "TestApp"
@@ -101,9 +115,9 @@ def _make_app(has_capability: bool = True):
 
 
 class TestAutostartCapability:
-
     def test_enable_requires_capability(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app(has_capability=False)
         mock_core = MagicMock()
         mock_core.AutoLaunchManager = None
@@ -114,6 +128,7 @@ class TestAutostartCapability:
 
     def test_disable_requires_capability(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app(has_capability=False)
         mock_core = MagicMock()
         mock_core.AutoLaunchManager = None
@@ -124,6 +139,7 @@ class TestAutostartCapability:
 
     def test_is_enabled_requires_capability(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app(has_capability=False)
         mock_core = MagicMock()
         mock_core.AutoLaunchManager = None
@@ -134,9 +150,9 @@ class TestAutostartCapability:
 
 
 class TestAutostartOperations:
-
     def test_enable_with_manager(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app()
         mock_manager = MagicMock()
         mock_manager.enable.return_value = True
@@ -148,6 +164,7 @@ class TestAutostartOperations:
 
     def test_disable_with_manager(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app()
         mock_manager = MagicMock()
         mock_manager.disable.return_value = True
@@ -159,6 +176,7 @@ class TestAutostartOperations:
 
     def test_is_enabled_with_manager(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app()
         mock_manager = MagicMock()
         mock_manager.is_enabled.return_value = True
@@ -170,6 +188,7 @@ class TestAutostartOperations:
 
     def test_enable_without_manager(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app()
         mock_core = MagicMock()
         mock_core.AutoLaunchManager = None
@@ -179,6 +198,7 @@ class TestAutostartOperations:
 
     def test_enable_manager_exception(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app()
         mock_manager = MagicMock()
         mock_manager.enable.side_effect = RuntimeError("fail")
@@ -190,6 +210,7 @@ class TestAutostartOperations:
 
     def test_manager_init_failure(self):
         from forge.api.autostart import AutostartAPI
+
         app = _make_app()
         mock_core = MagicMock()
         mock_core.AutoLaunchManager.side_effect = RuntimeError("init fail")
@@ -200,10 +221,11 @@ class TestAutostartOperations:
 
 # ─── LifecycleAPI Tests ───
 
-class TestLifecycleCapability:
 
+class TestLifecycleCapability:
     def test_single_instance_requires_capability(self):
         from forge.api.lifecycle import LifecycleAPI
+
         app = _make_app(has_capability=False)
         api = LifecycleAPI(app)
         with pytest.raises(PermissionError, match="lifecycle"):
@@ -211,6 +233,7 @@ class TestLifecycleCapability:
 
     def test_relaunch_requires_capability(self):
         from forge.api.lifecycle import LifecycleAPI
+
         app = _make_app(has_capability=False)
         api = LifecycleAPI(app)
         with pytest.raises(PermissionError, match="lifecycle"):
@@ -218,9 +241,9 @@ class TestLifecycleCapability:
 
 
 class TestLifecycleOperations:
-
     def test_single_instance_lock(self):
         from forge.api.lifecycle import LifecycleAPI
+
         app = _make_app()
         mock_guard = MagicMock()
         mock_guard.is_single.return_value = True
@@ -228,7 +251,7 @@ class TestLifecycleOperations:
         mock_core.SingleInstanceGuard.return_value = mock_guard
 
         mock_core.SingleInstanceGuard.return_value = mock_guard
-        
+
         # Test 1: Successful lock with default name
         app.config.app.name = "TestApp"
         with patch.dict("sys.modules", {"forge": MagicMock(forge_core=mock_core)}):
@@ -245,11 +268,11 @@ class TestLifecycleOperations:
 
     def test_relaunch(self):
         from forge.api.lifecycle import LifecycleAPI
+
         app = _make_app()
         api = LifecycleAPI(app)
-        
-        with patch("subprocess.Popen") as mock_popen, \
-             patch("sys.exit") as mock_exit:
+
+        with patch("subprocess.Popen") as mock_popen, patch("sys.exit") as mock_exit:
             api.relaunch()
             mock_popen.assert_called_once()
             mock_exit.assert_called_once_with(0)

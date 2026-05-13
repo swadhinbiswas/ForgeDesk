@@ -2,9 +2,10 @@
 Pytest configuration and fixtures for Forge tests.
 """
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 # Add the forge-framework to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -28,6 +29,7 @@ def sample_text_file(test_dir):
 def sample_json_file(test_dir):
     """Create a sample JSON file."""
     import json
+
     file_path = test_dir / "sample.json"
     file_path.write_text(json.dumps({"key": "value", "number": 42}))
     return file_path

@@ -4,7 +4,6 @@ import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "ci" / "require_release_branch.py"
 _spec = spec_from_file_location("require_release_branch", SCRIPT_PATH)
 assert _spec and _spec.loader

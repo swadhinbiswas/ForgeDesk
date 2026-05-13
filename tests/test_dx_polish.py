@@ -9,18 +9,12 @@ Tests:
 
 from __future__ import annotations
 
-import json
-import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
-
 
 # ─── __main__.py Tests ───
 
-class TestMainModule:
 
+class TestMainModule:
     def test_main_module_exists(self):
         """forge/__main__.py should exist for `python -m forge` support."""
         main_path = Path(__file__).parent.parent / "forge" / "__main__.py"
@@ -29,15 +23,17 @@ class TestMainModule:
     def test_main_module_has_entry(self):
         """__main__.py should define a main() function."""
         from forge.__main__ import main
+
         assert callable(main)
 
 
 # ─── Doctor Remediation Hints ───
 
-class TestDoctorRemediation:
 
+class TestDoctorRemediation:
     def test_hints_for_missing_python(self):
         from forge_cli.main import _get_remediation_hints
+
         payload = {
             "environment": {
                 "checks": {
@@ -55,6 +51,7 @@ class TestDoctorRemediation:
 
     def test_hints_for_missing_rust(self):
         from forge_cli.main import _get_remediation_hints
+
         payload = {
             "environment": {
                 "checks": {
@@ -73,6 +70,7 @@ class TestDoctorRemediation:
 
     def test_hints_for_missing_project(self):
         from forge_cli.main import _get_remediation_hints
+
         payload = {
             "environment": {
                 "checks": {
@@ -90,6 +88,7 @@ class TestDoctorRemediation:
 
     def test_hints_for_invalid_config(self):
         from forge_cli.main import _get_remediation_hints
+
         payload = {
             "environment": {
                 "checks": {
@@ -107,6 +106,7 @@ class TestDoctorRemediation:
 
     def test_no_hints_when_all_ok(self):
         from forge_cli.main import _get_remediation_hints
+
         payload = {
             "environment": {
                 "checks": {
@@ -125,8 +125,8 @@ class TestDoctorRemediation:
 
 # ─── Plugin Add Config Registration ───
 
-class TestPluginAdd:
 
+class TestPluginAdd:
     def test_plugin_add_appends_to_empty_config(self, tmp_path):
         """Plugin add adds [plugins] section when missing."""
         config = tmp_path / "forge.toml"
@@ -154,7 +154,7 @@ class TestPluginAdd:
 
         if module_name not in config_text and "modules = [" in config_text:
             config_text = config_text.replace(
-                'modules = [',
+                "modules = [",
                 f'modules = ["{module_name}", ',
             )
             config.write_text(config_text)

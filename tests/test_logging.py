@@ -1,11 +1,8 @@
 """Tests for Forge structured logging framework."""
 
 import json
-from pathlib import Path
 
-import pytest
-
-from forge.logging import ForgeLogger, LogEntry, LOG_LEVELS, _FileSink
+from forge.logging import LOG_LEVELS, ForgeLogger, LogEntry, _FileSink
 
 
 class TestLogEntry:

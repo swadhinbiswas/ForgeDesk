@@ -19,23 +19,22 @@ These tests verify that all components work together correctly:
 from __future__ import annotations
 
 import json
-import time
 import threading
+import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from forge.app import ForgeApp
-from forge.bridge import IPCBridge, PROTOCOL_VERSION
+from forge.bridge import PROTOCOL_VERSION, IPCBridge
 from forge.config import ForgeConfig
 from forge.events import EventEmitter
-from forge.state import AppState
-from forge.window import WindowAPI, WindowManagerAPI
-from forge.scope import ScopeValidator
 from forge.recovery import CircuitBreaker, CrashReporter, ErrorCode
 from forge.router import Router
-
+from forge.scope import ScopeValidator
+from forge.state import AppState
+from forge.window import WindowAPI, WindowManagerAPI
 
 # ─── Fixtures ───
 

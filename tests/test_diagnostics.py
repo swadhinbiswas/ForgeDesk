@@ -2,15 +2,12 @@
 
 import json
 import zipfile
-from pathlib import Path
-
-import pytest
 
 from forge.diagnostics import (
-    generate_support_bundle,
-    _system_info,
-    _sanitize_config,
     _load_config_snapshot,
+    _sanitize_config,
+    _system_info,
+    generate_support_bundle,
 )
 
 

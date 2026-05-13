@@ -4,14 +4,9 @@ from __future__ import annotations
 
 import textwrap
 from pathlib import Path
-from types import ModuleType
-from typing import Any
 from unittest.mock import MagicMock
 
-import pytest
-
 from forge.plugins import PluginManager, PluginRecord, _check_version_constraint, _version_key
-
 
 # ─── Helpers ───
 
@@ -19,7 +14,16 @@ from forge.plugins import PluginManager, PluginRecord, _check_version_constraint
 def _make_mock_app(capabilities: set[str] | None = None) -> MagicMock:
     """Create a mock ForgeApp with configurable capabilities."""
     app = MagicMock()
-    caps = capabilities or {"fs", "clipboard", "shell", "dialog", "notification", "updater", "global_shortcut", "screen"}
+    caps = capabilities or {
+        "fs",
+        "clipboard",
+        "shell",
+        "dialog",
+        "notification",
+        "updater",
+        "global_shortcut",
+        "screen",
+    }
 
     def has_capability(cap: str) -> bool:
         return cap in caps
@@ -29,7 +33,9 @@ def _make_mock_app(capabilities: set[str] | None = None) -> MagicMock:
     return app
 
 
-def _make_config(enabled: bool = True, modules: list[str] | None = None, paths: list[str] | None = None) -> MagicMock:
+def _make_config(
+    enabled: bool = True, modules: list[str] | None = None, paths: list[str] | None = None
+) -> MagicMock:
     config = MagicMock()
     config.enabled = enabled
     config.modules = modules or []
@@ -112,12 +118,16 @@ class TestPluginLoading:
         assert pm.enabled is False
 
     def test_load_from_file(self, tmp_path):
-        plugin_file = _make_plugin_file(tmp_path, "hello_plugin", """
+        plugin_file = _make_plugin_file(
+            tmp_path,
+            "hello_plugin",
+            """
             __forge_plugin__ = {"name": "hello", "version": "1.0.0"}
 
             def register(app):
                 app._hello_registered = True
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(plugin_file)])
         pm = PluginManager(app, config)
@@ -127,14 +137,22 @@ class TestPluginLoading:
         assert result[0]["loaded"] is True
 
     def test_load_from_directory(self, tmp_path):
-        _make_plugin_file(tmp_path, "plugin_a", """
+        _make_plugin_file(
+            tmp_path,
+            "plugin_a",
+            """
             __forge_plugin__ = {"name": "plugin-a"}
             def register(app): pass
-        """)
-        _make_plugin_file(tmp_path, "plugin_b", """
+        """,
+        )
+        _make_plugin_file(
+            tmp_path,
+            "plugin_b",
+            """
             __forge_plugin__ = {"name": "plugin-b"}
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -145,10 +163,14 @@ class TestPluginLoading:
         assert "plugin-b" in names
 
     def test_load_missing_register_fails(self, tmp_path):
-        plugin_file = _make_plugin_file(tmp_path, "bad_plugin", """
+        plugin_file = _make_plugin_file(
+            tmp_path,
+            "bad_plugin",
+            """
             __forge_plugin__ = {"name": "bad"}
             # Missing register() function
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(plugin_file)])
         pm = PluginManager(app, config)
@@ -167,14 +189,22 @@ class TestPluginLoading:
         assert "not found" in result[0]["error"]
 
     def test_summary(self, tmp_path):
-        _make_plugin_file(tmp_path, "good", """
+        _make_plugin_file(
+            tmp_path,
+            "good",
+            """
             __forge_plugin__ = {"name": "good"}
             def register(app): pass
-        """)
-        _make_plugin_file(tmp_path, "bad", """
+        """,
+        )
+        _make_plugin_file(
+            tmp_path,
+            "bad",
+            """
             __forge_plugin__ = {"name": "bad"}
             # no register
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -185,10 +215,14 @@ class TestPluginLoading:
         assert summary["failed"] == 1
 
     def test_get_plugin(self, tmp_path):
-        _make_plugin_file(tmp_path, "finder", """
+        _make_plugin_file(
+            tmp_path,
+            "finder",
+            """
             __forge_plugin__ = {"name": "finder", "version": "2.0"}
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -204,13 +238,17 @@ class TestPluginLoading:
 
 class TestCapabilityEnforcement:
     def test_plugin_with_granted_capabilities(self, tmp_path):
-        _make_plugin_file(tmp_path, "fs_plugin", """
+        _make_plugin_file(
+            tmp_path,
+            "fs_plugin",
+            """
             __forge_plugin__ = {
                 "name": "fs-helper",
                 "capabilities": ["fs"],
             }
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app(capabilities={"fs"})
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -219,13 +257,17 @@ class TestCapabilityEnforcement:
         assert result[0]["capabilities"] == ["fs"]
 
     def test_plugin_denied_capability(self, tmp_path):
-        _make_plugin_file(tmp_path, "sneaky", """
+        _make_plugin_file(
+            tmp_path,
+            "sneaky",
+            """
             __forge_plugin__ = {
                 "name": "sneaky",
                 "capabilities": ["shell"],
             }
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app(capabilities={"fs"})  # no shell!
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -234,13 +276,17 @@ class TestCapabilityEnforcement:
         assert "capability" in result[0]["error"].lower()
 
     def test_plugin_multiple_capabilities_partial_deny(self, tmp_path):
-        _make_plugin_file(tmp_path, "multi", """
+        _make_plugin_file(
+            tmp_path,
+            "multi",
+            """
             __forge_plugin__ = {
                 "name": "multi",
                 "capabilities": ["fs", "clipboard", "shell"],
             }
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app(capabilities={"fs", "clipboard"})  # no shell
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -253,7 +299,10 @@ class TestCapabilityEnforcement:
 
 class TestLifecycleHooks:
     def test_on_ready_called(self, tmp_path):
-        _make_plugin_file(tmp_path, "lifecycle", """
+        _make_plugin_file(
+            tmp_path,
+            "lifecycle",
+            """
             __forge_plugin__ = {"name": "lifecycle"}
             ready_called = False
 
@@ -262,7 +311,8 @@ class TestLifecycleHooks:
             def on_ready(app):
                 global ready_called
                 ready_called = True
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -272,12 +322,16 @@ class TestLifecycleHooks:
         assert pm._ready_called is True
 
     def test_on_shutdown_called(self, tmp_path):
-        _make_plugin_file(tmp_path, "shutdowner", """
+        _make_plugin_file(
+            tmp_path,
+            "shutdowner",
+            """
             __forge_plugin__ = {"name": "shutdowner"}
             def register(app): pass
             def on_shutdown(app):
                 app._shutdown_marker = True
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -287,14 +341,18 @@ class TestLifecycleHooks:
         assert pm._shutdown_called is True
 
     def test_on_ready_idempotent(self, tmp_path):
-        _make_plugin_file(tmp_path, "idem", """
+        _make_plugin_file(
+            tmp_path,
+            "idem",
+            """
             __forge_plugin__ = {"name": "idem"}
             call_count = 0
             def register(app): pass
             def on_ready(app):
                 global call_count
                 call_count += 1
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -304,12 +362,16 @@ class TestLifecycleHooks:
         assert pm._ready_called is True
 
     def test_on_ready_error_does_not_crash(self, tmp_path):
-        _make_plugin_file(tmp_path, "crasher", """
+        _make_plugin_file(
+            tmp_path,
+            "crasher",
+            """
             __forge_plugin__ = {"name": "crasher"}
             def register(app): pass
             def on_ready(app):
                 raise ValueError("boom")
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -319,11 +381,15 @@ class TestLifecycleHooks:
         assert pm._ready_called is True
 
     def test_lifecycle_flags_in_snapshot(self, tmp_path):
-        _make_plugin_file(tmp_path, "flags", """
+        _make_plugin_file(
+            tmp_path,
+            "flags",
+            """
             __forge_plugin__ = {"name": "flags"}
             def register(app): pass
             def on_ready(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -337,13 +403,17 @@ class TestLifecycleHooks:
 
 class TestVersionConstraints:
     def test_compatible_version(self, tmp_path):
-        _make_plugin_file(tmp_path, "compat", """
+        _make_plugin_file(
+            tmp_path,
+            "compat",
+            """
             __forge_plugin__ = {
                 "name": "compat",
                 "forge_version": ">=0.1.0",
             }
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -351,13 +421,17 @@ class TestVersionConstraints:
         assert result[0]["loaded"] is True
 
     def test_incompatible_version(self, tmp_path):
-        _make_plugin_file(tmp_path, "future", """
+        _make_plugin_file(
+            tmp_path,
+            "future",
+            """
             __forge_plugin__ = {
                 "name": "future",
                 "forge_version": ">=99.0.0",
             }
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -375,14 +449,22 @@ class TestNamespaceAndDependencies:
         dir_b = tmp_path / "b"
         dir_a.mkdir()
         dir_b.mkdir()
-        _make_plugin_file(dir_a, "dup", """
+        _make_plugin_file(
+            dir_a,
+            "dup",
+            """
             __forge_plugin__ = {"name": "duplicate"}
             def register(app): pass
-        """)
-        _make_plugin_file(dir_b, "dup2", """
+        """,
+        )
+        _make_plugin_file(
+            dir_b,
+            "dup2",
+            """
             __forge_plugin__ = {"name": "duplicate"}
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(dir_a), str(dir_b)])
         pm = PluginManager(app, config)
@@ -394,13 +476,17 @@ class TestNamespaceAndDependencies:
         assert "collision" in failed[0]["error"].lower()
 
     def test_missing_dependency_warned(self, tmp_path):
-        _make_plugin_file(tmp_path, "dependent", """
+        _make_plugin_file(
+            tmp_path,
+            "dependent",
+            """
             __forge_plugin__ = {
                 "name": "dependent",
                 "depends": ["missing-plugin"],
             }
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -410,17 +496,25 @@ class TestNamespaceAndDependencies:
         assert "missing dependency" in result[0]["error"]
 
     def test_satisfied_dependency(self, tmp_path):
-        _make_plugin_file(tmp_path, "base", """
+        _make_plugin_file(
+            tmp_path,
+            "base",
+            """
             __forge_plugin__ = {"name": "base"}
             def register(app): pass
-        """)
-        _make_plugin_file(tmp_path, "child", """
+        """,
+        )
+        _make_plugin_file(
+            tmp_path,
+            "child",
+            """
             __forge_plugin__ = {
                 "name": "child",
                 "depends": ["base"],
             }
             def register(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)
@@ -431,10 +525,14 @@ class TestNamespaceAndDependencies:
         assert child["error"] is None  # dependency satisfied
 
     def test_using_setup_instead_of_register(self, tmp_path):
-        _make_plugin_file(tmp_path, "setuponly", """
+        _make_plugin_file(
+            tmp_path,
+            "setuponly",
+            """
             __forge_plugin__ = {"name": "setup-style"}
             def setup(app): pass
-        """)
+        """,
+        )
         app = _make_mock_app()
         config = _make_config(paths=[str(tmp_path)])
         pm = PluginManager(app, config)

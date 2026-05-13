@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-
 MODULE_PATH = Path(__file__).resolve().parents[1] / "examples" / "forge_todo" / "src" / "main.py"
 spec = importlib.util.spec_from_file_location("forge_todo_example", MODULE_PATH)
 assert spec and spec.loader

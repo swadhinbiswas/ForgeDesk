@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -32,7 +31,10 @@ def test_windows_target_selection_filters_existing_suffixes(tmp_path: Path, monk
     msi.write_text("msi", encoding="utf-8")
     dll.write_text("dll", encoding="utf-8")
 
-    monkeypatch.setenv("FORGE_BUILD_ARTIFACTS", json.dumps([str(exe), str(msi), str(dll), str(tmp_path / "missing.txt")]))
+    monkeypatch.setenv(
+        "FORGE_BUILD_ARTIFACTS",
+        json.dumps([str(exe), str(msi), str(dll), str(tmp_path / "missing.txt")]),
+    )
 
     assert sign_windows._select_targets() == [exe, msi, dll]
     assert verify_windows._select_targets() == [exe, msi, dll]
@@ -46,7 +48,10 @@ def test_macos_target_selection_filters_existing_suffixes(tmp_path: Path, monkey
     dmg.write_text("dmg", encoding="utf-8")
     framework.mkdir()
 
-    monkeypatch.setenv("FORGE_BUILD_ARTIFACTS", json.dumps([str(app_bundle), str(dmg), str(framework), str(tmp_path / "missing.so")]))
+    monkeypatch.setenv(
+        "FORGE_BUILD_ARTIFACTS",
+        json.dumps([str(app_bundle), str(dmg), str(framework), str(tmp_path / "missing.so")]),
+    )
 
     assert sign_macos._select_targets() == [app_bundle, dmg, framework]
     assert verify_macos._select_targets() == [app_bundle, dmg, framework]

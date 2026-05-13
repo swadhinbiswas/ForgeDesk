@@ -9,8 +9,13 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from forge_cli.main import app, _launch_dev_server, _project_payload, _resolve_project_dir, _watch_snapshot
-
+from forge_cli.main import (
+    _launch_dev_server,
+    _project_payload,
+    _resolve_project_dir,
+    _watch_snapshot,
+    app,
+)
 
 runner = CliRunner()
 
@@ -19,7 +24,9 @@ def _write_project(tmp_path: Path) -> Path:
     frontend_dir = tmp_path / "src" / "frontend"
     frontend_dir.mkdir(parents=True, exist_ok=True)
     (frontend_dir / "index.html").write_text("<html></html>", encoding="utf-8")
-    (tmp_path / "src" / "main.py").write_text("from forge import ForgeApp\napp = ForgeApp()\n", encoding="utf-8")
+    (tmp_path / "src" / "main.py").write_text(
+        "from forge import ForgeApp\napp = ForgeApp()\n", encoding="utf-8"
+    )
     (tmp_path / "forge.toml").write_text(
         "\n".join(
             [
@@ -51,17 +58,18 @@ def _write_plugin_project(tmp_path: Path) -> Path:
     (plugin_dir / "demo_plugin.py").write_text(
         "\n".join(
             [
-                'manifest = {"name": "demo-plugin", "version": "0.1.0", "forge_version": ">=3.0.0,<4.0.0"}',
-                '',
-                'def register(app):',
-                '    return None',
+                'manifest = {"name": "demo-plugin", "version": "0.1.0", "forge_version": ">=3.0.0,<4.0.0"}',  # noqa: E501
+                "",
+                "def register(app):",
+                "    return None",
             ]
         ),
         encoding="utf-8",
     )
     config_path = project_dir / "forge.toml"
     config_path.write_text(
-        config_path.read_text(encoding="utf-8") + "\n[plugins]\nenabled = true\npaths = [\"plugins\"]\n",
+        config_path.read_text(encoding="utf-8")
+        + '\n[plugins]\nenabled = true\npaths = ["plugins"]\n',
         encoding="utf-8",
     )
     return project_dir
@@ -103,7 +111,9 @@ def test_resolve_project_dir_falls_back_to_module_root(tmp_path: Path, monkeypat
 
     fallback_project = module_root / ".ci" / "forge_todo"
     fallback_project.mkdir(parents=True, exist_ok=True)
-    (fallback_project / "forge.toml").write_text("[app]\nname='x'\nversion='0.1.0'\n", encoding="utf-8")
+    (fallback_project / "forge.toml").write_text(
+        "[app]\nname='x'\nversion='0.1.0'\n", encoding="utf-8"
+    )
 
     cwd_project = tmp_path / ".ci" / "forge_todo"
     cwd_project.mkdir(parents=True, exist_ok=True)
@@ -158,7 +168,14 @@ def test_doctor_supports_json_output(tmp_path: Path, monkeypatch) -> None:
                 "exists": True,
                 "valid": True,
                 "errors": [],
-                "template": {"present": True, "valid": True, "name": "plain", "schema_version": 1, "forge_version_range": ">=3.0.0,<4.0.0", "errors": []},
+                "template": {
+                    "present": True,
+                    "valid": True,
+                    "name": "plain",
+                    "schema_version": 1,
+                    "forge_version_range": ">=3.0.0,<4.0.0",
+                    "errors": [],
+                },
                 "entry_path": str(project_dir / "src" / "main.py"),
                 "frontend_path": str(project_dir / "src" / "frontend"),
                 "entry_exists": True,
@@ -209,7 +226,17 @@ def test_create_copies_template_contract_metadata(tmp_path: Path, monkeypatch) -
 
     result = runner.invoke(
         app,
-        ["create", "sample-app", "--template", "plain", "--author", "Forge Tester", "--package-manager", "npm", "--no-tailwind"],
+        [
+            "create",
+            "sample-app",
+            "--template",
+            "plain",
+            "--author",
+            "Forge Tester",
+            "--package-manager",
+            "npm",
+            "--no-tailwind",
+        ],
     )
 
     assert result.exit_code == 0
@@ -222,10 +249,25 @@ def test_create_generates_frontend_workspace_files(tmp_path: Path, monkeypatch) 
     monkeypatch.setattr("forge_cli.main._setup_python_env", lambda _project_dir: None)
     monkeypatch.chdir(tmp_path)
 
-    result = runner.invoke(app, ["create", "workspace-app", "--template", "react", "--author", "Forge Tester", "--package-manager", "npm", "--no-tailwind"])
+    result = runner.invoke(
+        app,
+        [
+            "create",
+            "workspace-app",
+            "--template",
+            "react",
+            "--author",
+            "Forge Tester",
+            "--package-manager",
+            "npm",
+            "--no-tailwind",
+        ],
+    )
 
     assert result.exit_code == 0
-    package_json = json.loads((tmp_path / "workspace-app" / "package.json").read_text(encoding="utf-8"))
+    package_json = json.loads(
+        (tmp_path / "workspace-app" / "package.json").read_text(encoding="utf-8")
+    )
     vite_config = (tmp_path / "workspace-app" / "vite.config.mjs").read_text(encoding="utf-8")
     forge_toml = (tmp_path / "workspace-app" / "forge.toml").read_text(encoding="utf-8")
 
@@ -238,6 +280,7 @@ def test_create_generates_frontend_workspace_files(tmp_path: Path, monkeypatch) 
 
 def test_create_prompts_for_template_when_not_provided(tmp_path: Path, monkeypatch) -> None:
     import sys
+
     monkeypatch.setitem(sys.modules, "questionary", None)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("forge_cli.main._setup_python_env", lambda _project_dir: None)
@@ -255,7 +298,9 @@ def test_create_prompts_for_template_when_not_provided(tmp_path: Path, monkeypat
     )
 
     assert result.exit_code == 0
-    package_json = json.loads((tmp_path / "prompted-app" / "package.json").read_text(encoding="utf-8"))
+    package_json = json.loads(
+        (tmp_path / "prompted-app" / "package.json").read_text(encoding="utf-8")
+    )
     assert package_json["dependencies"]["vue"]
 
 
@@ -294,7 +339,7 @@ def test_run_dev_loop_without_hot_reload_waits_for_process(tmp_path: Path, monke
 
     from forge.config import ForgeConfig
 
-    config = ForgeConfig.from_file(project_dir / "forge.toml")
+    ForgeConfig.from_file(project_dir / "forge.toml")
 
     class FakeProcess:
         def wait(self) -> int:
@@ -361,7 +406,10 @@ def test_build_supports_json_output_for_web_target(tmp_path: Path, monkeypatch) 
     assert payload["validation"]["ok"] is True
     assert payload["build"]["builder"] == "static-copy"
     assert payload["build"]["target"] == "web"
-    assert any(path.replace("\\", "/").endswith("dist/static/forge.js") for path in payload["build"]["artifacts"])
+    assert any(
+        path.replace("\\", "/").endswith("dist/static/forge.js")
+        for path in payload["build"]["artifacts"]
+    )
 
 
 def test_build_returns_nonzero_json_for_missing_frontend(tmp_path: Path, monkeypatch) -> None:
@@ -381,7 +429,9 @@ def test_build_returns_nonzero_json_for_missing_frontend(tmp_path: Path, monkeyp
     assert any("Frontend directory missing" in error for error in payload["validation"]["errors"])
 
 
-def test_build_returns_nonzero_json_when_no_desktop_builder_available(tmp_path: Path, monkeypatch) -> None:
+def test_build_returns_nonzero_json_when_no_desktop_builder_available(
+    tmp_path: Path, monkeypatch
+) -> None:
     project_dir = _write_project(tmp_path)
 
     monkeypatch.chdir(project_dir)
@@ -389,7 +439,10 @@ def test_build_returns_nonzero_json_when_no_desktop_builder_available(tmp_path: 
         "forge_cli.main._module_available",
         lambda name: False if name == "nuitka" else True,
     )
-    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name in ("maturin", "nuitka", "nuitka3") else "/usr/bin/tool")
+    monkeypatch.setattr(
+        "forge_cli.main.shutil.which",
+        lambda name: None if name in ("maturin", "nuitka", "nuitka3") else "/usr/bin/tool",
+    )
 
     result = runner.invoke(app, ["build", "--result-format", "json"])
 
@@ -397,7 +450,10 @@ def test_build_returns_nonzero_json_when_no_desktop_builder_available(tmp_path: 
     payload = json.loads(result.stdout)
     assert payload["ok"] is False
     assert payload["validation"]["ok"] is False
-    assert any("No supported desktop build tool found" in error for error in payload["validation"]["errors"])
+    assert any(
+        "No supported desktop build tool found" in error
+        for error in payload["validation"]["errors"]
+    )
 
 
 def test_build_json_reports_packaging_and_signing_warnings(tmp_path: Path, monkeypatch) -> None:
@@ -423,11 +479,17 @@ def test_build_json_reports_packaging_and_signing_warnings(tmp_path: Path, monke
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["validation"]["packaging"]["protocol_schemes"] == ["forge"]
-    assert any("packaging.app_id should be set" in warning for warning in payload["validation"]["warnings"])
-    assert any("signing.enabled is true" in warning for warning in payload["validation"]["warnings"])
+    assert any(
+        "packaging.app_id should be set" in warning for warning in payload["validation"]["warnings"]
+    )
+    assert any(
+        "signing.enabled is true" in warning for warning in payload["validation"]["warnings"]
+    )
 
 
-def test_build_json_reports_plugin_warning_when_enabled_without_entries(tmp_path: Path, monkeypatch) -> None:
+def test_build_json_reports_plugin_warning_when_enabled_without_entries(
+    tmp_path: Path, monkeypatch
+) -> None:
     project_dir = _write_project(tmp_path)
     config_path = project_dir / "forge.toml"
     config_path.write_text(
@@ -444,10 +506,14 @@ def test_build_json_reports_plugin_warning_when_enabled_without_entries(tmp_path
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert any("plugins.enabled is true" in warning for warning in payload["validation"]["warnings"])
+    assert any(
+        "plugins.enabled is true" in warning for warning in payload["validation"]["warnings"]
+    )
 
 
-def test_build_generates_package_descriptors_for_protocol_handlers(tmp_path: Path, monkeypatch) -> None:
+def test_build_generates_package_descriptors_for_protocol_handlers(
+    tmp_path: Path, monkeypatch
+) -> None:
     project_dir = _write_project(tmp_path)
     config_path = project_dir / "forge.toml"
     config_path.write_text(
@@ -505,7 +571,9 @@ def test_build_generates_plugin_contract_manifest(tmp_path: Path, monkeypatch) -
     payload = json.loads(result.stdout)
     package = payload["build"]["package"]
     descriptor_types = {item["type"] for item in package["descriptors"]}
-    plugin_manifest = next(item for item in package["descriptors"] if item["type"] == "plugin-manifest")
+    plugin_manifest = next(
+        item for item in package["descriptors"] if item["type"] == "plugin-manifest"
+    )
     plugin_payload = json.loads(Path(plugin_manifest["path"]).read_text(encoding="utf-8"))
 
     assert "plugin-manifest" in descriptor_types
@@ -699,7 +767,9 @@ def test_build_generates_linux_appimage_installer(tmp_path: Path, monkeypatch) -
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    installer = next(item for item in payload["build"]["installers"] if item["format"] == "appimage")
+    installer = next(
+        item for item in payload["build"]["installers"] if item["format"] == "appimage"
+    )
     assert Path(installer["path"]).exists()
     appdir = Path(installer["appdir"])
     root_desktop = appdir / "cli-test.desktop"
@@ -737,7 +807,9 @@ def test_build_generates_linux_flatpak_installer(tmp_path: Path, monkeypatch) ->
     monkeypatch.setattr("forge_cli.main._module_available", lambda name: True)
     monkeypatch.setattr(
         "forge_cli.main.shutil.which",
-        lambda name: f"/usr/bin/{name}" if name in {"flatpak-builder", "flatpak"} else "/usr/bin/tool",
+        lambda name: (
+            f"/usr/bin/{name}" if name in {"flatpak-builder", "flatpak"} else "/usr/bin/tool"
+        ),
     )
     monkeypatch.setattr("forge_cli.main.platform.system", lambda: "Linux")
     monkeypatch.setattr("forge_cli.main.subprocess.run", fake_run)
@@ -836,7 +908,9 @@ def test_build_generates_windows_nsis_installer(tmp_path: Path, monkeypatch) -> 
     assert Path(installer["path"]).exists()
 
 
-def test_build_generates_windows_nsis_installer_with_fallback_path(tmp_path: Path, monkeypatch) -> None:
+def test_build_generates_windows_nsis_installer_with_fallback_path(
+    tmp_path: Path, monkeypatch
+) -> None:
     project_dir = _write_project(tmp_path)
     config_path = project_dir / "forge.toml"
     config_path.write_text(
@@ -871,7 +945,9 @@ def test_build_generates_windows_nsis_installer_with_fallback_path(tmp_path: Pat
 
     monkeypatch.chdir(project_dir)
     monkeypatch.setattr("forge_cli.main._module_available", lambda name: True)
-    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name == "makensis" else "/usr/bin/tool")
+    monkeypatch.setattr(
+        "forge_cli.main.shutil.which", lambda name: None if name == "makensis" else "/usr/bin/tool"
+    )
     monkeypatch.setattr("forge_cli.main.platform.system", lambda: "Windows")
     monkeypatch.setenv("ProgramFiles(x86)", str(tmp_path / "Program Files (x86)"))
     monkeypatch.setattr("forge_cli.main.subprocess.run", fake_run)
@@ -898,7 +974,10 @@ def test_build_fails_when_appimage_tool_is_missing(tmp_path: Path, monkeypatch) 
     monkeypatch.chdir(project_dir)
     monkeypatch.setattr("forge_cli.main._module_available", lambda name: True)
     monkeypatch.setattr("forge_cli.main.platform.system", lambda: "Linux")
-    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: "/usr/bin/tool" if name != "appimagetool" else None)
+    monkeypatch.setattr(
+        "forge_cli.main.shutil.which",
+        lambda name: "/usr/bin/tool" if name != "appimagetool" else None,
+    )
 
     result = runner.invoke(app, ["build", "--result-format", "json"])
 
@@ -947,7 +1026,9 @@ def test_build_fails_when_dmg_tool_is_missing(tmp_path: Path, monkeypatch) -> No
     monkeypatch.chdir(project_dir)
     monkeypatch.setattr("forge_cli.main._module_available", lambda name: True)
     monkeypatch.setattr("forge_cli.main.platform.system", lambda: "Darwin")
-    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name == "hdiutil" else "/usr/bin/tool")
+    monkeypatch.setattr(
+        "forge_cli.main.shutil.which", lambda name: None if name == "hdiutil" else "/usr/bin/tool"
+    )
 
     result = runner.invoke(app, ["build", "--result-format", "json"])
 
@@ -1052,7 +1133,9 @@ def test_release_generates_manifest_json(tmp_path: Path, monkeypatch) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["format_version"] == 1
     assert manifest["app"]["name"] == "CLI Test"
-    assert any(item["path"].endswith(("cli_test.whl", "cli_test.bin")) for item in manifest["artifacts"])
+    assert any(
+        item["path"].endswith(("cli_test.whl", "cli_test.bin")) for item in manifest["artifacts"]
+    )
 
 
 def test_package_command_returns_manifest_json(tmp_path: Path, monkeypatch) -> None:

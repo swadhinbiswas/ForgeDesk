@@ -10,9 +10,7 @@ Tests the enhanced WindowStateAPI with:
 """
 
 import json
-import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -28,6 +26,7 @@ def mock_app(tmp_path):
 
     # Mock Forge FS expansion so data goes to tmp_path
     import forge.api.fs
+
     original_expand = forge.api.fs._expand_path_var
 
     def fake_expand(path):
@@ -53,6 +52,7 @@ def disabled_app(tmp_path):
     app.config.window.remember_state = False
 
     import forge.api.fs
+
     original_expand = forge.api.fs._expand_path_var
 
     def fake_expand(path):
@@ -70,8 +70,8 @@ def disabled_app(tmp_path):
 
 # ─── Initialization Tests ───
 
-class TestWindowStateInit:
 
+class TestWindowStateInit:
     def test_initialization_hooks_bound(self, mock_app):
         api = WindowStateAPI(mock_app)
         assert "forge-test" in str(api._state_file)
@@ -93,8 +93,8 @@ class TestWindowStateInit:
 
 # ─── Caching & Debounce Tests ───
 
-class TestWindowStateCaching:
 
+class TestWindowStateCaching:
     def test_resize_updates_cache(self, mock_app):
         api = WindowStateAPI(mock_app)
         api._on_resized({"label": "main", "width": 800, "height": 600})
@@ -137,8 +137,8 @@ class TestWindowStateCaching:
 
 # ─── Maximized State Tracking ───
 
-class TestMaximizedState:
 
+class TestMaximizedState:
     def test_shutdown_captures_maximized(self, mock_app):
         """On shutdown, the current maximized state should be saved."""
         api = WindowStateAPI(mock_app)
@@ -182,8 +182,8 @@ class TestMaximizedState:
 
 # ─── Hydration Tests ───
 
-class TestHydration:
 
+class TestHydration:
     def test_hydrate_main_config(self, mock_app):
         api = WindowStateAPI(mock_app)
         api._cache = {"main": {"width": 1024, "height": 768}}
@@ -210,8 +210,8 @@ class TestHydration:
 
 # ─── Monitor Bounds Validation ───
 
-class TestMonitorBounds:
 
+class TestMonitorBounds:
     def test_position_within_bounds(self, mock_app):
         api = WindowStateAPI(mock_app)
         assert api._is_position_on_screen(100, 200)
@@ -243,8 +243,8 @@ class TestMonitorBounds:
 
 # ─── Clear & Snapshot ───
 
-class TestClearAndSnapshot:
 
+class TestClearAndSnapshot:
     def test_clear_all(self, mock_app):
         api = WindowStateAPI(mock_app)
         api._on_resized({"label": "main", "width": 800, "height": 600})
@@ -274,16 +274,18 @@ class TestClearAndSnapshot:
 
 # ─── State Reload ───
 
-class TestStateReload:
 
+class TestStateReload:
     def test_load_from_existing_file(self, mock_app, tmp_path):
         """State should be loaded from disk on initialization."""
         data_dir = tmp_path / "forge-test"
         data_dir.mkdir(exist_ok=True)
         state_file = data_dir / "window_state.json"
-        state_file.write_text(json.dumps({
-            "main": {"width": 1920, "height": 1080, "x": 50, "y": 50, "maximized": True}
-        }))
+        state_file.write_text(
+            json.dumps(
+                {"main": {"width": 1920, "height": 1080, "x": 50, "y": 50, "maximized": True}}
+            )
+        )
 
         api = WindowStateAPI(mock_app)
         state = api.get_state("main")
@@ -303,8 +305,8 @@ class TestStateReload:
 
 # ─── on_ready Registration ───
 
-class TestOnReady:
 
+class TestOnReady:
     def test_shutdown_hook_registered(self, mock_app):
         api = WindowStateAPI(mock_app)
         api._on_ready({})
@@ -319,8 +321,8 @@ class TestOnReady:
 
 # ─── Config Parsing ───
 
-class TestRememberStateConfig:
 
+class TestRememberStateConfig:
     def test_remember_state_parsed_true(self, tmp_path):
         config_toml = tmp_path / "forge.toml"
         config_toml.write_text("""
@@ -331,6 +333,7 @@ name = "Test"
 remember_state = true
 """)
         from forge.config import load_config
+
         config = load_config(str(config_toml))
         assert config.window.remember_state is True
 
@@ -344,6 +347,7 @@ name = "Test"
 remember_state = false
 """)
         from forge.config import load_config
+
         config = load_config(str(config_toml))
         assert config.window.remember_state is False
 
@@ -357,5 +361,6 @@ name = "Test"
 width = 800
 """)
         from forge.config import load_config
+
         config = load_config(str(config_toml))
         assert config.window.remember_state is True

@@ -4,9 +4,9 @@ Tests for Forge File System API.
 Includes security tests for path traversal prevention.
 """
 
-import pytest
-import tempfile
 from pathlib import Path
+
+import pytest
 
 from forge.api.fs import FileSystemAPI
 
@@ -197,29 +197,31 @@ class TestFileSystemAPISecurity:
         assert resolved == (allowed_dir / "file.txt").resolve()
         assert resolved.read_text() == "Allowed content"
 
-    def test_appdata_expansion_bounds(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_appdata_expansion_bounds(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that $APPDATA pseudo-variables correctly evaluate and respect bounds."""
-        import os
         from forge.api.fs import FileSystemAPI
-        
+
         # Mock OS APPDATA explicitly
         mock_appdata = tmp_path / "MockAppData"
         mock_appdata.mkdir(parents=True, exist_ok=True)
         (mock_appdata / "secret.txt").write_text("12345")
-        
+
         monkeypatch.setenv("APPDATA", str(mock_appdata))
-        
+
         # Test 1: FileSystemAPI constructed without AppData permission
         fs_api = FileSystemAPI(base_path=tmp_path / "base")
         with pytest.raises(ValueError, match="outside allowed"):
             fs_api.read("$APPDATA/secret.txt")
 
-        # Test 2: FileSystemAPI constructed with AppData permission explicitly allowed via string pattern
+        # Test 2: FileSystemAPI constructed with AppData permission explicitly allowed via string pattern  # noqa: E501
         # simulate config permissions
         from forge.config import FileSystemPermissions
+
         permissions = FileSystemPermissions(read=["$APPDATA/"], write=["$APPDATA/"])
         fs_api_granted = FileSystemAPI(base_path=tmp_path / "base", permissions=permissions)
-        
+
         content = fs_api_granted.read("$APPDATA/secret.txt")
         assert content == "12345"
 

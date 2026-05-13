@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-from types import SimpleNamespace
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from types import SimpleNamespace
 
 from forge_cli.main import _release_manifest_payload
-
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "ci" / "verify_release_artifacts.py"
 _spec = spec_from_file_location("verify_release_artifacts", SCRIPT_PATH)
@@ -46,22 +45,47 @@ def test_verify_release_payload_validates_package_and_release_manifests(tmp_path
         "format_version": 1,
         "target": "desktop",
         "builder": "maturin",
-        "app": {"name": "Forge", "version": "3.0.0", "product_name": "Forge", "app_id": "dev.forge.app"},
+        "app": {
+            "name": "Forge",
+            "version": "3.0.0",
+            "product_name": "Forge",
+            "app_id": "dev.forge.app",
+        },
         "protocol": {"schemes": []},
         "packaging": {"formats": ["dir"], "category": "Utility"},
-        "signing": {"enabled": False, "adapter": None, "identity": None, "notarize": False, "timestamp_url": None},
+        "signing": {
+            "enabled": False,
+            "adapter": None,
+            "identity": None,
+            "notarize": False,
+            "timestamp_url": None,
+        },
         "output_dir": str(output_dir),
         "artifacts": [str(app_bin), str(helper_bin)],
     }
-    package_manifest_file.write_text(json.dumps(package_manifest, indent=2, sort_keys=True), encoding="utf-8")
-    protocol_manifest_file.write_text(json.dumps({"app_id": "dev.forge.app", "product_name": "Forge", "schemes": []}, indent=2, sort_keys=True), encoding="utf-8")
+    package_manifest_file.write_text(
+        json.dumps(package_manifest, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    protocol_manifest_file.write_text(
+        json.dumps(
+            {"app_id": "dev.forge.app", "product_name": "Forge", "schemes": []},
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
 
     release_manifest = {
         "format_version": 1,
         "forge_version": "3.0.0",
         "generated_at": "2026-03-30T00:00:00+00:00",
         "target": "desktop",
-        "app": {"name": "Forge", "version": "3.0.0", "app_id": "dev.forge.app", "product_name": "Forge"},
+        "app": {
+            "name": "Forge",
+            "version": "3.0.0",
+            "app_id": "dev.forge.app",
+            "product_name": "Forge",
+        },
         "protocol": {"schemes": []},
         "packaging": {"manifest_path": str(package_manifest_file)},
         "signing": {"enabled": False},
@@ -70,12 +94,26 @@ def test_verify_release_payload_validates_package_and_release_manifests(tmp_path
         "version_alignment": {"aligned": True},
         "artifacts": [
             {"path": str(app_bin), "sha256": _sha256(app_bin), "size": app_bin.stat().st_size},
-            {"path": str(helper_bin), "sha256": _sha256(helper_bin), "size": helper_bin.stat().st_size},
-            {"path": str(package_manifest_file), "sha256": _sha256(package_manifest_file), "size": package_manifest_file.stat().st_size},
-            {"path": str(protocol_manifest_file), "sha256": _sha256(protocol_manifest_file), "size": protocol_manifest_file.stat().st_size},
+            {
+                "path": str(helper_bin),
+                "sha256": _sha256(helper_bin),
+                "size": helper_bin.stat().st_size,
+            },
+            {
+                "path": str(package_manifest_file),
+                "sha256": _sha256(package_manifest_file),
+                "size": package_manifest_file.stat().st_size,
+            },
+            {
+                "path": str(protocol_manifest_file),
+                "sha256": _sha256(protocol_manifest_file),
+                "size": protocol_manifest_file.stat().st_size,
+            },
         ],
     }
-    release_manifest_file.write_text(json.dumps(release_manifest, indent=2, sort_keys=True), encoding="utf-8")
+    release_manifest_file.write_text(
+        json.dumps(release_manifest, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     payload = {
         "forge_version": "3.0.0",
@@ -111,7 +149,9 @@ def test_verify_release_payload_validates_package_and_release_manifests(tmp_path
     assert summary["release_manifest"] == str(release_manifest_file)
 
 
-def test_release_manifest_payload_uses_project_directory_for_alignment(tmp_path: Path, monkeypatch) -> None:
+def test_release_manifest_payload_uses_project_directory_for_alignment(
+    tmp_path: Path, monkeypatch
+) -> None:
     workspace = tmp_path / "workspace"
     project_dir = workspace / "example"
     project_dir.mkdir(parents=True)
@@ -150,6 +190,11 @@ def test_release_manifest_payload_uses_project_directory_for_alignment(tmp_path:
         packaging=SimpleNamespace(app_id="dev.forge.app", product_name="Forge"),
         protocol=SimpleNamespace(schemes=[]),
     )
-    build_result = {"artifacts": [str(artifact)], "package": {"manifest_path": str(project_dir / "forge-package.json")}, "signing": {}, "notarization": {}}
+    build_result = {
+        "artifacts": [str(artifact)],
+        "package": {"manifest_path": str(project_dir / "forge-package.json")},
+        "signing": {},
+        "notarization": {},
+    }
 
-    payload = _release_manifest_payload(config, "desktop", build_result, project_dir=workspace)
+    _release_manifest_payload(config, "desktop", build_result, project_dir=workspace)

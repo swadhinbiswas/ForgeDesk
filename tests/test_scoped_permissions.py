@@ -13,13 +13,13 @@ from pathlib import Path
 
 import pytest
 
-from forge.scope import ScopeValidator, expand_scope_path
 from forge.config import FileSystemPermissions, ShellPermissions
-
+from forge.scope import ScopeValidator, expand_scope_path
 
 # ───────────────────────────────────────────────────────────
 # ScopeValidator — Path matching
 # ───────────────────────────────────────────────────────────
+
 
 class TestScopeValidatorPaths:
     """Test path-based scope validation."""
@@ -87,9 +87,7 @@ class TestScopeValidatorPaths:
                 deny_patterns=[str(project) + "/node_modules/**"],
             )
             assert validator.is_path_allowed(project / "src" / "app.py")
-            assert not validator.is_path_allowed(
-                project / "node_modules" / "pkg" / "index.js"
-            )
+            assert not validator.is_path_allowed(project / "node_modules" / "pkg" / "index.js")
 
     def test_no_allow_means_deny_all(self):
         """When allow_patterns are defined but path doesn't match, deny."""
@@ -106,6 +104,7 @@ class TestScopeValidatorPaths:
 # ───────────────────────────────────────────────────────────
 # ScopeValidator — URL matching
 # ───────────────────────────────────────────────────────────
+
 
 class TestScopeValidatorURLs:
     """Test URL-based scope validation."""
@@ -140,6 +139,7 @@ class TestScopeValidatorURLs:
 # expand_scope_path
 # ───────────────────────────────────────────────────────────
 
+
 class TestExpandScopePath:
     """Test scope path expansion."""
 
@@ -166,6 +166,7 @@ class TestExpandScopePath:
 # ───────────────────────────────────────────────────────────
 # FileSystemAPI with deny scopes
 # ───────────────────────────────────────────────────────────
+
 
 class TestFileSystemAPIDenyScopes:
     """Test that FileSystemAPI enforces deny patterns."""
@@ -261,6 +262,7 @@ class TestFileSystemAPIDenyScopes:
 # ShellAPI deny_execute and URL scopes
 # ───────────────────────────────────────────────────────────
 
+
 class TestShellAPIDenyAndURLScopes:
     """Test deny_execute and URL scope enforcement on ShellAPI."""
 
@@ -336,6 +338,7 @@ class TestShellAPIDenyAndURLScopes:
 # Config parsing of new fields
 # ───────────────────────────────────────────────────────────
 
+
 class TestConfigParsesNewFields:
     """Test that forge.toml parsing handles new deny/URL fields."""
 
@@ -352,9 +355,10 @@ write = ["./data"]
 deny = ["./data/secrets"]
 """)
         from forge.config import load_config
+
         config = load_config(str(config_toml))
         fs_perms = config.permissions.filesystem
-        assert hasattr(fs_perms, 'deny')
+        assert hasattr(fs_perms, "deny")
         assert fs_perms.deny == ["./data/secrets"]
 
     def test_shell_deny_execute_parsed(self, tmp_path):
@@ -371,6 +375,7 @@ allow_urls = ["https://api.example.com/*"]
 deny_urls = ["https://internal.example.com/*"]
 """)
         from forge.config import load_config
+
         config = load_config(str(config_toml))
         shell_perms = config.permissions.shell
         assert shell_perms.execute == ["ls", "cat", "rm"]
@@ -393,11 +398,12 @@ write = ["./data"]
 execute = ["ls"]
 """)
         from forge.config import load_config
+
         config = load_config(str(config_toml))
-        
+
         fs_perms = config.permissions.filesystem
         assert fs_perms.deny == []
-        
+
         shell_perms = config.permissions.shell
         assert shell_perms.deny_execute == []
         assert shell_perms.allow_urls == []

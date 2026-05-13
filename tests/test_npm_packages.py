@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -39,7 +38,6 @@ def test_cli_wrapper_bootstraps_python_runtime() -> None:
     assert "forge_cli.main" in wrapper
     assert "pip" in wrapper
     assert "forge-framework" in wrapper
-
 
 
 def test_vite_plugin_package_exports_plugin() -> None:

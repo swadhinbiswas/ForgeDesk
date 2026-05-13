@@ -5,10 +5,11 @@ Includes security tests for command validation and input sanitization.
 """
 
 import json
-import pytest
 from unittest.mock import MagicMock
 
-from forge.bridge import IPCBridge, PROTOCOL_VERSION, command, requires_capability
+import pytest
+
+from forge.bridge import PROTOCOL_VERSION, IPCBridge, command, requires_capability
 
 
 class TestIPCBridgeSecurity:
@@ -55,6 +56,7 @@ class TestIPCBridgeSecurity:
     def test_sanitize_error_removes_paths(self, bridge: IPCBridge) -> None:
         """Test that error sanitization removes path information."""
         import os
+
         error_msg = f"Error accessing {os.getcwd()}/secret/file.txt"
         sanitized = bridge._sanitize_error(Exception(error_msg))
         assert os.getcwd() not in sanitized
@@ -84,11 +86,7 @@ class TestIPCBridgeSecurity:
 
     def test_invoke_invalid_command_name(self, bridge: IPCBridge) -> None:
         """Test that invalid command names are rejected."""
-        request = json.dumps({
-            "command": "../../../etc/passwd",
-            "args": {},
-            "id": 1
-        })
+        request = json.dumps({"command": "../../../etc/passwd", "args": {}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert "error" in response
@@ -96,11 +94,7 @@ class TestIPCBridgeSecurity:
 
     def test_invoke_unknown_command(self, bridge: IPCBridge) -> None:
         """Test that unknown commands return an error."""
-        request = json.dumps({
-            "command": "nonexistent_command",
-            "args": {},
-            "id": 1
-        })
+        request = json.dumps({"command": "nonexistent_command", "args": {}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert "error" in response
@@ -109,12 +103,14 @@ class TestIPCBridgeSecurity:
 
     def test_invoke_unsupported_protocol(self, bridge: IPCBridge) -> None:
         """Test that unsupported protocol versions are rejected."""
-        request = json.dumps({
-            "protocol": "9.9",
-            "command": "test",
-            "args": {},
-            "id": 7,
-        })
+        request = json.dumps(
+            {
+                "protocol": "9.9",
+                "command": "test",
+                "args": {},
+                "id": 7,
+            }
+        )
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert response["error_code"] == "unsupported_protocol"
@@ -122,22 +118,20 @@ class TestIPCBridgeSecurity:
 
     def test_invoke_args_not_dict(self, bridge: IPCBridge) -> None:
         """Test that non-dict args are rejected."""
-        request = json.dumps({
-            "command": "test",
-            "args": "not a dict",
-            "id": 1
-        })
+        request = json.dumps({"command": "test", "args": "not a dict", "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert "error" in response
 
     def test_invoke_request_too_large(self, bridge: IPCBridge) -> None:
         """Test that excessively large requests are rejected."""
-        large_request = json.dumps({
-            "command": "test",
-            "args": {"data": "x" * (11 * 1024 * 1024)},  # 11MB
-            "id": 1
-        })
+        large_request = json.dumps(
+            {
+                "command": "test",
+                "args": {"data": "x" * (11 * 1024 * 1024)},  # 11MB
+                "id": 1,
+            }
+        )
         result = bridge.invoke_command(large_request)
         response = json.loads(result)
         assert "error" in response
@@ -148,11 +142,7 @@ class TestIPCBridgeSecurity:
         # Register a test command
         bridge._commands["test_cmd"] = lambda x: x * 2
 
-        request = json.dumps({
-            "command": "test_cmd",
-            "args": {"x": 5},
-            "id": 1
-        })
+        request = json.dumps({"command": "test_cmd", "args": {"x": 5}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert "result" in response
@@ -167,9 +157,7 @@ class TestIPCBridgeSecurity:
         """Test that traced requests include timing metadata in replies."""
         bridge._commands["test_cmd"] = lambda x: x * 2
 
-        request = json.dumps(
-            {"command": "test_cmd", "args": {"x": 5}, "id": 11, "trace": True}
-        )
+        request = json.dumps({"command": "test_cmd", "args": {"x": 5}, "id": 11, "trace": True})
         result = bridge.invoke_command(request)
         response = json.loads(result)
 
@@ -180,9 +168,7 @@ class TestIPCBridgeSecurity:
 
     def test_invoke_trace_error_includes_timing_metadata(self, bridge: IPCBridge) -> None:
         """Test that traced failures also include timing metadata."""
-        request = json.dumps(
-            {"command": "missing_cmd", "args": {}, "id": 12, "trace": True}
-        )
+        request = json.dumps({"command": "missing_cmd", "args": {}, "id": 12, "trace": True})
         result = bridge.invoke_command(request)
         response = json.loads(result)
 
@@ -193,16 +179,13 @@ class TestIPCBridgeSecurity:
 
     def test_invoke_command_error(self, bridge: IPCBridge) -> None:
         """Test that command errors are handled gracefully."""
+
         def failing_cmd():
             raise ValueError("Something went wrong")
 
         bridge._commands["failing"] = failing_cmd
 
-        request = json.dumps({
-            "command": "failing",
-            "args": {},
-            "id": 1
-        })
+        request = json.dumps({"command": "failing", "args": {}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert "error" in response
@@ -210,17 +193,14 @@ class TestIPCBridgeSecurity:
 
     def test_invoke_type_error_sanitized(self, bridge: IPCBridge) -> None:
         """Test that type errors don't expose internal details."""
+
         def typed_cmd(x: int):
             return x + 1
 
         bridge._commands["typed"] = typed_cmd
 
         # Call with wrong type
-        request = json.dumps({
-            "command": "typed",
-            "args": {"x": "not an int"},
-            "id": 1
-        })
+        request = json.dumps({"command": "typed", "args": {"x": "not an int"}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert "error" in response
@@ -240,56 +220,34 @@ class TestIPCBridgeWithApp:
         """Test invoking a command with no arguments."""
         bridge = IPCBridge(mock_app, {"get_time": lambda: "12:00"})
 
-        request = json.dumps({
-            "command": "get_time",
-            "args": {},
-            "id": 1
-        })
+        request = json.dumps({"command": "get_time", "args": {}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert response["result"] == "12:00"
 
     def test_command_with_multiple_args(self, mock_app: MagicMock) -> None:
         """Test invoking a command with multiple arguments."""
-        bridge = IPCBridge(mock_app, {
-            "add": lambda a, b: a + b
-        })
+        bridge = IPCBridge(mock_app, {"add": lambda a, b: a + b})
 
-        request = json.dumps({
-            "command": "add",
-            "args": {"a": 10, "b": 20},
-            "id": 1
-        })
+        request = json.dumps({"command": "add", "args": {"a": 10, "b": 20}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert response["result"] == 30
 
     def test_command_returns_dict(self, mock_app: MagicMock) -> None:
         """Test invoking a command that returns a dict."""
-        bridge = IPCBridge(mock_app, {
-            "get_info": lambda: {"os": "linux", "version": "1.0"}
-        })
+        bridge = IPCBridge(mock_app, {"get_info": lambda: {"os": "linux", "version": "1.0"}})
 
-        request = json.dumps({
-            "command": "get_info",
-            "args": {},
-            "id": 1
-        })
+        request = json.dumps({"command": "get_info", "args": {}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert response["result"]["os"] == "linux"
 
     def test_command_returns_none(self, mock_app: MagicMock) -> None:
         """Test invoking a command that returns None."""
-        bridge = IPCBridge(mock_app, {
-            "do_nothing": lambda: None
-        })
+        bridge = IPCBridge(mock_app, {"do_nothing": lambda: None})
 
-        request = json.dumps({
-            "command": "do_nothing",
-            "args": {},
-            "id": 1
-        })
+        request = json.dumps({"command": "do_nothing", "args": {}, "id": 1})
         result = bridge.invoke_command(request)
         response = json.loads(result)
         assert response["result"] is None

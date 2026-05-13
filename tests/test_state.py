@@ -7,11 +7,12 @@ import pytest
 
 from forge.state import AppState
 
-
 # ─── Test Types ───
+
 
 class Database:
     """Mock database for testing."""
+
     def __init__(self, url: str):
         self.url = url
 
@@ -21,16 +22,19 @@ class Database:
 
 class CacheService:
     """Mock cache service."""
+
     def __init__(self, ttl: int = 300):
         self.ttl = ttl
 
 
 class Logger:
     """Mock logger."""
+
     pass
 
 
 # ─── Basic Operations ───
+
 
 class TestAppStateBasics:
     def test_manage_and_get(self):
@@ -125,13 +129,13 @@ class TestAppStateBasics:
 
 # ─── Thread Safety ───
 
+
 class TestAppStateThreadSafety:
     def test_concurrent_manage_different_types(self):
         """Multiple threads managing different types should not race."""
         state = AppState()
         types_and_instances = [
-            (type(f"Type{i}", (), {}), type(f"Type{i}", (), {})())
-            for i in range(20)
+            (type(f"Type{i}", (), {}), type(f"Type{i}", (), {})()) for i in range(20)
         ]
 
         barrier = threading.Barrier(20)
@@ -141,10 +145,7 @@ class TestAppStateThreadSafety:
             state.manage(instance)
 
         with ThreadPoolExecutor(max_workers=20) as pool:
-            futures = [
-                pool.submit(manage_one, cls, inst)
-                for cls, inst in types_and_instances
-            ]
+            futures = [pool.submit(manage_one, cls, inst) for cls, inst in types_and_instances]
             for f in futures:
                 f.result()
 
@@ -201,11 +202,13 @@ class TestAppStateThreadSafety:
 
 # ─── Bridge Integration ───
 
+
 class TestAppStateInjection:
     def test_state_injected_into_command(self):
         """Commands with a 'state' parameter should receive AppState."""
-        from forge.bridge import IPCBridge
         import json
+
+        from forge.bridge import IPCBridge
 
         class MockApp:
             def __init__(self):
@@ -227,11 +230,15 @@ class TestAppStateInjection:
 
         bridge.register_command("my_command", my_command)
 
-        result_json = bridge.invoke_command(json.dumps({
-            "id": "test-1",
-            "command": "my_command",
-            "args": {"name": "Alice"},
-        }))
+        result_json = bridge.invoke_command(
+            json.dumps(
+                {
+                    "id": "test-1",
+                    "command": "my_command",
+                    "args": {"name": "Alice"},
+                }
+            )
+        )
 
         result = json.loads(result_json)
         assert result["error"] is None
@@ -241,8 +248,9 @@ class TestAppStateInjection:
 
     def test_no_state_no_injection(self):
         """Commands without 'state' parameter should work normally."""
-        from forge.bridge import IPCBridge
         import json
+
+        from forge.bridge import IPCBridge
 
         class MockApp:
             def __init__(self):
@@ -257,11 +265,15 @@ class TestAppStateInjection:
 
         bridge.register_command("simple_command", simple_command)
 
-        result_json = bridge.invoke_command(json.dumps({
-            "id": "test-2",
-            "command": "simple_command",
-            "args": {"name": "Bob"},
-        }))
+        result_json = bridge.invoke_command(
+            json.dumps(
+                {
+                    "id": "test-2",
+                    "command": "simple_command",
+                    "args": {"name": "Bob"},
+                }
+            )
+        )
 
         result = json.loads(result_json)
         assert result["error"] is None

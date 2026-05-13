@@ -1,12 +1,14 @@
-import json
-import pytest
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from forge.app import ForgeApp
+
 
 def _write_config(tmp_path: Path, permissions: dict[str, Any]) -> Path:
     config_file = tmp_path / "forge.toml"
+
     def to_toml(d: dict, prefix="") -> str:
         lines = []
         for k, v in d.items():
@@ -14,20 +16,18 @@ def _write_config(tmp_path: Path, permissions: dict[str, Any]) -> Path:
                 lines.append(f"[{prefix}{k}]")
                 lines.append(to_toml(v, f"{prefix}{k}."))
             elif isinstance(v, bool):
-                lines.append(f'{k} = {"true" if v else "false"}')
+                lines.append(f"{k} = {'true' if v else 'false'}")
             elif isinstance(v, str):
                 lines.append(f'{k} = "{v}"')
             else:
                 lines.append(f"{k} = {v}")
         return "\n".join(lines)
-    
-    config = {
-        "app": {"name": "Test"},
-        "permissions": permissions
-    }
-    
+
+    config = {"app": {"name": "Test"}, "permissions": permissions}
+
     config_file.write_text(to_toml(config))
     return config_file
+
 
 class MockProxy:
     def __init__(self):
@@ -47,6 +47,7 @@ class MockProxy:
         self.registered.clear()
         return True
 
+
 class TestShortcutsAPI:
     def test_shortcuts_disabled(self, tmp_path: Path) -> None:
         config_path = _write_config(tmp_path, {})
@@ -64,6 +65,7 @@ class TestShortcutsAPI:
         app._is_ready = True
 
         called = False
+
         def on_shortcut():
             nonlocal called
             called = True

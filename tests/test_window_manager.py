@@ -1,14 +1,18 @@
 """Tests for WindowManagerAPI label-targeted controls."""
+
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 
 def make_app_with_child_window():
     """Create a ForgeApp with a child window registered."""
     from forge.app import ForgeApp
+
     app = ForgeApp.__new__(ForgeApp)
     # Minimal init to avoid full startup
     from forge.config import ForgeConfig
+
     app.config = ForgeConfig()
     app._proxy = None
     app._is_ready = False
@@ -16,21 +20,41 @@ def make_app_with_child_window():
     app._log_buffer = MagicMock()
     app._runtime_events = []
     from forge.events import EventEmitter
+
     app.events = EventEmitter()
     from forge.window import WindowAPI, WindowManagerAPI
+
     app.window = WindowAPI(app)
     app.windows = WindowManagerAPI(app)
     # Register main window
     app.windows._windows["main"] = {
-        "label": "main", "title": "Main", "width": 800, "height": 600,
-        "visible": True, "focused": True, "closed": False,
-        "x": 0, "y": 0, "fullscreen": False, "minimized": False, "maximized": False,
+        "label": "main",
+        "title": "Main",
+        "width": 800,
+        "height": 600,
+        "visible": True,
+        "focused": True,
+        "closed": False,
+        "x": 0,
+        "y": 0,
+        "fullscreen": False,
+        "minimized": False,
+        "maximized": False,
     }
     # Register child window
     app.windows._windows["settings"] = {
-        "label": "settings", "title": "Settings", "width": 400, "height": 300,
-        "visible": True, "focused": False, "closed": False,
-        "x": 100, "y": 100, "fullscreen": False, "minimized": False, "maximized": False,
+        "label": "settings",
+        "title": "Settings",
+        "width": 400,
+        "height": 300,
+        "visible": True,
+        "focused": False,
+        "closed": False,
+        "x": 100,
+        "y": 100,
+        "fullscreen": False,
+        "minimized": False,
+        "maximized": False,
     }
     return app
 

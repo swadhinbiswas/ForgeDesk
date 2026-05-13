@@ -1,8 +1,9 @@
 """Extended window manager tests — dispatch_event, create, close, and URL resolution."""
+
 from __future__ import annotations
 
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
 import pytest
 
 
@@ -24,22 +25,36 @@ def make_app():
     app.window = WindowAPI(app)
     app.windows = WindowManagerAPI(app)
     app.windows._windows["main"] = {
-        "label": "main", "title": "Main", "width": 800, "height": 600,
-        "visible": True, "focused": True, "closed": False,
-        "x": 0, "y": 0, "fullscreen": False, "minimized": False, "maximized": False,
+        "label": "main",
+        "title": "Main",
+        "width": 800,
+        "height": 600,
+        "visible": True,
+        "focused": True,
+        "closed": False,
+        "x": 0,
+        "y": 0,
+        "fullscreen": False,
+        "minimized": False,
+        "maximized": False,
         "backend": "native",
     }
     return app
 
 
 class TestDispatchEvent:
-
     def test_dispatch_created_event(self):
         app = make_app()
-        label = app.windows._apply_native_event("created", {
-            "label": "popup", "width": 500, "height": 400,
-            "visible": True, "focused": False,
-        })
+        label = app.windows._apply_native_event(
+            "created",
+            {
+                "label": "popup",
+                "width": 500,
+                "height": 400,
+                "visible": True,
+                "focused": False,
+            },
+        )
         assert label == "popup"
         assert app.windows._windows["popup"]["closed"] is False
         assert app.windows._windows["popup"]["visible"] is True
@@ -47,7 +62,10 @@ class TestDispatchEvent:
     def test_dispatch_close_requested(self):
         app = make_app()
         app.windows._windows["panel"] = {
-            "label": "panel", "visible": True, "focused": True, "closed": False,
+            "label": "panel",
+            "visible": True,
+            "focused": True,
+            "closed": False,
         }
         app.windows._apply_native_event("close_requested", {"label": "panel"})
         assert app.windows._windows["panel"]["visible"] is False
@@ -56,7 +74,10 @@ class TestDispatchEvent:
     def test_dispatch_destroyed(self):
         app = make_app()
         app.windows._windows["panel"] = {
-            "label": "panel", "visible": True, "focused": True, "closed": False,
+            "label": "panel",
+            "visible": True,
+            "focused": True,
+            "closed": False,
         }
         app.windows._apply_native_event("destroyed", {"label": "panel"})
         assert app.windows._windows["panel"]["closed"] is True
@@ -65,7 +86,10 @@ class TestDispatchEvent:
     def test_dispatch_focused(self):
         app = make_app()
         app.windows._windows["panel"] = {
-            "label": "panel", "visible": True, "focused": False, "closed": False,
+            "label": "panel",
+            "visible": True,
+            "focused": False,
+            "closed": False,
         }
         app.windows._apply_native_event("focused", {"label": "panel", "focused": True})
         assert app.windows._windows["panel"]["focused"] is True
@@ -73,12 +97,19 @@ class TestDispatchEvent:
     def test_dispatch_navigated(self):
         app = make_app()
         app.windows._windows["panel"] = {
-            "label": "panel", "visible": True, "focused": False, "closed": False,
+            "label": "panel",
+            "visible": True,
+            "focused": False,
+            "closed": False,
             "url": "forge://app/index.html",
         }
-        app.windows._apply_native_event("navigated", {
-            "label": "panel", "url": "https://example.com",
-        })
+        app.windows._apply_native_event(
+            "navigated",
+            {
+                "label": "panel",
+                "url": "https://example.com",
+            },
+        )
         assert app.windows._windows["panel"]["url"] == "https://example.com"
 
     def test_dispatch_main_syncs(self):
@@ -90,18 +121,26 @@ class TestDispatchEvent:
     def test_dispatch_updates_size(self):
         app = make_app()
         app.windows._windows["panel"] = {
-            "label": "panel", "visible": True, "focused": False, "closed": False,
-            "width": 400, "height": 300,
+            "label": "panel",
+            "visible": True,
+            "focused": False,
+            "closed": False,
+            "width": 400,
+            "height": 300,
         }
-        app.windows._apply_native_event("resized", {
-            "label": "panel", "width": 600, "height": 500,
-        })
+        app.windows._apply_native_event(
+            "resized",
+            {
+                "label": "panel",
+                "width": 600,
+                "height": 500,
+            },
+        )
         assert app.windows._windows["panel"]["width"] == 600
         assert app.windows._windows["panel"]["height"] == 500
 
 
 class TestURLResolution:
-
     def test_default_url(self):
         app = make_app()
         url = app.windows._resolve_url()
@@ -131,12 +170,14 @@ class TestURLResolution:
 
 
 class TestWindowClose:
-
     def test_close_child_window(self):
         app = make_app()
         app.windows._windows["popup"] = {
-            "label": "popup", "visible": True, "focused": True,
-            "closed": False, "backend": "managed-popup",
+            "label": "popup",
+            "visible": True,
+            "focused": True,
+            "closed": False,
+            "backend": "managed-popup",
         }
         result = app.windows.close("popup")
         assert result is True
@@ -150,7 +191,6 @@ class TestWindowClose:
 
 
 class TestWindowList:
-
     def test_list_returns_all_windows(self):
         app = make_app()
         app.windows._windows["settings"] = {"label": "settings"}
@@ -173,7 +213,6 @@ class TestWindowList:
 
 
 class TestSupportChecks:
-
     def test_supports_native_multiwindow_without_proxy(self):
         app = make_app()
         assert app.windows._supports_native_multiwindow() is False

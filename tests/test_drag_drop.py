@@ -1,6 +1,5 @@
-import pytest
-from unittest.mock import MagicMock
 from forge.api.drag_drop import DragDropAPI
+
 
 class DummyEvents:
     def __init__(self):
@@ -11,18 +10,21 @@ class DummyEvents:
         def decorator(func):
             self.handlers[event_name] = func
             return func
+
         return decorator
 
     def emit(self, event_name, data):
         self.emitted.append((event_name, data))
 
+
 class DummyApp:
     def __init__(self):
         self.events = DummyEvents()
 
+
 def test_drag_drop_api():
     app = DummyApp()
-    api = DragDropAPI(app)
+    DragDropAPI(app)
 
     # Simulate file drop
     app.events.handlers["file_drop"]({"paths": ["/tmp/test.txt"], "window": "main"})

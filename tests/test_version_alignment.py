@@ -4,12 +4,12 @@ import json
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "ci" / "verify_version_alignment.py"
 _spec = spec_from_file_location("verify_version_alignment", SCRIPT_PATH)
 assert _spec and _spec.loader
 _module = module_from_spec(_spec)
-import sys
+import sys  # noqa: E402  # intentional: import after dynamic module load
+
 sys.modules[_spec.name] = _module
 _spec.loader.exec_module(_module)
 verify_alignment = _module.verify_alignment
@@ -31,7 +31,9 @@ def test_verify_alignment_reports_matching_versions(tmp_path: Path) -> None:
     (forge_cli_pkg / "__init__.py").write_text('__version__ = "3.0.0"\n', encoding="utf-8")
     api_pkg = workspace / "packages" / "api"
     api_pkg.mkdir(parents=True)
-    (api_pkg / "package.json").write_text(json.dumps({"name": "@forgedesk/api", "version": "3.0.0"}), encoding="utf-8")
+    (api_pkg / "package.json").write_text(
+        json.dumps({"name": "@forgedesk/api", "version": "3.0.0"}), encoding="utf-8"
+    )
 
     summary = verify_alignment(workspace)
 

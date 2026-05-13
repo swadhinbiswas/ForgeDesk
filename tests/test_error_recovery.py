@@ -9,18 +9,14 @@ from __future__ import annotations
 import json
 import sys
 import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from forge.recovery import CircuitBreaker, CrashReporter, ErrorCode
 
-
 # ─── ErrorCode Tests ───
 
-class TestErrorCode:
 
+class TestErrorCode:
     def test_error_codes_are_strings(self):
         assert str(ErrorCode.INTERNAL_ERROR) == "internal_error"
         assert str(ErrorCode.CIRCUIT_OPEN) == "circuit_open"
@@ -45,8 +41,8 @@ class TestErrorCode:
 
 # ─── CircuitBreaker Tests ───
 
-class TestCircuitBreakerClosed:
 
+class TestCircuitBreakerClosed:
     def test_starts_closed(self):
         cb = CircuitBreaker()
         assert cb.get_state("test_cmd") == "closed"
@@ -69,7 +65,6 @@ class TestCircuitBreakerClosed:
 
 
 class TestCircuitBreakerOpen:
-
     def test_opens_at_threshold(self):
         cb = CircuitBreaker(failure_threshold=3, cooldown_seconds=60)
         for _ in range(3):
@@ -92,7 +87,6 @@ class TestCircuitBreakerOpen:
 
 
 class TestCircuitBreakerHalfOpen:
-
     def test_half_open_after_cooldown(self):
         cb = CircuitBreaker(failure_threshold=2, cooldown_seconds=0.1)
         cb.record_failure("test_cmd")
@@ -114,7 +108,6 @@ class TestCircuitBreakerHalfOpen:
 
 
 class TestCircuitBreakerManagement:
-
     def test_reset_specific_command(self):
         cb = CircuitBreaker(failure_threshold=2)
         cb.record_failure("cmd_a")
@@ -150,8 +143,8 @@ class TestCircuitBreakerManagement:
 
 # ─── CrashReporter Tests ───
 
-class TestCrashReporter:
 
+class TestCrashReporter:
     def test_install_and_uninstall(self, tmp_path):
         original = sys.excepthook
         reporter = CrashReporter(crash_dir=tmp_path, app_name="test")
@@ -165,7 +158,6 @@ class TestCrashReporter:
         try:
             raise ValueError("test error")
         except ValueError:
-            import traceback
             exc_type, exc_value, exc_tb = sys.exc_info()
             report = reporter._build_report(exc_type, exc_value, exc_tb)
 
@@ -235,11 +227,12 @@ class TestCrashReporter:
 
 # ─── Bridge Circuit Breaker Integration ───
 
-class TestBridgeCircuitBreaker:
 
+class TestBridgeCircuitBreaker:
     def test_circuit_breaker_on_bridge(self):
         """Bridge should have a circuit breaker instance."""
         from forge.bridge import IPCBridge
+
         bridge = IPCBridge()
         assert hasattr(bridge, "_circuit_breaker")
         assert isinstance(bridge._circuit_breaker, CircuitBreaker)
@@ -272,6 +265,7 @@ class TestBridgeCircuitBreaker:
         from forge.bridge import IPCBridge
 
         call_count = 0
+
         def sometimes_fail():
             nonlocal call_count
             call_count += 1

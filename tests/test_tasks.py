@@ -1,6 +1,8 @@
-import pytest
 import time
 from unittest.mock import MagicMock
+
+import pytest
+
 from forge.tasks import TaskManager
 
 

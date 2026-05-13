@@ -4,11 +4,12 @@ Tests for Forge Configuration Module.
 Tests loading, validation, and error handling for forge.toml configuration.
 """
 
-import pytest
-import tempfile
+import tomllib
 from pathlib import Path
 
-from forge.config import ForgeConfig, ConfigValidationError
+import pytest
+
+from forge.config import ConfigValidationError, ForgeConfig
 
 
 class TestForgeConfig:
@@ -58,6 +59,7 @@ clipboard = false
         assert config.dev.dev_server_timeout == 15
         assert config.permissions.filesystem is True
         assert config.permissions.clipboard is False
+
     def test_load_missing_file(self) -> None:
         """Test that loading a non-existent file raises FileNotFoundError."""
         with pytest.raises(FileNotFoundError):
@@ -68,7 +70,7 @@ clipboard = false
         config_file = tmp_path / "forge.toml"
         config_file.write_text("invalid toml {{{")
 
-        with pytest.raises(Exception):  # tomllib.TOMLDecodeError
+        with pytest.raises(tomllib.TOMLDecodeError):
             ForgeConfig.from_file(config_file)
 
     def test_window_width_validation(self, tmp_path: Path) -> None:
@@ -296,7 +298,7 @@ timestamp_url = "https://timestamp.example.com"
 
     def test_notarize_requires_signing_enabled(self, tmp_path: Path) -> None:
         config_file = tmp_path / "forge.toml"
-        config_file.write_text('[signing]\nnotarize = true\n')
+        config_file.write_text("[signing]\nnotarize = true\n")
 
         with pytest.raises(ConfigValidationError):
             ForgeConfig.from_file(config_file)

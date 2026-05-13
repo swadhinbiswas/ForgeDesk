@@ -1,7 +1,9 @@
 """Tests for Keychain API (21% → 80%+ coverage)."""
+
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 
@@ -13,9 +15,9 @@ def _make_app(has_capability: bool = True):
 
 
 class TestKeychainCapability:
-
     def test_set_password_requires_capability(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app(has_capability=False)
         with patch("forge.api.keychain.forge_core", create=True):
             api = KeychainAPI(app)
@@ -24,6 +26,7 @@ class TestKeychainCapability:
 
     def test_get_password_requires_capability(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app(has_capability=False)
         with patch("forge.api.keychain.forge_core", create=True):
             api = KeychainAPI(app)
@@ -32,6 +35,7 @@ class TestKeychainCapability:
 
     def test_delete_password_requires_capability(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app(has_capability=False)
         with patch("forge.api.keychain.forge_core", create=True):
             api = KeychainAPI(app)
@@ -40,9 +44,9 @@ class TestKeychainCapability:
 
 
 class TestKeychainOperations:
-
     def test_set_password_with_manager(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app()
         mock_manager = MagicMock()
         mock_core = MagicMock()
@@ -55,6 +59,7 @@ class TestKeychainOperations:
 
     def test_get_password_with_manager(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app()
         mock_manager = MagicMock()
         mock_manager.get_password.return_value = "secret"
@@ -67,6 +72,7 @@ class TestKeychainOperations:
 
     def test_delete_password_with_manager(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app()
         mock_manager = MagicMock()
         mock_core = MagicMock()
@@ -78,6 +84,7 @@ class TestKeychainOperations:
 
     def test_set_password_without_manager(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app()
         mock_core = MagicMock()
         mock_core.KeychainManager = None
@@ -87,6 +94,7 @@ class TestKeychainOperations:
 
     def test_get_password_without_manager(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app()
         mock_core = MagicMock()
         mock_core.KeychainManager = None
@@ -96,6 +104,7 @@ class TestKeychainOperations:
 
     def test_delete_password_without_manager(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app()
         mock_core = MagicMock()
         mock_core.KeychainManager = None
@@ -105,6 +114,7 @@ class TestKeychainOperations:
 
     def test_manager_exception_returns_false(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app()
         mock_manager = MagicMock()
         mock_manager.set_password.side_effect = RuntimeError("fail")
@@ -116,6 +126,7 @@ class TestKeychainOperations:
 
     def test_manager_init_failure(self):
         from forge.api.keychain import KeychainAPI
+
         app = _make_app()
         mock_core = MagicMock()
         mock_core.KeychainManager.side_effect = RuntimeError("init fail")

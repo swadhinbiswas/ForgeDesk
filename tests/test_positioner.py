@@ -1,6 +1,9 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from forge.api.positioner import PositionerAPI
+
 
 @pytest.fixture
 def positioner():
@@ -8,13 +11,14 @@ def positioner():
     mock_app.windows = MagicMock()
     mock_app.config.window.width = 800
     mock_app.config.window.height = 600
-    
+
     # Mock screen api
     mock_screen = MagicMock()
     mock_screen.get_current.return_value = {"ok": True, "width": 1920, "height": 1080}
     mock_app._screen_api = mock_screen
-    
+
     return PositionerAPI(mock_app)
+
 
 def test_position_center(positioner):
     res = positioner.position_center("main")
@@ -25,6 +29,7 @@ def test_position_center(positioner):
     assert res["y"] == 240
     positioner._app.windows.set_position.assert_called_once_with(label="main", x=560, y=240)
 
+
 def test_position_top_right(positioner):
     res = positioner.position_top_right("main", margin=20)
     assert res["ok"] is True
@@ -33,6 +38,7 @@ def test_position_top_right(positioner):
     assert res["x"] == 1100
     assert res["y"] == 20
     positioner._app.windows.set_position.assert_called_once_with(label="main", x=1100, y=20)
+
 
 def test_position_bottom_left(positioner):
     res = positioner.position_bottom_left("main", margin=20)

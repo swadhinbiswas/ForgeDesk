@@ -2,9 +2,7 @@
 Tests for Forge Event System.
 """
 
-import pytest
 import threading
-import time
 
 from forge.events import EventEmitter
 

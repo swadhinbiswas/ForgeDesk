@@ -7,8 +7,6 @@ BundlePipeline, and build tool detection.
 
 from __future__ import annotations
 
-import json
-import shutil
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -22,8 +20,8 @@ from forge_cli.bundler import (
     validate_bundle,
 )
 
-
 # ─── Fixtures ───
+
 
 @pytest.fixture
 def project_dir(tmp_path):
@@ -55,8 +53,8 @@ def bundle_config(project_dir):
 
 # ─── BundleConfig Tests ───
 
-class TestBundleConfig:
 
+class TestBundleConfig:
     def test_safe_app_name(self, bundle_config):
         assert bundle_config.safe_app_name == "test_app"
 
@@ -91,8 +89,8 @@ class TestBundleConfig:
 
 # ─── Validation Tests ───
 
-class TestValidation:
 
+class TestValidation:
     def test_valid_desktop_project(self, bundle_config):
         result = validate_bundle(bundle_config)
         # May fail on 'available' check since Nuitka isn't installed in test env
@@ -151,8 +149,8 @@ class TestValidation:
 
 # ─── ValidationResult Tests ───
 
-class TestValidationResult:
 
+class TestValidationResult:
     def test_starts_ok(self):
         r = ValidationResult()
         assert r.ok is True
@@ -183,18 +181,22 @@ class TestValidationResult:
 
 # ─── Build Tool Detection ───
 
-class TestDetectBuildTool:
 
+class TestDetectBuildTool:
     def test_no_tools_available(self, project_dir):
-        with patch("shutil.which", return_value=None), \
-             patch("forge_cli.bundler._module_available", return_value=False):
+        with (
+            patch("shutil.which", return_value=None),
+            patch("forge_cli.bundler._module_available", return_value=False),
+        ):
             result = detect_build_tool(project_dir)
             assert not result["available"]
             assert result["name"] == "nuitka"
 
     def test_nuitka_available(self, project_dir):
-        with patch("shutil.which", return_value=None), \
-             patch("forge_cli.bundler._module_available", return_value=True):
+        with (
+            patch("shutil.which", return_value=None),
+            patch("forge_cli.bundler._module_available", return_value=True),
+        ):
             result = detect_build_tool(project_dir)
             assert result["available"]
             assert result["name"] == "nuitka"
@@ -210,8 +212,10 @@ class TestDetectBuildTool:
 
     def test_cargo_without_maturin(self, project_dir):
         (project_dir / "Cargo.toml").write_text("[package]\nname = 'test'")
-        with patch("shutil.which", return_value=None), \
-             patch("forge_cli.bundler._module_available", return_value=False):
+        with (
+            patch("shutil.which", return_value=None),
+            patch("forge_cli.bundler._module_available", return_value=False),
+        ):
             result = detect_build_tool(project_dir)
             assert not result["available"]
             assert result["name"] == "maturin"  # Suggests maturin since Cargo.toml exists
@@ -219,8 +223,8 @@ class TestDetectBuildTool:
 
 # ─── BundlePipeline Tests ───
 
-class TestBundlePipeline:
 
+class TestBundlePipeline:
     def test_validate(self, bundle_config):
         pipeline = BundlePipeline(bundle_config)
         result = pipeline.validate()
@@ -283,7 +287,7 @@ class TestBundlePipeline:
         # First build
         pipeline = BundlePipeline(bundle_config)
         pipeline.bundle_frontend()
-        
+
         # Add a stale file
         (bundle_config.output_dir / "frontend" / "stale.txt").write_text("old")
 

@@ -1,18 +1,15 @@
 """Extended event system and __main__ tests for coverage gaps."""
+
 from __future__ import annotations
 
-import asyncio
-import sys
-from unittest.mock import MagicMock, patch
-import pytest
+from unittest.mock import patch
 
 from forge.events import EventEmitter
 
-
 # ─── Event Decorator Tests ───
 
-class TestEventDecorators:
 
+class TestEventDecorators:
     def test_on_as_decorator(self):
         emitter = EventEmitter()
         received = []
@@ -69,7 +66,6 @@ class TestEventDecorators:
 
 
 class TestAsyncEmit:
-
     def test_async_callbacks_called_without_event_loop(self):
         """Async callbacks fall back to sync execution when no event loop."""
         emitter = EventEmitter()
@@ -85,7 +81,8 @@ class TestAsyncEmit:
     def test_off_all_clears_async_listeners_too(self):
         emitter = EventEmitter()
 
-        async def handler(data): pass
+        async def handler(data):
+            pass
 
         emitter.on("test", lambda x: None)
         emitter.on_async("test", handler)
@@ -108,39 +105,47 @@ class TestAsyncEmit:
         emitter = EventEmitter()
         assert emitter.has_listeners("test") is False
 
-        async def handler(data): pass
+        async def handler(data):
+            pass
+
         emitter.on_async("test", handler)
         assert emitter.has_listeners("test") is True
 
 
 # ─── __main__.py Tests ───
 
-class TestMainModule:
 
+class TestMainModule:
     def test_main_with_missing_cli(self):
         """main() should print error and exit if forge_cli not installed."""
         from forge.__main__ import main
 
-        with patch.dict("sys.modules", {"forge_cli": None, "forge_cli.main": None}), \
-             patch("builtins.__import__", side_effect=ImportError("no module")):
+        with (
+            patch.dict("sys.modules", {"forge_cli": None, "forge_cli.main": None}),
+            patch("builtins.__import__", side_effect=ImportError("no module")),
+        ):
             # Since we can't easily mock the lazy import, test the module exists
             assert callable(main)
 
     def test_main_module_importable(self):
         """The __main__ module should be importable."""
         import forge.__main__
+
         assert hasattr(forge.__main__, "main")
 
 
 # ─── Version Export Tests ───
 
+
 class TestVersionExports:
     def test_version_is_3_0_4(self):
         import forge
+
         assert forge.__version__ == "3.0.4"
 
     def test_new_exports_accessible(self):
         from forge import CircuitBreaker, CrashReporter, ErrorCode, ScopeValidator
+
         assert CircuitBreaker is not None
         assert CrashReporter is not None
         assert ErrorCode is not None
@@ -148,5 +153,6 @@ class TestVersionExports:
 
     def test_all_exports_in_all(self):
         import forge
+
         for name in ["CircuitBreaker", "CrashReporter", "ErrorCode", "ScopeValidator"]:
             assert name in forge.__all__

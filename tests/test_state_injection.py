@@ -19,11 +19,12 @@ import pytest
 from forge.bridge import IPCBridge
 from forge.state import AppState
 
-
 # ─── Test service classes ───
+
 
 class Database:
     """Mock database service."""
+
     def __init__(self, url: str = "sqlite:///:memory:"):
         self.url = url
 
@@ -33,6 +34,7 @@ class Database:
 
 class CacheService:
     """Mock cache service."""
+
     def __init__(self, ttl: int = 300):
         self.ttl = ttl
 
@@ -42,11 +44,13 @@ class CacheService:
 
 class AuthService:
     """Mock auth service."""
+
     def __init__(self, secret: str = "test-secret"):
         self.secret = secret
 
 
 # ─── Fixtures ───
+
 
 @pytest.fixture
 def state():
@@ -74,10 +78,11 @@ def bridge(app_with_state):
 
 # ─── Container Injection (named 'state') ───
 
-class TestContainerInjection:
 
+class TestContainerInjection:
     def test_inject_state_by_name(self, bridge, state):
         """Parameter named 'state' receives the full AppState container."""
+
         def handler(state):
             return len(state)
 
@@ -86,6 +91,7 @@ class TestContainerInjection:
 
     def test_inject_state_by_name_with_other_args(self, bridge, state):
         """'state' injection works alongside other IPC args."""
+
         def handler(name: str, state):
             return f"{name}: {len(state)}"
 
@@ -95,6 +101,7 @@ class TestContainerInjection:
 
     def test_state_not_injected_if_provided(self, bridge):
         """IPC-provided 'state' takes priority over injection."""
+
         def handler(state):
             return state
 
@@ -105,10 +112,11 @@ class TestContainerInjection:
 
 # ─── Typed Injection ───
 
-class TestTypedInjection:
 
+class TestTypedInjection:
     def test_inject_single_typed(self, bridge):
         """A single type-hinted param gets the managed instance."""
+
         def handler(db: Database) -> list:
             return db.query("SELECT 1")
 
@@ -118,6 +126,7 @@ class TestTypedInjection:
 
     def test_inject_multiple_typed(self, bridge):
         """Multiple type-hinted params all get injected."""
+
         def handler(db: Database, cache: CacheService) -> dict:
             return {"db": db.url, "ttl": cache.ttl}
 
@@ -128,6 +137,7 @@ class TestTypedInjection:
 
     def test_typed_with_ipc_args(self, bridge):
         """Typed injection works alongside normal IPC arguments."""
+
         def handler(user_id: int, db: Database) -> dict:
             return {"user_id": user_id, "url": db.url}
 
@@ -137,6 +147,7 @@ class TestTypedInjection:
 
     def test_unmanaged_type_not_injected(self, bridge):
         """Types not in AppState are not injected (left for caller)."""
+
         def handler(auth: AuthService) -> str:
             return auth.secret
 
@@ -145,6 +156,7 @@ class TestTypedInjection:
 
     def test_appstate_typed_hint(self, bridge, state):
         """Parameter typed as AppState gets the container."""
+
         def handler(my_state: AppState) -> int:
             return len(my_state)
 
@@ -165,8 +177,8 @@ class TestTypedInjection:
 
 # ─── Edge Cases ───
 
-class TestInjectionEdgeCases:
 
+class TestInjectionEdgeCases:
     def test_no_app_returns_args_unchanged(self):
         """Bridge without app should return args unchanged."""
         bridge = IPCBridge(app=None)
@@ -203,6 +215,7 @@ class TestInjectionEdgeCases:
 
     def test_function_with_no_params(self, bridge):
         """Functions with no params return empty args."""
+
         def handler() -> str:
             return "hello"
 
@@ -212,10 +225,11 @@ class TestInjectionEdgeCases:
 
 # ─── Integration: Execute with Injection ───
 
-class TestExecuteWithInjection:
 
+class TestExecuteWithInjection:
     def test_execute_command_with_typed_injection(self, bridge):
         """Full _execute_command pipeline with typed injection."""
+
         def get_db_url(db: Database) -> str:
             return db.url
 
@@ -224,6 +238,7 @@ class TestExecuteWithInjection:
 
     def test_execute_command_with_container_injection(self, bridge, state):
         """Full _execute_command pipeline with container injection."""
+
         def count_services(state) -> int:
             return len(state)
 
@@ -232,6 +247,7 @@ class TestExecuteWithInjection:
 
     def test_execute_mixed_injection_and_args(self, bridge):
         """Full pipeline with both typed injection and IPC args."""
+
         def query_user(user_id: int, db: Database) -> dict:
             return {"user_id": user_id, "db": db.url}
 

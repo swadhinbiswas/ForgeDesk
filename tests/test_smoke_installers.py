@@ -3,7 +3,6 @@ from __future__ import annotations
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "ci" / "smoke_installers.py"
 _spec = spec_from_file_location("smoke_installers", SCRIPT_PATH)
 assert _spec and _spec.loader

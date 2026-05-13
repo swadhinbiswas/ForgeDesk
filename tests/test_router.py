@@ -5,11 +5,10 @@ Verifies that the decoupled routing system correctly manages IPC command registr
 and correctly preserves capability and version metadata without relying on global state.
 """
 
-import pytest
 from unittest.mock import MagicMock
 
-from forge.router import Router
 from forge.app import ForgeApp
+from forge.router import Router
 
 
 def test_router_initialization():
@@ -32,7 +31,7 @@ def test_router_command_basic_registration():
 
     assert "my_command" in router.commands
     func = router.commands["my_command"]
-    
+
     assert func() == "ok"
     assert getattr(func, "_forge_version", None) == "1.0"
     assert not hasattr(func, "_forge_capability")
@@ -93,7 +92,7 @@ def test_router_version_metadata():
 def test_app_include_router():
     """Test that ForgeApp correctly merges commands from a Router."""
     app = ForgeApp.__new__(ForgeApp)
-    
+
     # Mock the bridge so we can track registrations natively
     app.bridge = MagicMock()
 
@@ -111,7 +110,15 @@ def test_app_include_router():
     app.include_router(router)
 
     # Prove bridge.register_command was called for both router endpoints
-    app.bridge.register_command.assert_any_call("math:add", router.commands["math:add"], capability=None, version="1.0", internal=False)
-    app.bridge.register_command.assert_any_call("math:subtract", router.commands["math:subtract"], capability=None, version="1.0", internal=False)
-    
+    app.bridge.register_command.assert_any_call(
+        "math:add", router.commands["math:add"], capability=None, version="1.0", internal=False
+    )
+    app.bridge.register_command.assert_any_call(
+        "math:subtract",
+        router.commands["math:subtract"],
+        capability=None,
+        version="1.0",
+        internal=False,
+    )
+
     assert app.bridge.register_command.call_count == 2

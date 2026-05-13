@@ -1,14 +1,14 @@
 """Tests for IPC Envelope Enhancement — correlation_id, timestamp, error_detail."""
+
 import json
 import uuid
-
-import pytest
 
 
 def make_bridge():
     """Create a minimal IPCBridge for testing."""
     from forge.bridge import IPCBridge
     from forge.config import ForgeConfig
+
     config = ForgeConfig()
     bridge = IPCBridge(config)
     bridge.register_command("echo", lambda message="hello": {"echo": message})
@@ -95,4 +95,6 @@ class TestTraceMeta:
         req = json.dumps({"command": "echo", "id": 31})
         resp = json.loads(bridge.invoke_command(req))
         assert resp["meta"] is None
+
+
 """Tests for IPC Envelope Enhancement — correlation_id, timestamp, error_detail."""

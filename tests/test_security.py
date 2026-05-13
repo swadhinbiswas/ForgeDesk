@@ -1,4 +1,5 @@
 """Tests for Phase 2: Security & Capability Model hardening."""
+
 import json
 import time
 
@@ -6,12 +7,11 @@ import pytest
 
 from forge.bridge import IPCBridge
 from forge.config import (
-    ForgeConfig,
-    SecurityConfig,
-    PermissionsConfig,
     FileSystemPermissions,
+    ForgeConfig,
+    PermissionsConfig,
+    SecurityConfig,
 )
-
 
 # ─── Helpers ───
 
@@ -68,6 +68,7 @@ class _MockApp:
             if not has_explicit_external:
                 return False
         from urllib.parse import urlparse
+
         parsed_origin = urlparse(origin)
         normalized = (
             f"{parsed_origin.scheme}://{parsed_origin.netloc}"
@@ -256,6 +257,7 @@ class TestOriginValidation:
 class TestFilesystemScoping:
     def test_read_within_scope_allowed(self, tmp_path):
         from forge.api.fs import FileSystemAPI
+
         test_file = tmp_path / "data.txt"
         test_file.write_text("hello")
         fs = FileSystemAPI(
@@ -266,6 +268,7 @@ class TestFilesystemScoping:
 
     def test_read_outside_scope_denied(self, tmp_path):
         from forge.api.fs import FileSystemAPI
+
         other = tmp_path / "other"
         other.mkdir()
         allowed = tmp_path / "allowed"
@@ -279,6 +282,7 @@ class TestFilesystemScoping:
 
     def test_write_within_scope_allowed(self, tmp_path):
         from forge.api.fs import FileSystemAPI
+
         fs = FileSystemAPI(
             base_path=tmp_path,
             permissions=FileSystemPermissions(read=[], write=[str(tmp_path)]),
@@ -288,6 +292,7 @@ class TestFilesystemScoping:
 
     def test_write_outside_scope_denied(self, tmp_path):
         from forge.api.fs import FileSystemAPI
+
         allowed = tmp_path / "allowed"
         allowed.mkdir()
         fs = FileSystemAPI(
@@ -299,6 +304,7 @@ class TestFilesystemScoping:
 
     def test_filesystem_true_allows_all_paths(self, tmp_path):
         from forge.api.fs import FileSystemAPI
+
         (tmp_path / "a.txt").write_text("hi")
         fs = FileSystemAPI(base_path=tmp_path, permissions=True)
         assert fs.read("a.txt") == "hi"
@@ -307,13 +313,16 @@ class TestFilesystemScoping:
 
     def test_path_traversal_blocked(self, tmp_path):
         from forge.api.fs import FileSystemAPI
+
         fs = FileSystemAPI(base_path=tmp_path, permissions=True)
         with pytest.raises(ValueError):
             fs.read("../../etc/passwd")
 
     def test_symlink_escape_blocked(self, tmp_path):
-        from forge.api.fs import FileSystemAPI
         import os
+
+        from forge.api.fs import FileSystemAPI
+
         secret = tmp_path / "secret"
         secret.mkdir()
         (secret / "data.txt").write_text("sensitive")
@@ -339,7 +348,7 @@ class TestRateLimiting:
     def test_rate_limit_blocks_excess_calls(self):
         bridge = _make_bridge(rate_limit=5)
         results = []
-        for i in range(10):
+        for _i in range(10):
             resp = _invoke(bridge, "echo")
             results.append(resp)
         # First 5 should succeed, rest should be rate limited
