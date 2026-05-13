@@ -5,19 +5,19 @@ from __future__ import annotations
 import threading
 import time
 from collections import deque
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any
 
 _CAP = "forge_extensions"
 
 _MAX = 2000
-_events: Deque[Dict[str, Any]] = deque(maxlen=_MAX)
+_events: deque[dict[str, Any]] = deque(maxlen=_MAX)
 _lock = threading.Lock()
 
 
 class BuiltinTelemetryAPI:
     __forge_capability__ = _CAP
 
-    def record(self, name: str, data: Optional[Dict[str, Any]] = None) -> bool:
+    def record(self, name: str, data: dict[str, Any] | None = None) -> bool:
         """Append a telemetry event (memory buffer only; export via ``flush``)."""
         with _lock:
             _events.append(
@@ -29,15 +29,15 @@ class BuiltinTelemetryAPI:
             )
         return True
 
-    def flush(self, limit: int = 500) -> List[Dict[str, Any]]:
+    def flush(self, limit: int = 500) -> list[dict[str, Any]]:
         """Return up to ``limit`` oldest events and remove them."""
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         with _lock:
             while _events and len(out) < limit:
                 out.append(_events.popleft())
         return out
 
-    def peek(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def peek(self, limit: int = 50) -> list[dict[str, Any]]:
         """Inspect recent events without removing."""
         with _lock:
             snap = list(_events)[-limit:]

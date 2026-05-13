@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class WindowMessagingAPI:
         target_label: str,
         event: str,
         payload: Any = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send an event to a specific window by label.
 
         Args:
@@ -55,11 +55,14 @@ class WindowMessagingAPI:
         if wm is None:
             return {"ok": False, "error": "Window manager not available"}
 
-        msg = json.dumps({
-            "type": "event",
-            "event": event,
-            "payload": payload,
-        }, separators=(",", ":"))
+        msg = json.dumps(
+            {
+                "type": "event",
+                "event": event,
+                "payload": payload,
+            },
+            separators=(",", ":"),
+        )
 
         script = f"window.__forge__._handleMessage({msg})"
 
@@ -76,7 +79,7 @@ class WindowMessagingAPI:
         event: str,
         payload: Any = None,
         exclude_self: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Broadcast an event to all open windows.
 
         Args:
@@ -91,11 +94,14 @@ class WindowMessagingAPI:
         if wm is None:
             return {"ok": False, "error": "Window manager not available"}
 
-        msg = json.dumps({
-            "type": "event",
-            "event": event,
-            "payload": payload,
-        }, separators=(",", ":"))
+        msg = json.dumps(
+            {
+                "type": "event",
+                "event": event,
+                "payload": payload,
+            },
+            separators=(",", ":"),
+        )
 
         script = f"window.__forge__._handleMessage({msg})"
         count = 0

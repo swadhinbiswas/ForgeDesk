@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 import importlib
+import logging
 import threading
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from forge.bridge import command
 
@@ -32,11 +33,11 @@ class TrayAPI:
         """Initialize the Tray API."""
         self._app = app
         self._icon: Any = None
-        self._icon_path: Optional[str] = None
-        self._menu_items: List[Dict[str, Any]] = []
+        self._icon_path: str | None = None
+        self._menu_items: list[dict[str, Any]] = []
         self._visible = False
         self._lock = threading.Lock()
-        self._on_action: Optional[Callable[[str, dict[str, Any] | None], None]] = None
+        self._on_action: Callable[[str, dict[str, Any] | None], None] | None = None
         self._backend_name: str = "none"
         self._backend_available = False
 
@@ -72,7 +73,7 @@ class TrayAPI:
         return self._icon_path
 
     @command("tray_set_menu")
-    def set_menu(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def set_menu(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Set the tray context menu items.
 
@@ -121,7 +122,7 @@ class TrayAPI:
         return self._visible
 
     @command("tray_state")
-    def state(self) -> Dict[str, Any]:
+    def state(self) -> dict[str, Any]:
         """Return a structured tray state snapshot."""
         return {
             "visible": self._visible,
@@ -144,11 +145,11 @@ class TrayAPI:
             self._app.emit("tray:select", event_payload)
         return event_payload
 
-    def _normalize_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _normalize_items(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(items, list):
             raise TypeError("Tray menu items must be a list")
 
-        normalized: List[Dict[str, Any]] = []
+        normalized: list[dict[str, Any]] = []
         for index, item in enumerate(items):
             if not isinstance(item, dict):
                 raise TypeError(f"Tray item at index {index} must be an object")
@@ -207,14 +208,14 @@ class TrayAPI:
             )
             return
 
-        pystray, Image = backend
+        pystray, image_lib = backend
 
         try:
             if not self._icon_path:
                 logger.warning("No tray icon set")
                 return
 
-            image = Image.open(self._icon_path)
+            image = image_lib.open(self._icon_path)
 
             # Build menu
             menu_items = []
@@ -225,13 +226,15 @@ class TrayAPI:
                     label = item.get("label", "")
                     action = item.get("action", "")
                     enabled = item.get("enabled", True)
-                    checked = item.get("checked", False)
+                    item.get("checked", False)
                     checkable = item.get("checkable", False)
 
-                    def make_callback(act: str) -> Callable:
+                    def make_callback(act: str, checkable: bool = checkable) -> Callable:
                         def callback(icon: Any, menu_item: Any) -> None:
                             payload = {
-                                "checked": bool(getattr(menu_item, "checked", False)) if checkable else None,
+                                "checked": bool(getattr(menu_item, "checked", False))
+                                if checkable
+                                else None,
                             }
                             self._emit_action(act, payload)
 
@@ -242,7 +245,9 @@ class TrayAPI:
                             label,
                             make_callback(action),
                             enabled=enabled,
-                            checked=(lambda item=item: bool(item.get("checked", False))) if checkable else None,
+                            checked=(lambda item=item: bool(item.get("checked", False)))
+                            if checkable
+                            else None,
                         )
                     )
 

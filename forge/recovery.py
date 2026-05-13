@@ -23,17 +23,18 @@ import sys
 import threading
 import time
 import traceback
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 # ─── Structured Error Codes ───
 
-class ErrorCode(str, Enum):
+
+class ErrorCode(StrEnum):
     """Structured error codes for the IPC bridge.
 
     These codes are sent to the frontend alongside error messages,
@@ -68,6 +69,7 @@ class ErrorCode(str, Enum):
 
 
 # ─── Circuit Breaker ───
+
 
 class CircuitBreaker:
     """Circuit breaker for IPC commands.
@@ -156,7 +158,7 @@ class CircuitBreaker:
 
             return "open"
 
-    def reset(self, command_name: Optional[str] = None) -> None:
+    def reset(self, command_name: str | None = None) -> None:
         """Reset circuit breaker state.
 
         Args:
@@ -192,6 +194,7 @@ class CircuitBreaker:
 
 
 # ─── Crash Reporter ───
+
 
 class CrashReporter:
     """Captures and persists crash reports for post-mortem analysis.
@@ -265,7 +268,7 @@ class CrashReporter:
 
         return {
             "app_name": self._app_name,
-            "timestamp": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+            "timestamp": datetime.now(UTC).isoformat(timespec="milliseconds"),
             "exception": {
                 "type": exc_type.__name__,
                 "module": exc_type.__module__,
@@ -288,7 +291,7 @@ class CrashReporter:
 
     def _write_report(self, report: dict[str, Any]) -> Path:
         """Write a crash report to disk and return the file path."""
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         filename = f"crash_{self._app_name}_{ts}.json"
         report_path = self._crash_dir / filename
 
@@ -338,4 +341,5 @@ class CrashReporter:
 def _safe_getpid() -> int:
     """Get PID safely (works in all contexts)."""
     import os
+
     return os.getpid()

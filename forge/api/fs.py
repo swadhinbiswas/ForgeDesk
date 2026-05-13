@@ -12,12 +12,13 @@ Security:
 
 from __future__ import annotations
 
+import builtins
 import os
 import sys
 from pathlib import Path
-from typing import List, Union
 
 from forge.config import FileSystemPermissions
+
 
 def _expand_path_var(p: str) -> Path:
     p = os.path.expandvars(p)
@@ -30,10 +31,10 @@ def _expand_path_var(p: str) -> Path:
             p = p.replace("$APPDATA", "~/Library/Application Support")
         else:
             p = p.replace("$APPDATA", "~/.config")
-            
+
     if "$APPDIR" in p:
         p = p.replace("$APPDIR", os.path.abspath(os.getcwd()))
-        
+
     if "$DATADIR" in p:
         if sys.platform == "win32":
             datadir = os.environ.get("LOCALAPPDATA", "~\\AppData\\Local")
@@ -45,6 +46,7 @@ def _expand_path_var(p: str) -> Path:
 
     p = os.path.expanduser(p)
     return Path(p).resolve()
+
 
 class FileSystemAPI:
     """
@@ -61,15 +63,15 @@ class FileSystemAPI:
     def __init__(
         self,
         base_path: Path | None = None,
-        permissions: Union[bool, FileSystemPermissions] = True,
+        permissions: bool | FileSystemPermissions = True,
         allowed_dirs: list[Path] | None = None,
     ) -> None:
         from forge.scope import ScopeValidator
 
         self._base_path = base_path.resolve() if base_path else Path.cwd().resolve()
 
-        self._read_dirs: List[Path] = []
-        self._write_dirs: List[Path] = []
+        self._read_dirs: list[Path] = []
+        self._write_dirs: list[Path] = []
         deny_patterns: list[str] = []
 
         for directory in allowed_dirs or []:
@@ -79,15 +81,15 @@ class FileSystemAPI:
         if isinstance(permissions, bool) and permissions:
             self._read_dirs.append(self._base_path)
             self._write_dirs.append(self._base_path)
-        elif hasattr(permissions, 'read'):
-            for p in getattr(permissions, 'read', []):
+        elif hasattr(permissions, "read"):
+            for p in getattr(permissions, "read", []):
                 self._read_dirs.append(_expand_path_var(p))
-            for p in getattr(permissions, 'write', []):
+            for p in getattr(permissions, "write", []):
                 self._write_dirs.append(_expand_path_var(p))
 
         # Collect deny patterns from the permissions config
-        if hasattr(permissions, 'deny'):
-            deny_patterns = list(getattr(permissions, 'deny', []))
+        if hasattr(permissions, "deny"):
+            deny_patterns = list(getattr(permissions, "deny", []))
 
         # Build scope validators for read and write operations
         self._read_scope = ScopeValidator(
@@ -103,6 +105,7 @@ class FileSystemAPI:
 
         # Register the read scope for the Rust forge-asset:// protocol interceptor
         from forge.scope import _register_asset_validator
+
         _register_asset_validator(self._read_scope)
 
     def _is_path_allowed(self, resolved_path: Path, mode: str = "read") -> bool:
@@ -112,7 +115,7 @@ class FileSystemAPI:
     def _resolve_path(self, path: str, mode: str = "read", allow_absolute: bool = False) -> Path:
         if not path:
             raise ValueError("Path cannot be empty")
-        if '\x00' in path:
+        if "\x00" in path:
             raise ValueError("Invalid path: null byte detected")
 
         # Automatically expand $VARs using our strict logic so UI can pass "$APPDATA/file.txt"
@@ -170,9 +173,7 @@ class FileSystemAPI:
         # Check file size before reading
         file_size = resolved.stat().st_size
         if file_size > max_size:
-            raise ValueError(
-                f"File too large: {file_size} bytes (max: {max_size})"
-            )
+            raise ValueError(f"File too large: {file_size} bytes (max: {max_size})")
 
         return resolved.read_text(encoding="utf-8")
 
@@ -201,9 +202,7 @@ class FileSystemAPI:
 
         file_size = resolved.stat().st_size
         if file_size > max_size:
-            raise ValueError(
-                f"File too large: {file_size} bytes (max: {max_size})"
-            )
+            raise ValueError(f"File too large: {file_size} bytes (max: {max_size})")
 
         return resolved.read_bytes()
 
@@ -222,7 +221,7 @@ class FileSystemAPI:
             IsADirectoryError: If the path is a directory.
             ValueError: If the path is invalid.
         """
-        resolved = self._resolve_path(path, mode='write')
+        resolved = self._resolve_path(path, mode="write")
 
         if resolved.is_dir():
             raise IsADirectoryError(f"Path is a directory: {path}")
@@ -244,7 +243,7 @@ class FileSystemAPI:
             PermissionError: If the file cannot be written.
             IsADirectoryError: If the path is a directory.
         """
-        resolved = self._resolve_path(path, mode='write')
+        resolved = self._resolve_path(path, mode="write")
 
         if resolved.is_dir():
             raise IsADirectoryError(f"Path is a directory: {path}")
@@ -265,10 +264,10 @@ class FileSystemAPI:
         try:
             resolved = self._resolve_path(path)
             return resolved.exists()
-        except (ValueError, OSError):
+        except ValueError, OSError:
             return False
 
-    def list_dir(self, path: str, include_hidden: bool = False) -> List[dict]:
+    def list_dir(self, path: str, include_hidden: bool = False) -> builtins.list[dict]:
         """
         List the contents of a directory.
 
@@ -294,25 +293,27 @@ class FileSystemAPI:
         items = []
         for item in resolved.iterdir():
             # Skip hidden files unless requested
-            if not include_hidden and item.name.startswith('.'):
+            if not include_hidden and item.name.startswith("."):
                 continue
 
             try:
                 stat = item.stat()
-                items.append({
-                    "name": item.name,
-                    "is_file": item.is_file(),
-                    "is_dir": item.is_dir(),
-                    "size": stat.st_size,
-                    "modified": stat.st_mtime,
-                })
-            except (OSError, PermissionError):
+                items.append(
+                    {
+                        "name": item.name,
+                        "is_file": item.is_file(),
+                        "is_dir": item.is_dir(),
+                        "size": stat.st_size,
+                        "modified": stat.st_mtime,
+                    }
+                )
+            except OSError, PermissionError:
                 # Skip items we can't access
                 continue
 
         return items
 
-    def list(self, path: str, include_hidden: bool = False) -> List[dict]:
+    def list(self, path: str, include_hidden: bool = False) -> builtins.list[dict]:
         """
         Compatibility alias for listing directory contents.
 
@@ -338,7 +339,7 @@ class FileSystemAPI:
             OSError: If deletion fails.
             ValueError: If trying to delete base directory.
         """
-        resolved = self._resolve_path(path, mode='write')
+        resolved = self._resolve_path(path, mode="write")
 
         if not resolved.exists():
             raise FileNotFoundError(f"Path not found: {path}")
@@ -350,6 +351,7 @@ class FileSystemAPI:
         if resolved.is_dir():
             if recursive:
                 import shutil
+
                 shutil.rmtree(resolved)
             else:
                 resolved.rmdir()
@@ -368,7 +370,7 @@ class FileSystemAPI:
             FileExistsError: If the directory already exists.
             ValueError: If the path is invalid.
         """
-        resolved = self._resolve_path(path, mode='write')
+        resolved = self._resolve_path(path, mode="write")
         resolved.mkdir(parents=parents, exist_ok=False)
 
     def is_file(self, path: str) -> bool:
@@ -384,7 +386,7 @@ class FileSystemAPI:
         try:
             resolved = self._resolve_path(path)
             return resolved.is_file()
-        except (ValueError, OSError):
+        except ValueError, OSError:
             return False
 
     def is_dir(self, path: str) -> bool:
@@ -400,7 +402,7 @@ class FileSystemAPI:
         try:
             resolved = self._resolve_path(path)
             return resolved.is_dir()
-        except (ValueError, OSError):
+        except ValueError, OSError:
             return False
 
     def get_base_path(self) -> Path:
@@ -414,19 +416,19 @@ class FileSystemAPI:
 
     def asset_url(self, path: str) -> str:
         """
-        Convert a local file path into a secure 'forge-asset://' URL 
+        Convert a local file path into a secure 'forge-asset://' URL
         for high-speed binary IPC.
-        
-        This allows the frontend to fetch large files (images, video, models) 
-        natively without JSON-RPC encoding bottlenecks, while still enforcing 
+
+        This allows the frontend to fetch large files (images, video, models)
+        natively without JSON-RPC encoding bottlenecks, while still enforcing
         the active scope permissions.
-        
+
         Args:
             path: Absolute or relative path to the asset.
-            
+
         Returns:
             A string starting with 'forge-asset://'
-            
+
         Raises:
             ValueError: If the file path is not within the allowed permission scopes.
         """

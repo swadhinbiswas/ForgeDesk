@@ -8,7 +8,7 @@ locations: center, tray-anchor, corners, etc. Inspired by Tauri's
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class PositionerAPI:
         """Get the current window size from config."""
         return self._app.config.window.width, self._app.config.window.height
 
-    def position_center(self, label: Optional[str] = None) -> Dict[str, Any]:
+    def position_center(self, label: str | None = None) -> dict[str, Any]:
         """Center the window on the primary screen.
 
         Args:
@@ -53,7 +53,7 @@ class PositionerAPI:
         y = (screen_h - win_h) // 2
         return self._apply_position(label, x, y)
 
-    def position_top_right(self, label: Optional[str] = None, margin: int = 20) -> Dict[str, Any]:
+    def position_top_right(self, label: str | None = None, margin: int = 20) -> dict[str, Any]:
         """Position the window at the top-right corner.
 
         Args:
@@ -69,7 +69,7 @@ class PositionerAPI:
         y = margin
         return self._apply_position(label, x, y)
 
-    def position_bottom_right(self, label: Optional[str] = None, margin: int = 20) -> Dict[str, Any]:
+    def position_bottom_right(self, label: str | None = None, margin: int = 20) -> dict[str, Any]:
         """Position the window at the bottom-right corner.
 
         Args:
@@ -85,7 +85,7 @@ class PositionerAPI:
         y = screen_h - win_h - margin
         return self._apply_position(label, x, y)
 
-    def position_top_left(self, label: Optional[str] = None, margin: int = 20) -> Dict[str, Any]:
+    def position_top_left(self, label: str | None = None, margin: int = 20) -> dict[str, Any]:
         """Position the window at the top-left corner.
 
         Args:
@@ -97,7 +97,7 @@ class PositionerAPI:
         """
         return self._apply_position(label, margin, margin)
 
-    def position_bottom_left(self, label: Optional[str] = None, margin: int = 20) -> Dict[str, Any]:
+    def position_bottom_left(self, label: str | None = None, margin: int = 20) -> dict[str, Any]:
         """Position the window at the bottom-left corner.
 
         Args:
@@ -113,7 +113,7 @@ class PositionerAPI:
         y = screen_h - win_h - margin
         return self._apply_position(label, x, y)
 
-    def position_tray_anchor(self, label: Optional[str] = None) -> Dict[str, Any]:
+    def position_tray_anchor(self, label: str | None = None) -> dict[str, Any]:
         """Position the window anchored to the system tray area.
 
         Platform behavior:
@@ -128,6 +128,7 @@ class PositionerAPI:
             ``{ok: true, x, y}``
         """
         import sys
+
         screen_w, screen_h = self._get_screen_size()
         win_w, win_h = self._get_window_size()
 
@@ -142,7 +143,7 @@ class PositionerAPI:
 
         return self._apply_position(label, x, y)
 
-    def _apply_position(self, label: Optional[str], x: int, y: int) -> Dict[str, Any]:
+    def _apply_position(self, label: str | None, x: int, y: int) -> dict[str, Any]:
         """Apply a position to a window via the window manager."""
         wm = getattr(self._app, "windows", None)
         if wm is not None and label:

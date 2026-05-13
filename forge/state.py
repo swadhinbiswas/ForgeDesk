@@ -144,10 +144,7 @@ class AppState:
             Dict mapping type names to their repr.
         """
         with self._lock:
-            return {
-                key.__name__: repr(val)
-                for key, val in self._store.items()
-            }
+            return {key.__name__: repr(val) for key, val in self._store.items()}
 
     def __len__(self) -> int:
         with self._lock:

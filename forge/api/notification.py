@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from forge.bridge import command
-from forge.forge_core import NotificationManager
+from forge.forge_core import NotificationManager  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class NotificationAPI:
                 body,
                 payload["app_name"],
                 payload["icon"],
-                int(timeout * 1000) if timeout else None
+                int(timeout * 1000) if timeout else None,
             )
             payload["delivered"] = True
         except Exception as exc:

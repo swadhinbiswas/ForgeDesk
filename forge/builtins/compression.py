@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import gzip
 import zlib
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 _CAP = "forge_extensions"
 Method = Literal["gzip", "zlib"]
@@ -19,7 +19,7 @@ class BuiltinCompressionAPI:
         text: str,
         method: Method = "gzip",
         level: int = 6,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Compress UTF-8 text; returns base64 and original byte length."""
         raw = text.encode("utf-8")
         try:
@@ -36,7 +36,7 @@ class BuiltinCompressionAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    def decompress_text(self, b64: str, method: Method = "gzip") -> Dict[str, Any]:
+    def decompress_text(self, b64: str, method: Method = "gzip") -> dict[str, Any]:
         """Decompress to UTF-8 string."""
         try:
             data = base64.b64decode(b64.encode("ascii"))

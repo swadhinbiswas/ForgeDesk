@@ -2,8 +2,9 @@
 System IPC Handlers — Utility commands.
 """
 
-from forge import ForgeApp
 from services.system import SystemService
+
+from forge import ForgeApp
 
 
 def register_system_commands(app: ForgeApp):

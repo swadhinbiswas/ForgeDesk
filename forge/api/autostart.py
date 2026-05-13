@@ -8,6 +8,7 @@ when the user logs into their operating system.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
 from forge import forge_core
 
 if TYPE_CHECKING:
@@ -44,7 +45,7 @@ class AutostartAPI:
         self._require_capability()
         if self._manager:
             try:
-                return self._manager.enable()
+                return self._manager.enable()  # type: ignore[no-any-return]
             except Exception:
                 return False
         return False
@@ -56,7 +57,7 @@ class AutostartAPI:
         self._require_capability()
         if self._manager:
             try:
-                return self._manager.disable()
+                return self._manager.disable()  # type: ignore[no-any-return]
             except Exception:
                 return False
         return False
@@ -68,7 +69,7 @@ class AutostartAPI:
         self._require_capability()
         if self._manager:
             try:
-                return self._manager.is_enabled()
+                return self._manager.is_enabled()  # type: ignore[no-any-return]
             except Exception:
                 return False
         return False

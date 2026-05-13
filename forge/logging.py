@@ -12,10 +12,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 # ─── Log Levels ───
 
@@ -95,7 +94,7 @@ class LogEntry:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+    return datetime.now(UTC).isoformat(timespec="milliseconds")
 
 
 # ─── File Sink ───
@@ -128,7 +127,7 @@ class _FileSink:
         self._log_dir.mkdir(parents=True, exist_ok=True)
 
     def _current_file(self) -> Path:
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         path = self._log_dir / f"forge-{today}.log"
         if self._current_path != path:
             self._current_path = path
@@ -158,7 +157,9 @@ class _FileSink:
     def recent_files(self, count: int = 3) -> list[Path]:
         """Return the most recent log files, newest first."""
         self._ensure_dir()
-        files = sorted(self._log_dir.glob("forge-*.log*"), key=lambda p: p.stat().st_mtime, reverse=True)
+        files = sorted(
+            self._log_dir.glob("forge-*.log*"), key=lambda p: p.stat().st_mtime, reverse=True
+        )
         return files[:count]
 
 
@@ -169,12 +170,13 @@ class _ConsoleSink:
     """Rich-formatted console sink for log entries."""
 
     def __init__(self) -> None:
-        self._console = None
+        self._console: Any = None
 
-    def _get_console(self):
+    def _get_console(self) -> Any:
         if self._console is None:
             try:
                 from rich.console import Console
+
                 self._console = Console(stderr=True)
             except ImportError:
                 self._console = None
@@ -184,13 +186,9 @@ class _ConsoleSink:
         console = self._get_console()
         if console is None:
             # Fallback to plain stderr
-            import sys
-            print(
-                f"[{entry.source}] {entry.level.upper()}: {entry.message}",
-                file=sys.stderr,
-            )
+
             if entry.context:
-                print(f"  └── {json.dumps(entry.context)}", file=sys.stderr)
+                pass
             return
 
         level_style = _LEVEL_STYLE.get(entry.level, "white")
@@ -220,8 +218,9 @@ class _ConsoleSink:
 
         # Render context beautifully if it exists
         if entry.context:
-            from rich.pretty import Pretty
             from rich.padding import Padding
+            from rich.pretty import Pretty
+
             console.print(Padding(Pretty(entry.context), (0, 0, 0, 14)))
 
 
@@ -264,7 +263,13 @@ class ForgeLogger:
     def _should_log(self, level: str) -> bool:
         return LOG_LEVELS.get(level.lower(), 0) >= self._min_level
 
-    def _emit(self, level: str, message: str, source: str = "python", context: dict[str, Any] | None = None) -> LogEntry:
+    def _emit(
+        self,
+        level: str,
+        message: str,
+        source: str = "python",
+        context: dict[str, Any] | None = None,
+    ) -> LogEntry:
         entry = LogEntry(
             timestamp=_utc_now(),
             level=level.lower(),
@@ -276,7 +281,7 @@ class ForgeLogger:
         # Buffer
         self._entries.append(entry)
         if len(self._entries) > self._max_buffer:
-            self._entries = self._entries[-self._max_buffer:]
+            self._entries = self._entries[-self._max_buffer :]
 
         # Write to sinks
         if self._file_sink:
@@ -290,32 +295,49 @@ class ForgeLogger:
 
         return entry
 
-    def debug(self, message: str, *, source: str = "python", context: dict[str, Any] | None = None) -> LogEntry | None:
+    def debug(
+        self, message: str, *, source: str = "python", context: dict[str, Any] | None = None
+    ) -> LogEntry | None:
         if self._should_log("debug"):
             return self._emit("debug", message, source, context)
         return None
 
-    def info(self, message: str, *, source: str = "python", context: dict[str, Any] | None = None) -> LogEntry | None:
+    def info(
+        self, message: str, *, source: str = "python", context: dict[str, Any] | None = None
+    ) -> LogEntry | None:
         if self._should_log("info"):
             return self._emit("info", message, source, context)
         return None
 
-    def warn(self, message: str, *, source: str = "python", context: dict[str, Any] | None = None) -> LogEntry | None:
+    def warn(
+        self, message: str, *, source: str = "python", context: dict[str, Any] | None = None
+    ) -> LogEntry | None:
         if self._should_log("warn"):
             return self._emit("warn", message, source, context)
         return None
 
-    def error(self, message: str, *, source: str = "python", context: dict[str, Any] | None = None) -> LogEntry | None:
+    def error(
+        self, message: str, *, source: str = "python", context: dict[str, Any] | None = None
+    ) -> LogEntry | None:
         if self._should_log("error"):
             return self._emit("error", message, source, context)
         return None
 
-    def fatal(self, message: str, *, source: str = "python", context: dict[str, Any] | None = None) -> LogEntry | None:
+    def fatal(
+        self, message: str, *, source: str = "python", context: dict[str, Any] | None = None
+    ) -> LogEntry | None:
         if self._should_log("fatal"):
             return self._emit("fatal", message, source, context)
         return None
 
-    def log(self, level: str, message: str, *, source: str = "python", context: dict[str, Any] | None = None) -> LogEntry | None:
+    def log(
+        self,
+        level: str,
+        message: str,
+        *,
+        source: str = "python",
+        context: dict[str, Any] | None = None,
+    ) -> LogEntry | None:
         """Generic log method accepting any level string."""
         if self._should_log(level):
             return self._emit(level, message, source, context)

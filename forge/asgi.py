@@ -11,8 +11,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import mimetypes
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Awaitable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .app import ForgeApp
@@ -25,7 +26,10 @@ class ASGIWebSocketProxy:
     Mocks the Rust WindowProxy so that the IPC Bridge can
     call `evaluate_script()` and we can forward that data through the WebSocket.
     """
-    def __init__(self, send: Callable[[Dict[str, Any]], Awaitable[None]], loop: asyncio.AbstractEventLoop) -> None:
+
+    def __init__(
+        self, send: Callable[[dict[str, Any]], Awaitable[None]], loop: asyncio.AbstractEventLoop
+    ) -> None:
         self.send = send
         self.loop = loop
 
@@ -41,14 +45,11 @@ class ASGIWebSocketProxy:
 
         payload_text = script
         if script.startswith(prefix) and script.endswith(suffix):
-            payload_text = script[len(prefix):-len(suffix)]
+            payload_text = script[len(prefix) : -len(suffix)]
 
         asyncio.run_coroutine_threadsafe(
-            self.send({
-                "type": "websocket.send",
-                "text": payload_text
-            }),
-            self.loop
+            self.send({"type": "websocket.send", "text": payload_text}),  # type: ignore[arg-type]
+            self.loop,
         )
 
 
@@ -63,7 +64,12 @@ class ASGIApp:
         self._frontend_dir = self.app.config.get_frontend_path()
         self._forge_js_path = Path(__file__).parent / "js" / "forge.js"
 
-    async def __call__(self, scope: Dict[str, Any], receive: Callable[[], Awaitable[Dict[str, Any]]], send: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
+    async def __call__(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[[], Awaitable[dict[str, Any]]],
+        send: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> None:
         if scope["type"] == "http":
             await self._handle_http(scope, receive, send)
         elif scope["type"] == "websocket":
@@ -71,7 +77,12 @@ class ASGIApp:
         else:
             raise NotImplementedError(f"Unknown scope type {scope['type']}")
 
-    async def _handle_http(self, scope: Dict[str, Any], receive: Callable[[], Awaitable[Dict[str, Any]]], send: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
+    async def _handle_http(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[[], Awaitable[dict[str, Any]]],
+        send: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> None:
         path = scope.get("path", "/")
 
         # 1. Intercept requests for forge.js
@@ -114,31 +125,33 @@ class ASGIApp:
         except ValueError:
             return False
 
-    async def _serve_file(self, file_path: Path, send: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
+    async def _serve_file(
+        self, file_path: Path, send: Callable[[dict[str, Any]], Awaitable[None]]
+    ) -> None:
         content_type, _ = mimetypes.guess_type(str(file_path))
         content_type = content_type or "application/octet-stream"
 
         try:
-            file_size = file_path.stat().st_size
-            await send({
-                "type": "http.response.start",
-                "status": 200,
-                "headers": [
-                    (b"content-type", content_type.encode()),
-                    (b"content-length", str(file_size).encode()),
-                ]
-            })
+            file_size = file_path.stat().st_size  # noqa: ASYNC240
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [
+                        (b"content-type", content_type.encode()),
+                        (b"content-length", str(file_size).encode()),
+                    ],
+                }
+            )
 
-            with open(file_path, "rb") as f:
+            with open(file_path, "rb") as f:  # noqa: ASYNC230
                 # Streaming files iteratively
                 chunk = f.read(65536)
                 while chunk:
                     more_body = len(chunk) == 65536
-                    await send({
-                        "type": "http.response.body",
-                        "body": chunk,
-                        "more_body": more_body
-                    })
+                    await send(
+                        {"type": "http.response.body", "body": chunk, "more_body": more_body}
+                    )
                     if not more_body:
                         break
                     chunk = f.read(65536)
@@ -146,22 +159,33 @@ class ASGIApp:
             logger.error(f"Error serving {file_path}: {e}")
             await self._send_404(send)
 
-    async def _send_404(self, send: Callable[[Dict[str, Any]], Awaitable[None]], message: str = "Not Found") -> None:
+    async def _send_404(
+        self, send: Callable[[dict[str, Any]], Awaitable[None]], message: str = "Not Found"
+    ) -> None:
         body = message.encode("utf-8")
-        await send({
-            "type": "http.response.start",
-            "status": 404,
-            "headers": [
-                (b"content-type", b"text/plain"),
-                (b"content-length", str(len(body)).encode()),
-            ]
-        })
-        await send({
-            "type": "http.response.body",
-            "body": body,
-        })
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 404,
+                "headers": [
+                    (b"content-type", b"text/plain"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            }
+        )
+        await send(
+            {
+                "type": "http.response.body",
+                "body": body,
+            }
+        )
 
-    async def _handle_websocket(self, scope: Dict[str, Any], receive: Callable[[], Awaitable[Dict[str, Any]]], send: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
+    async def _handle_websocket(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[[], Awaitable[dict[str, Any]]],
+        send: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> None:
         path = scope.get("path", "/")
 
         # Only allow ipc websocket connections

@@ -7,6 +7,7 @@ Provides methods for securely storing credentials and tokens using the OS native
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
 from forge import forge_core
 
 if TYPE_CHECKING:
@@ -55,7 +56,7 @@ class KeychainAPI:
         self._require_capability()
         if self._manager:
             try:
-                return self._manager.get_password(key)
+                return self._manager.get_password(key)  # type: ignore[no-any-return]
             except Exception:
                 return None
         return None

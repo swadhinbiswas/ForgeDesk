@@ -8,12 +8,12 @@ import json
 import re
 import shutil
 import tarfile
-from datetime import datetime, timezone
+import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 from urllib.request import urlopen
-import zipfile
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -21,12 +21,11 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from forge.bridge import command
 
-
 _ALLOWED_CHANNELS = {"stable", "beta", "nightly"}
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _version_key(version: str) -> tuple[int, ...]:
@@ -219,7 +218,9 @@ class UpdaterAPI:
         if destination is not None:
             destination_path = Path(destination)
             destination_path.parent.mkdir(parents=True, exist_ok=True)
-            destination_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+            destination_path.write_text(
+                json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
+            )
 
         return manifest
 
@@ -456,7 +457,7 @@ class UpdaterAPI:
 
         manifest = json.loads(payload)
         self._validate_manifest(manifest)
-        return manifest
+        return manifest  # type: ignore[no-any-return]
 
     def _validate_manifest(self, manifest: dict[str, Any]) -> None:
         if not isinstance(manifest, dict):
@@ -484,7 +485,9 @@ class UpdaterAPI:
             if not artifact.get("url"):
                 raise ValueError("Updater manifest artifacts require a url")
 
-    def _verify_manifest(self, manifest: dict[str, Any], public_key: str | None = None) -> dict[str, Any]:
+    def _verify_manifest(
+        self, manifest: dict[str, Any], public_key: str | None = None
+    ) -> dict[str, Any]:
         signature = manifest.get("release", {}).get("signature")
         configured_key = public_key or self._config.public_key
         result = {
@@ -541,8 +544,8 @@ class UpdaterAPI:
         for artifact in artifacts:
             artifact_platform = str(artifact.get("platform", "any")).lower()
             if artifact_platform in accepted:
-                return artifact
-        return artifacts[0]
+                return artifact  # type: ignore[no-any-return]
+        return artifacts[0]  # type: ignore[no-any-return]
 
     def _default_download_path(self, artifact_url: str, destination: str | None = None) -> Path:
         if destination is not None:
@@ -550,7 +553,7 @@ class UpdaterAPI:
 
         parsed = urlparse(artifact_url)
         name = Path(parsed.path or artifact_url).name or "update.bin"
-        return (self._downloads_dir / name).resolve()
+        return (self._downloads_dir / name).resolve()  # type: ignore[no-any-return]
 
     def _download_artifact(self, source: str, destination: Path) -> int:
         parsed = urlparse(source)
@@ -594,7 +597,7 @@ class UpdaterAPI:
         if backup_dir is not None:
             return Path(backup_dir).resolve()
         timestamp = _utc_now().replace(":", "-")
-        return (self._backups_dir / timestamp).resolve()
+        return (self._backups_dir / timestamp).resolve()  # type: ignore[no-any-return]
 
     def _extract_artifact(self, artifact_path: Path) -> Path:
         extract_target = (self._extracts_dir / artifact_path.stem).resolve()
@@ -605,15 +608,15 @@ class UpdaterAPI:
         name = artifact_path.name.lower()
         if name.endswith(".zip"):
             _extract_safe_zip(artifact_path, extract_target)
-            return extract_target
+            return extract_target  # type: ignore[no-any-return]
         if name.endswith((".tar.gz", ".tgz", ".tar", ".tar.bz2", ".tar.xz")):
             _extract_safe_tar(artifact_path, extract_target)
-            return extract_target
+            return extract_target  # type: ignore[no-any-return]
 
         direct_dir = extract_target / "payload"
         direct_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(artifact_path, direct_dir / artifact_path.name)
-        return extract_target
+        return extract_target  # type: ignore[no-any-return]
 
     def _resolve_extracted_root(self, extracted_path: Path) -> Path:
         children = [child for child in extracted_path.iterdir() if child.name != "__MACOSX"]
@@ -629,7 +632,9 @@ class UpdaterAPI:
 
     def _sync_tree(self, source_root: Path, target_root: Path, ignored_names: set[str]) -> None:
         source_entries = {entry.name: entry for entry in source_root.iterdir()}
-        target_entries = {entry.name: entry for entry in target_root.iterdir() if entry.name not in ignored_names}
+        target_entries = {
+            entry.name: entry for entry in target_root.iterdir() if entry.name not in ignored_names
+        }
 
         for name, target_entry in target_entries.items():
             if name not in source_entries:
@@ -650,7 +655,9 @@ class UpdaterAPI:
                     shutil.rmtree(target_entry)
                 shutil.copy2(source_entry, target_entry)
 
-    def _restore_backup(self, backup_path: Path, install_path: Path, ignored_names: set[str]) -> None:
+    def _restore_backup(
+        self, backup_path: Path, install_path: Path, ignored_names: set[str]
+    ) -> None:
         for entry in list(install_path.iterdir()):
             if entry.name in ignored_names:
                 continue

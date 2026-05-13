@@ -17,7 +17,8 @@ import asyncio
 import logging
 import threading
 from collections import defaultdict
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +41,8 @@ class EventEmitter:
 
     def __init__(self) -> None:
         """Initialize the event emitter with empty listener registries."""
-        self._listeners: Dict[str, List[EventCallback]] = defaultdict(list)
-        self._async_listeners: Dict[str, List[Callable[[Any], Any]]] = defaultdict(list)
+        self._listeners: dict[str, list[EventCallback]] = defaultdict(list)
+        self._async_listeners: dict[str, list[Callable[[Any], Any]]] = defaultdict(list)
         self._lock = threading.Lock()
 
     def on(
@@ -58,6 +59,7 @@ class EventEmitter:
                 returns a decorator so the method can be used as @on("event").
         """
         if callback is None:
+
             def decorator(func: EventCallback) -> EventCallback:
                 self.on(event, func)
                 return func
@@ -93,6 +95,7 @@ class EventEmitter:
                 @on_async("event").
         """
         if callback is None:
+
             def decorator(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
                 self.on_async(event, func)
                 return func
@@ -163,7 +166,7 @@ class EventEmitter:
         # Schedule asynchronous callbacks
         if async_callbacks:
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 for callback in async_callbacks:
                     asyncio.ensure_future(self._call_async_callback(callback, event, data))
             except RuntimeError:

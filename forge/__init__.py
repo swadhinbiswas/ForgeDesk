@@ -15,7 +15,7 @@ import sys
 
 from forge.app import ForgeApp
 from forge.bridge import IPCBridge
-from forge.config import ForgeConfig, ServerConfig, DatabaseConfig, RoutesConfig
+from forge.config import DatabaseConfig, ForgeConfig, RoutesConfig, ServerConfig
 from forge.events import EventEmitter
 from forge.recovery import CircuitBreaker, CrashReporter, ErrorCode
 from forge.router import Router

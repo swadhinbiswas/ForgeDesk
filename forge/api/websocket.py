@@ -22,15 +22,15 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 _CAP = "websocket"
 
 
-class WSState(str, Enum):
+class WSState(StrEnum):
     CONNECTING = "connecting"
     OPEN = "open"
     CLOSING = "closing"
@@ -41,6 +41,7 @@ class WSState(str, Enum):
 @dataclass
 class _WSConnection:
     """Internal state for a managed WebSocket connection."""
+
     connection_id: str
     url: str
     state: WSState = WSState.CONNECTING
@@ -81,18 +82,18 @@ class WebSocketAPI:
 
     def __init__(self, app: Any) -> None:
         self._app = app
-        self._connections: Dict[str, _WSConnection] = {}
+        self._connections: dict[str, _WSConnection] = {}
         self._lock = threading.Lock()
 
     def ws_connect(
         self,
         url: str,
-        headers: Optional[Dict[str, str]] = None,
-        protocols: Optional[list[str]] = None,
+        headers: dict[str, str] | None = None,
+        protocols: list[str] | None = None,
         auto_reconnect: bool = False,
         reconnect_delay: float = 2.0,
         max_reconnect_attempts: int = 5,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Open a new WebSocket connection.
 
         Args:
@@ -128,7 +129,8 @@ class WebSocketAPI:
         max_conns = perm.max_connections if hasattr(perm, "max_connections") else 10
         with self._lock:
             active = sum(
-                1 for c in self._connections.values()
+                1
+                for c in self._connections.values()
                 if c.state in (WSState.CONNECTING, WSState.OPEN)
             )
             if active >= max_conns:
@@ -146,7 +148,7 @@ class WebSocketAPI:
             attempts = 0
             while not conn.cancel_event.is_set():
                 try:
-                    import websockets.sync.client as ws_client
+                    import websockets.sync.client as ws_client  # type: ignore[import-not-found]
 
                     extra_headers = headers or {}
                     subprotocols = protocols or []
@@ -169,19 +171,25 @@ class WebSocketAPI:
                                 break
                             conn.messages_received += 1
                             is_binary = isinstance(message, bytes)
-                            self._emit("ws:message", {
-                                "connection_id": conn_id,
-                                "data": message if not is_binary else message.hex(),
-                                "binary": is_binary,
-                            })
+                            self._emit(
+                                "ws:message",
+                                {
+                                    "connection_id": conn_id,
+                                    "data": message if not is_binary else message.hex(),
+                                    "binary": is_binary,
+                                },
+                            )
 
                     # Clean close
                     conn.state = WSState.CLOSED
-                    self._emit("ws:close", {
-                        "connection_id": conn_id,
-                        "code": 1000,
-                        "reason": "normal",
-                    })
+                    self._emit(
+                        "ws:close",
+                        {
+                            "connection_id": conn_id,
+                            "code": 1000,
+                            "reason": "normal",
+                        },
+                    )
                     if not auto_reconnect:
                         break
 
@@ -189,10 +197,13 @@ class WebSocketAPI:
                     conn.state = WSState.ERROR
                     conn.error = str(exc)
                     conn.ws = None
-                    self._emit("ws:error", {
-                        "connection_id": conn_id,
-                        "error": str(exc),
-                    })
+                    self._emit(
+                        "ws:error",
+                        {
+                            "connection_id": conn_id,
+                            "error": str(exc),
+                        },
+                    )
 
                     if not auto_reconnect or conn.cancel_event.is_set():
                         conn.state = WSState.CLOSED
@@ -202,16 +213,21 @@ class WebSocketAPI:
                     if max_reconnect_attempts > 0 and attempts >= max_reconnect_attempts:
                         logger.warning("WS %s max reconnect attempts reached", conn_id)
                         conn.state = WSState.CLOSED
-                        self._emit("ws:close", {
-                            "connection_id": conn_id,
-                            "code": 1006,
-                            "reason": "max reconnect attempts",
-                        })
+                        self._emit(
+                            "ws:close",
+                            {
+                                "connection_id": conn_id,
+                                "code": 1006,
+                                "reason": "max reconnect attempts",
+                            },
+                        )
                         break
 
                     # Exponential backoff
                     delay = min(reconnect_delay * (2 ** (attempts - 1)), 60.0)
-                    logger.info("WS %s reconnecting in %.1fs (attempt %d)", conn_id, delay, attempts)
+                    logger.info(
+                        "WS %s reconnecting in %.1fs (attempt %d)", conn_id, delay, attempts
+                    )
                     conn.cancel_event.wait(delay)
 
         thread = threading.Thread(target=_reader, name=f"forge-ws-{conn_id[:8]}", daemon=True)
@@ -223,7 +239,7 @@ class WebSocketAPI:
         thread.start()
         return {"ok": True, "connection_id": conn_id}
 
-    def ws_send(self, connection_id: str, data: str) -> Dict[str, Any]:
+    def ws_send(self, connection_id: str, data: str) -> dict[str, Any]:
         """Send a text message on an open WebSocket connection.
 
         Args:
@@ -246,7 +262,7 @@ class WebSocketAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    def ws_send_binary(self, connection_id: str, data_b64: str) -> Dict[str, Any]:
+    def ws_send_binary(self, connection_id: str, data_b64: str) -> dict[str, Any]:
         """Send binary data (base64-encoded) on an open WebSocket connection.
 
         Args:
@@ -257,6 +273,7 @@ class WebSocketAPI:
             ``{ok: true}`` on success.
         """
         import base64
+
         with self._lock:
             conn = self._connections.get(connection_id)
         if conn is None:
@@ -276,7 +293,7 @@ class WebSocketAPI:
         connection_id: str,
         code: int = 1000,
         reason: str = "client close",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Close a WebSocket connection.
 
         Args:
@@ -300,7 +317,7 @@ class WebSocketAPI:
         conn.state = WSState.CLOSED
         return {"ok": True}
 
-    def ws_state(self, connection_id: str) -> Dict[str, Any]:
+    def ws_state(self, connection_id: str) -> dict[str, Any]:
         """Get the current state of a WebSocket connection."""
         with self._lock:
             conn = self._connections.get(connection_id)
@@ -308,7 +325,7 @@ class WebSocketAPI:
             return {"ok": False, "error": "Connection not found"}
         return {"ok": True, **conn.snapshot()}
 
-    def ws_list(self) -> Dict[str, Any]:
+    def ws_list(self) -> dict[str, Any]:
         """List all WebSocket connections."""
         with self._lock:
             connections = [c.snapshot() for c in self._connections.values()]

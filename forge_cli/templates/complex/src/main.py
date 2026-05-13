@@ -17,10 +17,11 @@ from pathlib import Path
 # Ensure src/ is in Python path for modular imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from forge import ForgeApp
-from handlers.todo import register_todo_commands
-from handlers.system import register_system_commands
 import config
+from handlers.system import register_system_commands
+from handlers.todo import register_todo_commands
+
+from forge import ForgeApp
 
 
 def create_app() -> ForgeApp:

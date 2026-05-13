@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import inspect
+import json
 import logging
 import os
 import re
@@ -27,31 +28,35 @@ import threading
 import time
 import uuid
 from collections import deque
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import get_type_hints, Any, Callable, Dict, Optional, Union
+from typing import Any, get_type_hints
 
 import msgspec
 
 logger = logging.getLogger(__name__)
 
+
 # ─── Data Structures ───
 class IPCCommandMeta(msgspec.Struct):
-    origin: Optional[str] = None
-    window_label: Optional[str] = None
+    origin: str | None = None
+    window_label: str | None = None
     # Support arbitrary additional metadata
-    extra: Dict[str, Any] = {}
+    extra: dict[str, Any] = {}
+
 
 class IPCCommand(msgspec.Struct):
-    command: Optional[str] = None
-    cmd: Optional[str] = None
-    id: Optional[Union[str, int]] = None
-    correlation_id: Optional[str] = None
-    protocol: Optional[str] = None
-    protocolVersion: Optional[str] = None
+    command: str | None = None
+    cmd: str | None = None
+    id: str | int | None = None
+    correlation_id: str | None = None
+    protocol: str | None = None
+    protocolVersion: str | None = None  # noqa: N815  # camelCase per IPC protocol spec
     trace: bool = False
     include_meta: bool = False
-    args: Dict[str, Any] = {}
-    meta: Optional[Dict[str, Any]] = None
+    args: dict[str, Any] = {}
+    meta: dict[str, Any] | None = None
+
 
 # pre-instantiate decoder for massive speedups
 _ipc_decoder = msgspec.json.Decoder(IPCCommand)
@@ -87,15 +92,15 @@ class IPCBridge:
     def __init__(
         self,
         app: Any = None,
-        commands: Dict[str, Callable] | None = None,
+        commands: dict[str, Callable] | None = None,
         max_workers: int = 4,
     ) -> None:
         self._app = app
-        self._commands: Dict[str, Callable] = {}
-        self._command_capabilities: Dict[str, str | None] = {}
-        self._command_versions: Dict[str, str] = {}
-        self._command_internal: Dict[str, bool] = {}
-        self._command_validators: Dict[str, Callable[[Dict[str, Any]], Dict[str, Any]]] = {}
+        self._commands: dict[str, Callable] = {}
+        self._command_capabilities: dict[str, str | None] = {}
+        self._command_versions: dict[str, str] = {}
+        self._command_internal: dict[str, bool] = {}
+        self._command_validators: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {}
         self._lock = threading.Lock()
         self._executor = ThreadPoolExecutor(
             max_workers=max_workers,
@@ -108,6 +113,7 @@ class IPCBridge:
 
         # Circuit breaker for error recovery
         from forge.recovery import CircuitBreaker
+
         self._circuit_breaker = CircuitBreaker()
 
         self._register_internal_commands()
@@ -117,7 +123,9 @@ class IPCBridge:
             for name, func in commands.items():
                 self._commands[name] = func
                 self._command_capabilities[name] = getattr(func, "_forge_capability", None)
-                self._command_versions[name] = str(getattr(func, "_forge_version", PROTOCOL_VERSION))
+                self._command_versions[name] = str(
+                    getattr(func, "_forge_version", PROTOCOL_VERSION)
+                )
                 self._command_internal[name] = bool(getattr(func, "_forge_internal", False))
 
     def _register_internal_commands(self) -> None:
@@ -152,7 +160,7 @@ class IPCBridge:
         # Try to find a logger on the app instance
         logger = getattr(self._app, "_logger", None) if self._app else None
         if logger and hasattr(logger, "log"):
-            entry = logger.log(level, message, source=source, context=context)
+            logger.log(level, message, source=source, context=context)
             return {"logged": True, "level": level, "source": source}
         return {"logged": False, "reason": "no_logger_configured"}
 
@@ -170,17 +178,18 @@ class IPCBridge:
             "supported": sorted(SUPPORTED_PROTOCOL_VERSIONS),
         }
 
-    def _generate_validator(self, func: Callable) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
+    def _generate_validator(self, func: Callable) -> Callable[[dict[str, Any]], dict[str, Any]]:
         """
         Generate a strict arguments validator for an IPC command using type hints (Python 3.14).
         Creates a dynamic msgspec Struct for the function signature.
         """
         try:
             import msgspec
+
             sig = inspect.signature(func)
             hints = get_type_hints(func)
 
-            field_definitions = []
+            field_definitions: list[tuple[str, Any] | tuple[str, Any, Any]] = []
             has_var_keyword = False
             for name, param in sig.parameters.items():
                 if param.kind == inspect.Parameter.VAR_KEYWORD:
@@ -196,6 +205,7 @@ class IPCBridge:
 
                 try:
                     from forge.state import AppState
+
                     if param_type is AppState:
                         continue
                 except ImportError:
@@ -213,7 +223,7 @@ class IPCBridge:
             # create named model
             model = msgspec.defstruct(f"{func.__name__}_Args", field_definitions)
 
-            def validator(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+            def validator(kwargs: dict[str, Any]) -> dict[str, Any]:
                 try:
                     res = msgspec.convert(kwargs, type=model)
                     valid = {f: getattr(res, f) for f in res.__struct_fields__}
@@ -262,8 +272,8 @@ class IPCBridge:
         self,
         name: str,
         func: Callable,
-        capability: Optional[str] = None,
-        version: Optional[str] = None,
+        capability: str | None = None,
+        version: str | None = None,
         internal: bool = False,
     ) -> None:
         """
@@ -283,7 +293,9 @@ class IPCBridge:
             self._command_capabilities[name] = capability or getattr(
                 func, "_forge_capability", None
             )
-            self._command_versions[name] = str(version or getattr(func, "_forge_version", PROTOCOL_VERSION))
+            self._command_versions[name] = str(
+                version or getattr(func, "_forge_version", PROTOCOL_VERSION)
+            )
             self._command_internal[name] = bool(internal or getattr(func, "_forge_internal", False))
             self._command_validators[name] = self._generate_validator(func)
 
@@ -303,11 +315,13 @@ class IPCBridge:
                 if name == "self":
                     continue
                 hint = hints.get(name)
-                args_schema.append({
-                    "name": name,
-                    "type": str(hint) if hint else "Any",
-                    "optional": param.default is not inspect.Parameter.empty,
-                })
+                args_schema.append(
+                    {
+                        "name": name,
+                        "type": str(hint) if hint else "Any",
+                        "optional": param.default is not inspect.Parameter.empty,
+                    }
+                )
 
             return {
                 "args": args_schema,
@@ -318,17 +332,19 @@ class IPCBridge:
             registry = []
             for name, func in self._commands.items():
                 schema = _extract_schema(func)
-                registry.append({
-                    "name": name,
-                    "capability": self._command_capabilities.get(name),
-                    "version": self._command_versions.get(name, PROTOCOL_VERSION),
-                    "internal": self._command_internal.get(name, False),
-                    "allowed": self._is_command_allowed(
-                        name,
-                        internal=self._command_internal.get(name, False),
-                    ),
-                    "schema": schema,
-                })
+                registry.append(
+                    {
+                        "name": name,
+                        "capability": self._command_capabilities.get(name),
+                        "version": self._command_versions.get(name, PROTOCOL_VERSION),
+                        "internal": self._command_internal.get(name, False),
+                        "allowed": self._is_command_allowed(
+                            name,
+                            internal=self._command_internal.get(name, False),
+                        ),
+                        "schema": schema,
+                    }
+                )
             return sorted(registry, key=lambda item: item["name"])
 
     def _command_policy(self) -> tuple[set[str], set[str], bool]:
@@ -340,7 +356,9 @@ class IPCBridge:
         if security is None:
             return set(), set(), True
 
-        allow = {item for item in getattr(security, "allowed_commands", []) if isinstance(item, str)}
+        allow = {
+            item for item in getattr(security, "allowed_commands", []) if isinstance(item, str)
+        }
         deny = {item for item in getattr(security, "denied_commands", []) if isinstance(item, str)}
         expose = bool(getattr(security, "expose_command_introspection", True))
         return allow, deny, expose
@@ -430,7 +448,9 @@ class IPCBridge:
             return bool(checker(origin))
         return True
 
-    def _is_window_capability_allowed(self, capability: str | None, window_label: str | None) -> bool:
+    def _is_window_capability_allowed(
+        self, capability: str | None, window_label: str | None
+    ) -> bool:
         if not capability:
             return True
 
@@ -511,15 +531,14 @@ class IPCBridge:
         if inspect:
             try:
                 msg_data = json.loads(raw_message)
-                cmd = msg_data.get('command') or msg_data.get('cmd') or 'unknown'
-                print(f"\n\033[36m[IPC REQ]\033[0m \033[1m{cmd}\033[0m: {raw_message[:500]}")
+                msg_data.get("command") or msg_data.get("cmd") or "unknown"
             except Exception:
-                print(f"\n\033[36m[IPC REQ]\033[0m \033[1munknown\033[0m: {raw_message[:500]}")
+                pass
 
         result = self._invoke_command_internal(raw_message)
 
         if inspect:
-            print(f"\033[32m[IPC RES]\033[0m {result[:500]}")
+            pass
 
         return result
 
@@ -547,8 +566,8 @@ class IPCBridge:
         """
         msg_id = None
         trace_requested = False
-        command_name: Optional[str] = None
-        correlation_id: Optional[str] = None
+        command_name: str | None = None
+        correlation_id: str | None = None
         start_time = time.perf_counter()
 
         try:
@@ -566,7 +585,9 @@ class IPCBridge:
 
             # 2. Parse JSON
             try:
-                data = _ipc_decoder.decode(raw_message.encode("utf-8") if isinstance(raw_message, str) else raw_message)
+                data = _ipc_decoder.decode(
+                    raw_message.encode("utf-8") if isinstance(raw_message, str) else raw_message
+                )
             except msgspec.ValidationError as e:
                 return self._error_response(None, f"Request validation failed: {e}")
             except msgspec.DecodeError:
@@ -616,7 +637,9 @@ class IPCBridge:
             meta = data.meta or {}
 
             origin = meta.get("origin") if isinstance(meta.get("origin"), str) else None
-            window_label = meta.get("window_label") if isinstance(meta.get("window_label"), str) else None
+            window_label = (
+                meta.get("window_label") if isinstance(meta.get("window_label"), str) else None
+            )
 
             if not self._is_origin_allowed(origin):
                 return self._error_response(
@@ -649,7 +672,9 @@ class IPCBridge:
                     f"Command not allowed by security policy: {cmd_name!r}",
                     code="command_not_allowed",
                     correlation_id=correlation_id,
-                    meta=self._build_trace_meta(start_time, trace_requested, command_name, capability, cmd_version),
+                    meta=self._build_trace_meta(
+                        start_time, trace_requested, command_name, capability, cmd_version
+                    ),
                 )
 
             if capability and not self._is_capability_enabled(capability):
@@ -658,7 +683,9 @@ class IPCBridge:
                     f"Permission denied for command: {cmd_name!r} requires '{capability}'",
                     code="permission_denied",
                     correlation_id=correlation_id,
-                    meta=self._build_trace_meta(start_time, trace_requested, command_name, capability, cmd_version),
+                    meta=self._build_trace_meta(
+                        start_time, trace_requested, command_name, capability, cmd_version
+                    ),
                 )
 
             if not self._is_window_capability_allowed(capability, window_label):
@@ -667,7 +694,9 @@ class IPCBridge:
                     f"Window scope denied for command: {cmd_name!r} on window {window_label!r}",
                     code="window_scope_denied",
                     correlation_id=correlation_id,
-                    meta=self._build_trace_meta(start_time, trace_requested, command_name, capability, cmd_version),
+                    meta=self._build_trace_meta(
+                        start_time, trace_requested, command_name, capability, cmd_version
+                    ),
                 )
 
             # 7. Circuit breaker check
@@ -677,7 +706,9 @@ class IPCBridge:
                     f"Command temporarily disabled due to repeated failures: {cmd_name!r}",
                     code="circuit_open",
                     correlation_id=correlation_id,
-                    meta=self._build_trace_meta(start_time, trace_requested, command_name, capability, cmd_version),
+                    meta=self._build_trace_meta(
+                        start_time, trace_requested, command_name, capability, cmd_version
+                    ),
                 )
 
             # 8. Execute
@@ -693,7 +724,9 @@ class IPCBridge:
                             str(val_err),
                             code="validation_error",
                             correlation_id=correlation_id,
-                            meta=self._build_trace_meta(start_time, trace_requested, command_name, capability, cmd_version),
+                            meta=self._build_trace_meta(
+                                start_time, trace_requested, command_name, capability, cmd_version
+                            ),
                         )
 
                 result = self._execute_command(func, args)
@@ -702,7 +735,9 @@ class IPCBridge:
                     msg_id,
                     result,
                     correlation_id=correlation_id,
-                    meta=self._build_trace_meta(start_time, trace_requested, command_name, capability, cmd_version),
+                    meta=self._build_trace_meta(
+                        start_time, trace_requested, command_name, capability, cmd_version
+                    ),
                 )
             except Exception as cmd_exc:
                 self._circuit_breaker.record_failure(cmd_name)
@@ -722,10 +757,10 @@ class IPCBridge:
         self,
         start_time: float,
         include_meta: bool,
-        command_name: Optional[str] = None,
-        capability: Optional[str] = None,
-        command_version: Optional[str] = None,
-    ) -> Optional[dict[str, Any]]:
+        command_name: str | None = None,
+        capability: str | None = None,
+        command_version: str | None = None,
+    ) -> dict[str, Any] | None:
         """Build timing metadata for traced IPC responses."""
         if not include_meta:
             return None
@@ -740,7 +775,7 @@ class IPCBridge:
             meta["command_version"] = command_version
         return meta
 
-    def _execute_command(self, func: Callable, args: Dict[str, Any]) -> Any:
+    def _execute_command(self, func: Callable, args: dict[str, Any]) -> Any:
         """
         Execute a command, handling both sync and async callables.
 
@@ -770,9 +805,9 @@ class IPCBridge:
                 # Already in an async context -- schedule and return
                 import concurrent.futures
 
-                future = concurrent.futures.Future()
+                future: concurrent.futures.Future[Any] = concurrent.futures.Future()
 
-                async def _run():
+                async def _run() -> None:
                     try:
                         result = await func(**args)
                         future.set_result(result)
@@ -786,7 +821,7 @@ class IPCBridge:
         else:
             return func(**args)
 
-    def _inject_state(self, func: Callable, args: Dict[str, Any]) -> Dict[str, Any]:
+    def _inject_state(self, func: Callable, args: dict[str, Any]) -> dict[str, Any]:
         """Inject managed state into command arguments based on type hints.
 
         Supports two injection modes:
@@ -818,19 +853,20 @@ class IPCBridge:
 
         try:
             sig = inspect.signature(func)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return args
 
         # Try to get type hints (may fail for builtins/C extensions)
         try:
             import typing
+
             hints = typing.get_type_hints(func)
         except Exception:
             hints = {}
 
         injected = dict(args)
 
-        for param_name, param in sig.parameters.items():
+        for param_name, _param in sig.parameters.items():
             # Skip if already provided by the IPC caller
             if param_name in injected:
                 continue
@@ -847,6 +883,7 @@ class IPCBridge:
 
             # Check if the hint matches AppState itself
             from forge.state import AppState
+
             if hint is AppState:
                 injected[param_name] = state_container
                 continue
@@ -881,14 +918,16 @@ class IPCBridge:
         self,
         msg_id: Any,
         result: Any,
-        correlation_id: Optional[str] = None,
-        meta: Optional[dict[str, Any]] = None,
+        correlation_id: str | None = None,
+        meta: dict[str, Any] | None = None,
     ) -> str:
         """Build a JSON success response with correlation tracking."""
         # Auto-route binary memory transfers
         if isinstance(result, (bytes, bytearray, memoryview)):
             import uuid
+
             from forge.memory import buffers
+
             blob_id = str(uuid.uuid4())
             buffers[blob_id] = result
             result = {"__forge_blob": f"forge-memory://{blob_id}"}
@@ -913,8 +952,8 @@ class IPCBridge:
         msg_id: Any,
         error: str,
         code: str = "invalid_request",
-        correlation_id: Optional[str] = None,
-        meta: Optional[dict[str, Any]] = None,
+        correlation_id: str | None = None,
+        meta: dict[str, Any] | None = None,
     ) -> str:
         """Build a JSON error response with structured error detail."""
         return msgspec.json.encode(
@@ -959,8 +998,8 @@ def requires_capability(capability: str) -> Callable:
 
 
 def command(
-    name: Optional[str] = None,
-    capability: Optional[str] = None,
+    name: str | None = None,
+    capability: str | None = None,
     version: str = PROTOCOL_VERSION,
 ) -> Callable:
     """

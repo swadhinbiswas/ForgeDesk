@@ -2,8 +2,9 @@
 Todo IPC Handlers — Bridge between frontend and business logic.
 """
 
-from forge import ForgeApp
 from services.todo import TodoService
+
+from forge import ForgeApp
 
 
 def register_todo_commands(app: ForgeApp):

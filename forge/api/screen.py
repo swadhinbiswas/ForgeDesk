@@ -7,7 +7,7 @@ screen dimensions, and DPI scale factors.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from forge.app import ForgeApp
@@ -27,10 +27,10 @@ class ScreenAPI:
         if not self._app.has_capability("screen"):
             raise PermissionError("The 'screen' capability is required to access display info.")
 
-    def get_monitors(self) -> List[Dict[str, Any]]:
+    def get_monitors(self) -> list[dict[str, Any]]:
         """
         Get all connected monitors.
-        
+
         Returns:
             List[Dict]: A list of monitors with properties:
                 - name (str): Display name
@@ -42,17 +42,17 @@ class ScreenAPI:
         self._require_capability()
         return self._app._ipc_screen_get_monitors()
 
-    def get_primary_monitor(self) -> Dict[str, Any] | None:
+    def get_primary_monitor(self) -> dict[str, Any] | None:
         """
         Get the primary monitor.
-        
+
         Returns:
             Dict: Primary monitor details or None if unable to detect.
         """
         self._require_capability()
         return self._app._ipc_screen_get_primary()
 
-    def get_cursor_screen_point(self) -> Dict[str, int]:
+    def get_cursor_screen_point(self) -> dict[str, int]:
         """
         Get the current absolute position of the mouse cursor.
         """

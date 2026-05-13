@@ -15,14 +15,14 @@ This module is the extracted, testable core behind `forge build`.
 from __future__ import annotations
 
 import logging
-import os
 import platform
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
+
 from .manifests import PlistBuilder, WixBuilder
 
 logger = logging.getLogger(__name__)
@@ -49,10 +49,10 @@ class BundleConfig:
 
     # Builder selection
     builder: str = "nuitka"  # "nuitka" | "maturin"
-    builder_path: Optional[str] = None
+    builder_path: str | None = None
 
     # Icons
-    icon: Optional[Path] = None
+    icon: Path | None = None
 
     # Platform
     host_platform: str = field(default_factory=platform.system)
@@ -62,8 +62,8 @@ class BundleConfig:
 
     @classmethod
     def from_forge_config(
-        cls, config: Any, project_dir: Path, output_dir: Optional[Path] = None
-    ) -> "BundleConfig":
+        cls, config: Any, project_dir: Path, output_dir: Path | None = None
+    ) -> BundleConfig:
         """Create a BundleConfig from a loaded ForgeConfig."""
         resolved_output = output_dir or (project_dir / config.build.output_dir)
         icon_path = (project_dir / config.build.icon) if config.build.icon else None
@@ -508,7 +508,7 @@ class BundlePipeline:
         elif self.config.host_platform == "Windows" or fmt in ("nsis", "exe", "msi"):
             if fmt == "msi":
                 wxs_path = output_dir / "installer.wxs"
-                builder = WixBuilder(
+                builder = WixBuilder(  # type: ignore[assignment]
                     app_name=app_name,
                     safe_name=safe_name,
                     dist_dir=dist_dir,
@@ -696,23 +696,27 @@ class BundlePipeline:
                 )
 
         # Sort by size descending
-        file_sizes.sort(key=lambda x: x["size"], reverse=True)
+        file_sizes.sort(key=lambda x: x["size"], reverse=True)  # type: ignore[arg-type, return-value]
 
         # Find optimization opportunities
         suggestions = []
-        large_files = [f for f in file_sizes if f["size"] > 1024 * 1024]  # > 1MB
+        large_files = [
+            f
+            for f in file_sizes
+            if f["size"] > 1024 * 1024  # type: ignore[operator]
+        ]  # > 1MB
         if large_files:
             suggestions.append(
                 f"Found {len(large_files)} files > 1MB. Consider lazy loading or excluding."
             )
 
-        py_files = [f for f in file_sizes if f["path"].endswith((".pyc", ".pyo"))]
+        py_files = [f for f in file_sizes if f["path"].endswith((".pyc", ".pyo"))]  # type: ignore[attr-defined]
         if py_files:
             suggestions.append(
                 f"Found {len(py_files)} compiled Python files. These may be unnecessary."
             )
 
-        test_dirs = [f for f in file_sizes if "test" in f["path"].lower()]
+        test_dirs = [f for f in file_sizes if "test" in f["path"].lower()]  # type: ignore[attr-defined]
         if test_dirs:
             suggestions.append(
                 f"Found {len(test_dirs)} test-related files. Exclude from production builds."

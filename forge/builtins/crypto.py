@@ -7,7 +7,7 @@ import hashlib
 import logging
 import secrets
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -34,7 +34,7 @@ class BuiltinCryptoAPI:
         """SHA-256 hex digest of a UTF-8 string."""
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-    def hash_sha256_file(self, path: str) -> Dict[str, Any]:
+    def hash_sha256_file(self, path: str) -> dict[str, Any]:
         """Stream hash of a file under the app project directory."""
         target = self._under_base(path)
         if not target.is_file():
@@ -48,11 +48,11 @@ class BuiltinCryptoAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    def fernet_generate_key(self) -> Dict[str, str]:
+    def fernet_generate_key(self) -> dict[str, str]:
         """Return a URL-safe base64 key suitable for :meth:`fernet_encrypt`."""
         return {"key": Fernet.generate_key().decode("ascii")}
 
-    def fernet_encrypt(self, key_b64: str, plaintext: str) -> Dict[str, Any]:
+    def fernet_encrypt(self, key_b64: str, plaintext: str) -> dict[str, Any]:
         """Encrypt UTF-8 text with Fernet."""
         try:
             f = Fernet(key_b64.encode("ascii"))
@@ -61,7 +61,7 @@ class BuiltinCryptoAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    def fernet_decrypt(self, key_b64: str, token: str) -> Dict[str, Any]:
+    def fernet_decrypt(self, key_b64: str, token: str) -> dict[str, Any]:
         """Decrypt a token produced by :meth:`fernet_encrypt`."""
         try:
             f = Fernet(key_b64.encode("ascii"))
@@ -76,7 +76,7 @@ class BuiltinCryptoAPI:
         salt_b64: str,
         iterations: int = 480_000,
         length: int = 32,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Derive a key bytes (hex) using PBKDF2-HMAC-SHA256."""
         try:
             salt = base64.urlsafe_b64decode(salt_b64.encode("ascii") + b"==")
@@ -91,7 +91,7 @@ class BuiltinCryptoAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    def random_bytes_hex(self, num_bytes: int = 32) -> Dict[str, str]:
+    def random_bytes_hex(self, num_bytes: int = 32) -> dict[str, str]:
         """Cryptographically random bytes as hex (default 32 bytes)."""
         n = max(1, min(num_bytes, 512))
         return {"hex": secrets.token_hex(n)}

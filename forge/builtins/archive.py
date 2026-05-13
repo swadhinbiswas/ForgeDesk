@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import zipfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class BuiltinArchiveAPI:
         self._app = app
 
     def _base(self) -> Path:
-        return self._app.config.get_base_dir().resolve()
+        return self._app.config.get_base_dir().resolve()  # type: ignore[no-any-return]
 
     def _safe_path(self, path: str) -> Path | None:
         base = self._base()
@@ -29,11 +29,11 @@ class BuiltinArchiveAPI:
         try:
             p = p.resolve()
             p.relative_to(base)
-        except (ValueError, OSError):
+        except ValueError, OSError:
             return None
         return p
 
-    def zip_list(self, zip_path: str) -> Dict[str, Any]:
+    def zip_list(self, zip_path: str) -> dict[str, Any]:
         """List member names in a zip under the app directory."""
         zp = self._safe_path(zip_path)
         if zp is None:
@@ -47,7 +47,7 @@ class BuiltinArchiveAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc), "names": []}
 
-    def zip_extract_safe(self, zip_path: str, dest_dir: str) -> Dict[str, Any]:
+    def zip_extract_safe(self, zip_path: str, dest_dir: str) -> dict[str, Any]:
         """Extract all members, skipping any that would escape ``dest_dir``."""
         zp = self._safe_path(zip_path)
         dest = self._safe_path(dest_dir)

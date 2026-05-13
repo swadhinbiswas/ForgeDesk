@@ -250,7 +250,9 @@ class PluginManager:
             )
 
     def _register_module(self, module: ModuleType, *, source: str) -> None:
-        manifest = getattr(module, "manifest", None) or getattr(module, "__forge_plugin__", None) or {}
+        manifest = (
+            getattr(module, "manifest", None) or getattr(module, "__forge_plugin__", None) or {}
+        )
         if not isinstance(manifest, dict):
             manifest = {"name": getattr(module, "__name__", source)}
 
@@ -280,7 +282,7 @@ class PluginManager:
         existing = self.get_plugin(plugin_name)
         if existing:
             raise RuntimeError(
-                f"Plugin name collision: {plugin_name!r} is already loaded from {existing['source']}"
+                f"Plugin name collision: {plugin_name!r} is already loaded from {existing['source']}"  # noqa: E501
             )
 
         # ── Register function ──
@@ -298,7 +300,9 @@ class PluginManager:
                 source=source,
                 loaded=True,
                 manifest={k: v for k, v in manifest.items() if isinstance(k, str)},
-                capabilities=list(required_capabilities) if isinstance(required_capabilities, (list, tuple)) else [],
+                capabilities=list(required_capabilities)
+                if isinstance(required_capabilities, (list, tuple))
+                else [],
                 has_on_ready=callable(getattr(module, "on_ready", None)),
                 has_on_shutdown=callable(getattr(module, "on_shutdown", None)),
             )

@@ -12,9 +12,9 @@ Provides the `forge` command with subcommands:
 from __future__ import annotations
 
 import ast
-import io
 import hashlib
 import importlib.util
+import io
 import json
 import os
 import platform
@@ -24,13 +24,12 @@ import shlex
 import shutil
 import subprocess
 import sys
-import venv
 import tarfile
 import time
 import tomllib
 import uuid
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -38,7 +37,7 @@ import typer
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.theme import Theme
 
@@ -579,11 +578,11 @@ def _check_webview_available() -> tuple[str, str]:
         try:
             import winreg
 
-            key = winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE,
+            key = winreg.OpenKey(  # type: ignore[attr-defined]
+                winreg.HKEY_LOCAL_MACHINE,  # type: ignore[attr-defined]
                 r"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
             )
-            winreg.CloseKey(key)
+            winreg.CloseKey(key)  # type: ignore[attr-defined]
             return "ok", "WebView2 Runtime"
         except Exception:
             return "warning", "WebView2 not found (install from microsoft.com)"
@@ -631,7 +630,7 @@ def _environment_payload() -> dict[str, Any]:
     node_ok = node_status == "ok" and node_version is not None
     if node_ok:
         try:
-            major = int(node_version.split(".")[0])
+            major = int(node_version.split(".")[0])  # type: ignore[union-attr]
             if major < 18:
                 node_status = "warning"
                 node_version = f"{node_version} (>=18 recommended)"
@@ -802,22 +801,22 @@ def _build_validation_payload(
             )
         if (config.protocol.schemes or config.signing.enabled) and not config.packaging.app_id:
             warnings.append(
-                "packaging.app_id should be set when using protocol handlers or signing desktop builds."
+                "packaging.app_id should be set when using protocol handlers or signing desktop builds."  # noqa: E501
             )
         if config.signing.enabled and not (config.signing.identity or config.signing.sign_command):
             warnings.append(
-                "signing.enabled is true but no signing.identity or signing.sign_command is configured."
+                "signing.enabled is true but no signing.identity or signing.sign_command is configured."  # noqa: E501
             )
         if config.signing.notarize and not config.signing.verify_command:
             warnings.append(
-                "signing.notarize is enabled without signing.verify_command; post-sign verification is recommended."
+                "signing.notarize is enabled without signing.verify_command; post-sign verification is recommended."  # noqa: E501
             )
         if config.signing.notarize and not (
             config.signing.notarize_command
             or (platform.system() == "Darwin" and shutil.which("xcrun"))
         ):
             warnings.append(
-                "signing.notarize is enabled but no notarization command or supported platform adapter is available."
+                "signing.notarize is enabled but no notarization command or supported platform adapter is available."  # noqa: E501
             )
         if config.plugins.enabled and not (config.plugins.modules or config.plugins.paths):
             warnings.append(
@@ -828,7 +827,7 @@ def _build_validation_payload(
         ]
         if invalid_plugin_contracts:
             warnings.append(
-                "One or more plugin contracts are invalid; inspect validation.packaging.plugins.contracts for details."
+                "One or more plugin contracts are invalid; inspect validation.packaging.plugins.contracts for details."  # noqa: E501
             )
         _validate_installer_tooling(config, errors)
     elif normalized_target == "web":
@@ -1350,17 +1349,17 @@ def _build_windows_msi_installer(
             [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">',
-                f'  <Product Id="*" Name="{product_name}" Language="1033" Version="{version}" Manufacturer="{", ".join(config.app.authors) or "Forge Team"}" UpgradeCode="{upgrade_code}">',
+                f'  <Product Id="*" Name="{product_name}" Language="1033" Version="{version}" Manufacturer="{", ".join(config.app.authors) or "Forge Team"}" UpgradeCode="{upgrade_code}">',  # noqa: E501
                 '    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />',
-                f'    <MediaTemplate EmbedCab="yes" />',
+                '    <MediaTemplate EmbedCab="yes" />',
                 '    <Directory Id="TARGETDIR" Name="SourceDir">',
                 '      <Directory Id="ProgramFilesFolder">',
                 f'        <Directory Id="INSTALLFOLDER" Name="{product_name}">',
-                f'          <Component Id="MainBinary" Guid="*"><File Source="{primary_binary}" KeyPath="yes" /></Component>',
+                f'          <Component Id="MainBinary" Guid="*"><File Source="{primary_binary}" KeyPath="yes" /></Component>',  # noqa: E501
                 "        </Directory>",
                 "      </Directory>",
                 "    </Directory>",
-                '    <Feature Id="Complete" Title="Complete" Level="1"><ComponentRef Id="MainBinary" /></Feature>',
+                '    <Feature Id="Complete" Title="Complete" Level="1"><ComponentRef Id="MainBinary" /></Feature>',  # noqa: E501
                 "  </Product>",
                 "</Wix>",
             ]
@@ -1577,7 +1576,7 @@ def _build_linux_appimage_installer(
 
     if not icon_written:
         (appdir / f"{icon_basename}.svg").write_text(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">'
+            '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">'  # noqa: E501
             '<rect width="256" height="256" rx="48" fill="#1E293B"/>'
             '<path d="M72 92h112v20H72zm0 52h112v20H72z" fill="#F8FAFC"/>'
             "</svg>\n",
@@ -2066,7 +2065,7 @@ def _load_existing_package_manifest(output_dir: Path) -> tuple[str, list[str], d
 
 
 def _release_manifest_payload(
-    config: Any, target: str, build_result: dict[str, Any], project_dir=None
+    config: Any, target: str, build_result: dict[str, Any], project_dir: Any = None
 ) -> dict[str, Any]:
     artifacts: list[dict[str, Any]] = []
     for path_str in build_result.get("artifacts", []):
@@ -2406,13 +2405,13 @@ def _run_dev_loop(project_dir: Path, config: Any, hot_reload: bool) -> None:
                 console.print("[cyan]⟳[/] Frontend change detected → [bold]page reload[/]")
                 # Frontend files are served by the dev server (Vite HMR handles this)
 
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as e:
         console.print("\n[yellow]Dev mode stopped.[/]")
         if "process" in locals():
             _graceful_kill(process)
         if dev_server_process is not None:
             _graceful_kill(dev_server_process)
-        raise typer.Exit(0)
+        raise typer.Exit(0) from e
 
 
 @app.command()
@@ -2423,14 +2422,14 @@ def version() -> None:
 
 @app.command("create")
 def create_project(
-    name: Optional[str] = typer.Argument(None, help="Project name"),
-    template: Optional[str] = typer.Option(
+    name: str | None = typer.Argument(None, help="Project name"),
+    template: str | None = typer.Option(
         None,
         "-t",
         "--template",
         help="Project template (plain, react, vue, svelte, complex)",
     ),
-    framework: Optional[str] = typer.Option(
+    framework: str | None = typer.Option(
         None,
         "-f",
         "--framework",
@@ -2442,19 +2441,19 @@ def create_project(
         "--window",
         help="Initial window size (e.g., 1280x800)",
     ),
-    author: Optional[str] = typer.Option(
+    author: str | None = typer.Option(
         None,
         "-a",
         "--author",
         help="Author name",
     ),
-    package_manager: Optional[str] = typer.Option(
+    package_manager: str | None = typer.Option(
         None,
         "-p",
         "--package-manager",
         help="Package manager (npm, pnpm, bun, yarn, skip)",
     ),
-    tailwind: Optional[bool] = typer.Option(
+    tailwind: bool | None = typer.Option(
         None,
         "--tailwind/--no-tailwind",
         help="Include Tailwind CSS",
@@ -2493,10 +2492,10 @@ def create_project(
             ).ask()
             if not name:
                 raise typer.Exit(1)
-        except ImportError:
+        except ImportError as e:
             name = Prompt.ask("Project name", default="my-forge-app")
             if not name:
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
 
     valid_templates = ["plain", "react", "vue", "svelte", "complex", "astro", "nextjs"]
 
@@ -2542,12 +2541,12 @@ def create_project(
             ).ask()
             if not selected_template:
                 raise typer.Exit(1)
-        except ImportError:
+        except ImportError as e:
             selected_template = Prompt.ask(
                 "Choose template", choices=valid_templates, default="plain"
             )
             if not selected_template:
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
 
     template = selected_template.lower().strip()
     if template not in valid_templates:
@@ -2559,11 +2558,11 @@ def create_project(
         width, height = map(int, window_size.lower().split("x"))
         if width < 100 or height < 100 or width > 10000 or height > 10000:
             raise ValueError()
-    except ValueError:
+    except ValueError as e:
         _print_note(
             "Invalid window size format. Use WIDTHxHEIGHT, for example 1280x800.", level="error"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     # Interactive Prompts - Astro CLI Style
     try:
@@ -2623,20 +2622,20 @@ def create_project(
             else:
                 tailwind = False
 
-    except ImportError:
+    except ImportError as e:
         # Fallback
         if not author:
             default_author = os.environ.get("USER", os.environ.get("USERNAME", "Developer"))
             author = Prompt.ask("Author name", default=default_author)
             if not author:
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
 
         if package_manager is None:
             package_manager = Prompt.ask(
                 "Package manager", choices=["npm", "pnpm", "bun", "yarn", "skip"], default="npm"
             )
             if not package_manager:
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
 
         if tailwind is None:
             if template in ["react", "vue", "svelte", "plain", "complex"]:
@@ -2737,7 +2736,7 @@ def create_project(
 
 @app.command("dev")
 def dev_mode(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
@@ -2746,7 +2745,7 @@ def dev_mode(
         "--hot-reload/--no-hot-reload",
         help="Enable hot reload",
     ),
-    port: Optional[int] = typer.Option(
+    port: int | None = typer.Option(
         None,
         "-p",
         "--port",
@@ -2789,7 +2788,7 @@ def dev_mode(
         config = ForgeConfig.from_file(config_path)
     except Exception as e:
         _print_note(f"Failed to load config: {e}", level="error")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     _print_project_snapshot(project_dir, config, mode="desktop-dev")
 
@@ -2833,22 +2832,22 @@ def dev_mode(
 
 @app.command("serve")
 def serve_app(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
-    host: Optional[str] = typer.Option(
+    host: str | None = typer.Option(
         None,
         "--host",
         help="Bind host (default: from forge.toml or 127.0.0.1)",
     ),
-    port: Optional[int] = typer.Option(
+    port: int | None = typer.Option(
         None,
         "-p",
         "--port",
         help="Bind port (default: from forge.toml or 8000)",
     ),
-    workers: Optional[int] = typer.Option(
+    workers: int | None = typer.Option(
         None,
         "--workers",
         help="Number of worker processes (default: from forge.toml or 4)",
@@ -2888,7 +2887,7 @@ def serve_app(
         config = ForgeConfig.from_file(config_path)
     except Exception as e:
         _print_note(f"Failed to load config: {e}", level="error")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     # Apply CLI overrides
     srv = config.server
@@ -2923,10 +2922,10 @@ def serve_app(
     # Check that uvicorn is available
     try:
         import uvicorn  # noqa: F401
-    except ImportError:
+    except ImportError as e:
         _print_note("uvicorn is required for web server mode.", level="error")
         _print_note("Install it with: pip install forgedesk[web]", level="warning")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     _print_note("Starting web server...", level="info")
 
@@ -2965,18 +2964,18 @@ def serve_app(
         subprocess.run(uvicorn_args, check=True)
     except subprocess.CalledProcessError as e:
         _print_note(f"Server exited with code {e.returncode}", level="error")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except KeyboardInterrupt:
         _print_note("Server stopped.", level="warning")
 
 
 @app.command("build")
 def build_app(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
-    output: Optional[str] = typer.Option(
+    output: str | None = typer.Option(
         None,
         "-o",
         "--output",
@@ -3107,7 +3106,7 @@ def build_app(
 
 
 def _build_web(
-    config, project_dir: Path, output_dir: Path, *, emit_output: bool = True
+    config: Any, project_dir: Path, output_dir: Path, *, emit_output: bool = True
 ) -> dict[str, Any]:
     """Build web assets for deployment."""
     if emit_output:
@@ -3149,7 +3148,7 @@ def _build_web(
 
 
 def _build_desktop(
-    config, project_dir: Path, output_dir: Path, *, emit_output: bool = True
+    config: Any, project_dir: Path, output_dir: Path, *, emit_output: bool = True
 ) -> dict[str, Any]:
     """Build a native desktop binary."""
     if emit_output:
@@ -3335,11 +3334,11 @@ def _build_desktop(
 
 @app.command("package")
 def package_app(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
-    output: Optional[str] = typer.Option(
+    output: str | None = typer.Option(
         None,
         "-o",
         "--output",
@@ -3427,11 +3426,11 @@ def package_app(
 
 @app.command("sign")
 def sign_app(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
-    output: Optional[str] = typer.Option(
+    output: str | None = typer.Option(
         None,
         "-o",
         "--output",
@@ -3554,11 +3553,11 @@ def sign_app(
 
 @app.command("release")
 def release_app(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
-    output: Optional[str] = typer.Option(
+    output: str | None = typer.Option(
         None,
         "-o",
         "--output",
@@ -3663,7 +3662,7 @@ def release_app(
 
 @app.command("info")
 def show_info(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
@@ -3679,7 +3678,7 @@ def show_info(
     Shows details about your system, Python installation, and Forge project.
     """
     project_dir = _resolve_project_dir(path)
-    payload = {
+    payload: dict[str, Any] = {
         "forge_version": VERSION,
         "environment": _environment_payload(),
         "project": _project_payload(project_dir),
@@ -3731,7 +3730,7 @@ def show_info(
 
 @app.command("doctor")
 def doctor(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
@@ -3840,7 +3839,7 @@ def _get_remediation_hints(payload: dict[str, Any]) -> list[str]:
 @app.command("plugin-add")
 def plugin_add(
     name: str = typer.Argument(..., help="Plugin package name (e.g., forge-plugin-auth)"),
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
@@ -3871,7 +3870,7 @@ def plugin_add(
         _print_note(f"Package {name} installed", level="ok")
     except subprocess.CalledProcessError as exc:
         _print_note(f"Failed to install {name}: {exc.stderr[:200]}", level="error")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from exc
 
     # Register in forge.toml
     try:
@@ -3906,11 +3905,11 @@ def plugin_add(
 
 @app.command("support-bundle")
 def support_bundle(
-    path: Optional[str] = typer.Argument(
+    path: str | None = typer.Argument(
         None,
         help="Path to project directory (default: current directory)",
     ),
-    output: Optional[str] = typer.Option(
+    output: str | None = typer.Option(
         None,
         "-o",
         "--output",
@@ -3955,17 +3954,21 @@ def support_bundle(
         )
     except Exception as exc:
         _print_note(f"Failed to generate support bundle: {exc}", level="error")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from exc
 
 
 @app.command("generate-types")
 def generate_types(
-    path: Path = typer.Argument(Path("."), help="Project directory"),
-    output: Path = typer.Option(
-        Path("src/forge-env.d.ts"), "--output", "-o", help="Output path for the d.ts file"
-    ),
-    format: str = typer.Option("text", "--format", help="Output format (text/json)"),
+    path: Path | None = None,
+    output: Path | None = None,
+    format: str | None = None,
 ) -> None:
+    if path is None:
+        path = Path(".")
+    if output is None:
+        output = Path("src/forge-env.d.ts")
+    if format is None:
+        format = "text"
     """
     Generate a strictly typed TypeScript index.d.ts from the Python backend.
     """
@@ -3976,12 +3979,12 @@ def generate_types(
         raise typer.Exit(1)
 
     try:
-        from forge.config import ForgeConfig
         from forge.app import ForgeApp
+        from forge.config import ForgeConfig
         from forge.typegen import TypeGenerator
 
         # Load configuration
-        config = ForgeConfig.from_file(project_dir / "forge.toml")
+        ForgeConfig.from_file(project_dir / "forge.toml")
 
         # Bypassing real GUI window creation by avoiding app.run()
         # Initializing ForgeApp will register internal commands and plugins
@@ -4015,7 +4018,7 @@ def generate_types(
 
     except Exception as exc:
         _print_note(f"Type generation failed: {exc}", level="error")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from exc
 
 
 def _copy_template(
@@ -4224,7 +4227,7 @@ def _setup_python_env(project_dir: Path) -> None:
                     [
                         "sh",
                         "-c",
-                        "set -e; if command -v curl >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; elif command -v wget >/dev/null 2>&1; then wget -qO- https://astral.sh/uv/install.sh | sh; else exit 1; fi",
+                        "set -e; if command -v curl >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; elif command -v wget >/dev/null 2>&1; then wget -qO- https://astral.sh/uv/install.sh | sh; else exit 1; fi",  # noqa: E501
                     ],
                     check=True,
                 )

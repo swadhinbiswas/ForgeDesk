@@ -7,9 +7,10 @@ to organize window lifecycle and state synchronization.
 
 from __future__ import annotations
 
+import builtins
 import json
 import time
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .app import ForgeApp
@@ -21,7 +22,7 @@ class WindowAPI:
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
         initial_title = app.config.window.title or app.config.app.name
-        self._state: Dict[str, Any] = {
+        self._state: dict[str, Any] = {
             "title": initial_title,
             "width": int(app.config.window.width),
             "height": int(app.config.window.height),
@@ -49,7 +50,7 @@ class WindowAPI:
     def _update_state(self, **updates: Any) -> None:
         self._state.update(updates)
 
-    def _apply_native_event(self, event: str, payload: Dict[str, Any] | None) -> None:
+    def _apply_native_event(self, event: str, payload: dict[str, Any] | None) -> None:
         payload = payload or {}
         if event == "ready":
             self._update_state(visible=True, closed=False)
@@ -67,11 +68,11 @@ class WindowAPI:
         elif event == "destroyed":
             self._update_state(closed=True, visible=False)
 
-    def state(self) -> Dict[str, Any]:
+    def state(self) -> dict[str, Any]:
         """Return the latest known window state snapshot."""
         return dict(self._state)
 
-    def position(self) -> Dict[str, Any]:
+    def position(self) -> dict[str, Any]:
         """Return the latest known outer window position."""
         return {"x": self._state.get("x"), "y": self._state.get("y")}
 
@@ -195,7 +196,7 @@ class WindowManagerAPI:
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
         self._current_label = "main"
-        self._windows: Dict[str, Dict[str, Any]] = {}
+        self._windows: dict[str, dict[str, Any]] = {}
         self._register_main_window()
 
     def _register_main_window(self) -> None:
@@ -230,7 +231,7 @@ class WindowManagerAPI:
             return "forge://app/index.html"
         return f"forge://app{clean_route}"
 
-    def _emit_frontend_open(self, descriptor: Dict[str, Any]) -> None:
+    def _emit_frontend_open(self, descriptor: dict[str, Any]) -> None:
         if self._app._proxy is None:
             return
         payload = json.dumps(descriptor)
@@ -246,7 +247,7 @@ class WindowManagerAPI:
     def _supports_native_multiwindow(self) -> bool:
         return self._app._proxy is not None and hasattr(self._app._proxy, "create_window")
 
-    def _apply_native_event(self, event: str, payload: Dict[str, Any] | None) -> str:
+    def _apply_native_event(self, event: str, payload: dict[str, Any] | None) -> str:
         payload = payload or {}
         label = str(payload.get("label") or "main").strip().lower() or "main"
 
@@ -346,7 +347,7 @@ class WindowManagerAPI:
             }
         )
 
-    def current(self) -> Dict[str, Any]:
+    def current(self) -> dict[str, Any]:
         self.sync_main_window()
         return dict(self._windows[self._current_label])
 
@@ -363,11 +364,11 @@ class WindowManagerAPI:
         for window_label in self._windows.keys():
             self._app._proxy.evaluate_script(window_label, script)
 
-    def list(self) -> List[Dict[str, Any]]:
+    def list(self) -> builtins.list[dict[str, Any]]:
         self.sync_main_window()
         return [dict(item) for item in self._windows.values()]
 
-    def get(self, label: str) -> Dict[str, Any]:
+    def get(self, label: str) -> dict[str, Any]:
         self.sync_main_window()
         if label not in self._windows:
             raise KeyError(f"Unknown window label: {label}")
@@ -389,7 +390,7 @@ class WindowManagerAPI:
         visible: bool = True,
         focus: bool = True,
         parent: str | None = "main",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         normalized_label = str(label).strip().lower()
         if not normalized_label:
             raise ValueError("Window label is required")
@@ -431,7 +432,9 @@ class WindowManagerAPI:
         else:
             self._emit_frontend_open(descriptor)
         self._app.emit("window:created", descriptor)
-        self._app._log_runtime_event("window_created", label=normalized_label, url=descriptor["url"])
+        self._app._log_runtime_event(
+            "window_created", label=normalized_label, url=descriptor["url"]
+        )
         return dict(descriptor)
 
     def close(self, label: str) -> bool:

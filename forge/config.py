@@ -10,13 +10,11 @@ from __future__ import annotations
 import os
 import re
 import sys
-from urllib.parse import urlparse
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-
-import tomllib
-
+from urllib.parse import urlparse
 
 _PROTOCOL_SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*$")
 _COMMAND_POLICY_NAME_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -47,7 +45,9 @@ class WindowConfig:
     decorations: bool = True
     always_on_top: bool = False
     transparent: bool = False
-    vibrancy: str | None = None  # macOS/Windows native blur materials (e.g. 'mica', 'acrylic', 'sidebar', 'hud')
+    vibrancy: str | None = (
+        None  # macOS/Windows native blur materials (e.g. 'mica', 'acrylic', 'sidebar', 'hud')
+    )
     remember_state: bool = True  # Persist window position/size/maximized across restarts
     close_to_tray: bool = False  # Minimize to system tray on close instead of quitting
 
@@ -157,9 +157,11 @@ class FileSystemPermissions:
 
     Deny patterns always override allow patterns.
     """
+
     read: list[str] = field(default_factory=list)
     write: list[str] = field(default_factory=list)
     deny: list[str] = field(default_factory=list)
+
 
 @dataclass
 class ShellPermissions:
@@ -170,11 +172,13 @@ class ShellPermissions:
     ``allow_urls`` restricts ``shell.open()`` to matching URL patterns.
     ``deny_urls`` blocks specific URL patterns from being opened.
     """
+
     execute: list[str] = field(default_factory=list)
     deny_execute: list[str] = field(default_factory=list)
     sidecars: list[str] = field(default_factory=list)
     allow_urls: list[str] = field(default_factory=list)
     deny_urls: list[str] = field(default_factory=list)
+
 
 @dataclass
 class WebSocketPermissions:
@@ -183,6 +187,7 @@ class WebSocketPermissions:
     ``allowed_origins`` restricts which server URLs can be connected to.
     ``max_connections`` caps the number of simultaneous WebSocket connections.
     """
+
     allowed_origins: list[str] = field(default_factory=list)
     max_connections: int = 10
 
@@ -448,7 +453,7 @@ class ForgeConfig:
                     deny=list(fs_val.get("deny", [])),
                 )
             else:
-                fs_perm = bool(fs_val)
+                fs_perm = bool(fs_val)  # type: ignore[assignment]
 
             shell_val = perm_data.get("shell", False)
             if isinstance(shell_val, dict):
@@ -460,7 +465,7 @@ class ForgeConfig:
                     deny_urls=list(shell_val.get("deny_urls", [])),
                 )
             else:
-                shell_perm = bool(shell_val)
+                shell_perm = bool(shell_val)  # type: ignore[assignment]
 
             config.permissions = PermissionsConfig(
                 filesystem=fs_perm,
@@ -517,7 +522,9 @@ class ForgeConfig:
             config.security = SecurityConfig(
                 allowed_commands=list(security_data.get("allowed_commands", [])),
                 denied_commands=list(security_data.get("denied_commands", [])),
-                expose_command_introspection=security_data.get("expose_command_introspection", True),
+                expose_command_introspection=security_data.get(
+                    "expose_command_introspection", True
+                ),
                 allowed_origins=list(security_data.get("allowed_origins", [])),
                 window_scopes={
                     str(key): list(value)
@@ -604,6 +611,7 @@ class ForgeConfig:
         """
         if start_path is None:
             import __main__
+
             if hasattr(sys, "frozen") or hasattr(__main__, "__compiled__"):
                 start_path = Path(__main__.__file__).parent.resolve()
             else:
@@ -700,17 +708,17 @@ def _validate_int(value: Any, field_name: str, min_val: int, max_val: int) -> in
     if not isinstance(value, int):
         try:
             value = int(value)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as e:
             raise ConfigValidationError(
                 f"{field_name} must be an integer, got {type(value).__name__}"
-            )
+            ) from e
 
-    if value < min_val or value > max_val:
+    if value < min_val or value > max_val:  # type: ignore[operator]
         raise ConfigValidationError(
             f"{field_name} must be between {min_val} and {max_val}, got {value}"
         )
 
-    return value
+    return value  # type: ignore[no-any-return]
 
 
 def _validate_config(config: ForgeConfig) -> None:
@@ -760,9 +768,7 @@ def _validate_config(config: ForgeConfig) -> None:
                 f"protocol.schemes contains invalid scheme {scheme!r}; use lowercase RFC 3986 names"
             )
         if scheme in reserved_schemes:
-            raise ConfigValidationError(
-                f"protocol.schemes cannot use reserved scheme {scheme!r}"
-            )
+            raise ConfigValidationError(f"protocol.schemes cannot use reserved scheme {scheme!r}")
 
     if not config.packaging.formats or not all(
         isinstance(item, str) and item for item in config.packaging.formats
@@ -812,7 +818,9 @@ def _validate_config(config: ForgeConfig) -> None:
         raise ConfigValidationError("security.allowed_origins must be a list of origins")
     for origin in config.security.allowed_origins:
         if not isinstance(origin, str) or not origin.strip():
-            raise ConfigValidationError("security.allowed_origins entries must be non-empty strings")
+            raise ConfigValidationError(
+                "security.allowed_origins entries must be non-empty strings"
+            )
         origin = origin.strip()
         if origin.startswith("forge://"):
             continue
@@ -838,7 +846,9 @@ def _validate_config(config: ForgeConfig) -> None:
         "*",
     }
     if not isinstance(config.security.window_scopes, dict):
-        raise ConfigValidationError("security.window_scopes must be a table mapping labels to capability lists")
+        raise ConfigValidationError(
+            "security.window_scopes must be a table mapping labels to capability lists"
+        )
     for label, scopes in config.security.window_scopes.items():
         if not isinstance(label, str) or not label.strip():
             raise ConfigValidationError("security.window_scopes labels must be non-empty strings")

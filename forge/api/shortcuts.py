@@ -7,7 +7,8 @@ that trigger even when the application is out of focus or running in the backgro
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Dict
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from forge.app import ForgeApp
@@ -22,7 +23,7 @@ class ShortcutsAPI:
 
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
-        self._callbacks: Dict[str, Callable[[], None]] = {}
+        self._callbacks: dict[str, Callable[[], None]] = {}
 
         # Listen for shortcut triggers emitted by the Rust event loop
         self._app.events.on("global_shortcut", self._on_shortcut_triggered)
@@ -50,6 +51,7 @@ class ShortcutsAPI:
 
     def _js_register(self, accelerator: str) -> bool:
         """Register a shortcut natively for the JS frontend."""
+
         def proxy_callback() -> None:
             self._app.events.emit("shortcut:triggered", {"accelerator": accelerator})
 
@@ -84,7 +86,7 @@ class ShortcutsAPI:
             self._callbacks.clear()
         return success
 
-    def _on_shortcut_triggered(self, data: Dict[str, str]) -> None:
+    def _on_shortcut_triggered(self, data: dict[str, str]) -> None:
         """Internal handler for shortcut events sent from Rust."""
         accelerator = data.get("accelerator")
         if accelerator and accelerator in self._callbacks:
@@ -92,4 +94,7 @@ class ShortcutsAPI:
                 self._callbacks[accelerator]()
             except Exception as e:
                 import logging
-                logging.getLogger(__name__).error(f"Error in shortcut callback for {accelerator}: {e}")
+
+                logging.getLogger(__name__).error(
+                    f"Error in shortcut callback for {accelerator}: {e}"
+                )

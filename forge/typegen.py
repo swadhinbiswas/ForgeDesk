@@ -8,13 +8,13 @@ exposed via the Bridge command registry.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 
 class TypeGenerator:
     """Converts Python command schemas into TypeScript definitions."""
 
-    def __init__(self, registry: List[Dict[str, Any]]):
+    def __init__(self, registry: list[dict[str, Any]]):
         self.registry = registry
 
     def _python_to_ts_type(self, py_type: str) -> str:
@@ -53,7 +53,7 @@ class TypeGenerator:
 
         return "unknown"
 
-    def _generate_command_signature(self, cmd: Dict[str, Any]) -> str:
+    def _generate_command_signature(self, cmd: dict[str, Any]) -> str:
         name = cmd["name"]
         schema = cmd.get("schema", {"args": [], "return_type": "Any"})
 
@@ -82,14 +82,28 @@ class TypeGenerator:
         # Commands with no obvious prefix or inside internal namespace
         # get grouped under standard API endpoints, or exposed flat.
 
-        groups: Dict[str, List[str]] = {}
-        flat_commands: List[str] = []
+        groups: dict[str, list[str]] = {}
+        flat_commands: list[str] = []
 
         # List of capabilities we group into sub-interfaces
         sub_namespaces = [
-            "fs", "dialog", "clipboard", "window", "runtime",
-            "notifications", "updater", "menu", "tray", "deepLink", "app",
-            "shortcuts", "screen", "power", "lifecycle", "keychain", "system"
+            "fs",
+            "dialog",
+            "clipboard",
+            "window",
+            "runtime",
+            "notifications",
+            "updater",
+            "menu",
+            "tray",
+            "deepLink",
+            "app",
+            "shortcuts",
+            "screen",
+            "power",
+            "lifecycle",
+            "keychain",
+            "system",
         ]
 
         for cmd in self.registry:
@@ -120,7 +134,7 @@ class TypeGenerator:
             "  detailed?: boolean;",
             "  trace?: boolean;",
             "}",
-            ""
+            "",
         ]
 
         # Generate Sub-Interfaces
@@ -144,11 +158,13 @@ class TypeGenerator:
 
         # Global API interface
         out.append("export interface ForgeApi {")
-        out.append('  invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;')
-        out.append('  invokeDetailed(command: string, args?: Record<string, unknown>, options?: InvokeDetailedOptions): Promise<unknown>;')
-        out.append('  on(eventName: string, handler: (payload: unknown) => void): unknown;')
-        out.append('  once(eventName: string, handler: (payload: unknown) => void): unknown;')
-        out.append('  off(eventName: string, handler: (payload: unknown) => void): unknown;')
+        out.append("  invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;")
+        out.append(
+            "  invokeDetailed(command: string, args?: Record<string, unknown>, options?: InvokeDetailedOptions): Promise<unknown>;"  # noqa: E501
+        )
+        out.append("  on(eventName: string, handler: (payload: unknown) => void): unknown;")
+        out.append("  once(eventName: string, handler: (payload: unknown) => void): unknown;")
+        out.append("  off(eventName: string, handler: (payload: unknown) => void): unknown;")
 
         for ns, interface_name in interface_names.items():
             out.append(f"  {ns}: {interface_name};")
@@ -161,11 +177,21 @@ class TypeGenerator:
 
         out.append("export declare function isForgeAvailable(): boolean;")
         out.append("export declare function getForge(): ForgeApi;")
-        out.append("export declare function invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;")
-        out.append("export declare function invokeDetailed(command: string, args?: Record<string, unknown>, options?: InvokeDetailedOptions): Promise<unknown>;")
-        out.append("export declare function on(eventName: string, handler: (payload: unknown) => void): unknown;")
-        out.append("export declare function once(eventName: string, handler: (payload: unknown) => void): unknown;")
-        out.append("export declare function off(eventName: string, handler: (payload: unknown) => void): unknown;")
+        out.append(
+            "export declare function invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;"  # noqa: E501
+        )
+        out.append(
+            "export declare function invokeDetailed(command: string, args?: Record<string, unknown>, options?: InvokeDetailedOptions): Promise<unknown>;"  # noqa: E501
+        )
+        out.append(
+            "export declare function on(eventName: string, handler: (payload: unknown) => void): unknown;"  # noqa: E501
+        )
+        out.append(
+            "export declare function once(eventName: string, handler: (payload: unknown) => void): unknown;"  # noqa: E501
+        )
+        out.append(
+            "export declare function off(eventName: string, handler: (payload: unknown) => void): unknown;"  # noqa: E501
+        )
         out.append("export declare const forge: ForgeApi;")
         out.append("export default forge;")
         out.append("")

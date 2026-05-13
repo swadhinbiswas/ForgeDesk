@@ -46,7 +46,7 @@ class DeepLinkAPI:
             raise ValueError("Deep link URL must include a scheme")
         if self._schemes and parsed.scheme not in self._schemes:
             raise ValueError(
-                f"Deep link scheme {parsed.scheme!r} is not configured; expected one of {self._schemes!r}"
+                f"Deep link scheme {parsed.scheme!r} is not configured; expected one of {self._schemes!r}"  # noqa: E501
             )
 
         payload = {

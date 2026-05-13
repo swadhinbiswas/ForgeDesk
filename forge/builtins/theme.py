@@ -5,8 +5,7 @@ from __future__ import annotations
 import os
 import platform
 import subprocess
-from typing import Any, Dict
-
+from typing import Any
 
 _CAP = "forge_extensions"
 
@@ -14,7 +13,7 @@ _CAP = "forge_extensions"
 class BuiltinThemeAPI:
     __forge_capability__ = _CAP
 
-    def system_dark_mode_hint(self) -> Dict[str, Any]:
+    def system_dark_mode_hint(self) -> dict[str, Any]:
         """Best-effort dark mode detection (for UI theming)."""
         sys = platform.system().lower()
         if sys == "darwin":
@@ -33,12 +32,12 @@ class BuiltinThemeAPI:
             try:
                 import winreg  # type: ignore[import-untyped]
 
-                key = winreg.OpenKey(
-                    winreg.HKEY_CURRENT_USER,
+                key = winreg.OpenKey(  # type: ignore[attr-defined]
+                    winreg.HKEY_CURRENT_USER,  # type: ignore[attr-defined]
                     r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
                 )
-                val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
-                winreg.CloseKey(key)
+                val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")  # type: ignore[attr-defined]
+                winreg.CloseKey(key)  # type: ignore[attr-defined]
                 return {"ok": True, "dark": val == 0, "source": "windows_registry"}
             except Exception:
                 return {"ok": True, "dark": None, "source": "unknown"}

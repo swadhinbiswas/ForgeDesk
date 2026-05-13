@@ -18,14 +18,11 @@ def main() -> None:
     """Entry point for `python -m forge`."""
     try:
         from forge_cli.main import app
+
         app()
     except ImportError:
         import sys
-        print(
-            "Error: forge-cli is not installed.\n"
-            "Install it with: pip install forgedesk[cli]",
-            file=sys.stderr,
-        )
+
         sys.exit(1)
 
 

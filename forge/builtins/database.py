@@ -7,7 +7,7 @@ import sqlite3
 import threading
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class BuiltinDatabaseAPI:
     def __init__(self, app: Any) -> None:
         self._app = app
         self._lock = threading.Lock()
-        self._sqlite: Dict[str, sqlite3.Connection] = {}
+        self._sqlite: dict[str, sqlite3.Connection] = {}
 
     def _resolve_path(self, path: str) -> Path:
         raw = Path(path).expanduser()
@@ -28,7 +28,7 @@ class BuiltinDatabaseAPI:
             raw = self._app.config.get_base_dir() / raw
         return raw.resolve()
 
-    def sqlite_open(self, path: str) -> Dict[str, Any]:
+    def sqlite_open(self, path: str) -> dict[str, Any]:
         """Open a SQLite database under the app project directory (relative paths) or absolute."""
         p = self._resolve_path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -41,8 +41,8 @@ class BuiltinDatabaseAPI:
         self,
         connection_id: str,
         sql: str,
-        params: Optional[List[Any]] = None,
-    ) -> Dict[str, Any]:
+        params: list[Any] | None = None,
+    ) -> dict[str, Any]:
         """Run SQL (INSERT/UPDATE/DDL). Params are passed as a list for ``?`` placeholders."""
         with self._lock:
             conn = self._sqlite.get(connection_id)
@@ -64,8 +64,8 @@ class BuiltinDatabaseAPI:
         self,
         connection_id: str,
         sql: str,
-        params: Optional[List[Any]] = None,
-    ) -> Dict[str, Any]:
+        params: list[Any] | None = None,
+    ) -> dict[str, Any]:
         """Run a SELECT; returns rows as list of lists (JSON-serializable)."""
         with self._lock:
             conn = self._sqlite.get(connection_id)
@@ -95,18 +95,20 @@ class BuiltinDatabaseAPI:
             pass
         return True
 
-    def kv_open(self, path: str) -> Dict[str, Any]:
+    def kv_open(self, path: str) -> dict[str, Any]:
         """Open a file-backed key-value store (SQLite table ``kv``)."""
         return self.sqlite_open(path)
 
-    def kv_set(self, connection_id: str, key: str, value: str) -> Dict[str, Any]:
+    def kv_set(self, connection_id: str, key: str, value: str) -> dict[str, Any]:
         self.sqlite_execute(
             connection_id,
             "CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
         )
-        return self.sqlite_execute(connection_id, "INSERT OR REPLACE INTO kv (k,v) VALUES (?,?)", [key, value])
+        return self.sqlite_execute(
+            connection_id, "INSERT OR REPLACE INTO kv (k,v) VALUES (?,?)", [key, value]
+        )
 
-    def kv_get(self, connection_id: str, key: str) -> Dict[str, Any]:
+    def kv_get(self, connection_id: str, key: str) -> dict[str, Any]:
         q = self.sqlite_query(connection_id, "SELECT v FROM kv WHERE k = ?", [key])
         if not q.get("ok"):
             return q
@@ -115,11 +117,11 @@ class BuiltinDatabaseAPI:
             return {"ok": True, "value": None}
         return {"ok": True, "value": rows[0][0] if rows[0] else None}
 
-    def postgres_ping(self, dsn: str) -> Dict[str, Any]:
+    def postgres_ping(self, dsn: str) -> dict[str, Any]:
         """Test PostgreSQL connectivity when ``psycopg`` or ``psycopg2`` is installed."""
         connect: Any
         try:
-            import psycopg  # type: ignore[import-untyped]
+            import psycopg  # type: ignore[import-not-found]
 
             connect = psycopg.connect
         except ImportError:

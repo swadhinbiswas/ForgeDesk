@@ -1,11 +1,12 @@
 import logging
-from typing import Dict, List
+
 import serial
 import serial.tools.list_ports
 
-from forge.events import emit
+from forge.events import emit  # type: ignore[attr-defined]
 
 logger = logging.getLogger(__name__)
+
 
 class SerialAPI:
     """
@@ -14,13 +15,13 @@ class SerialAPI:
 
     __forge_capability__ = "serial"
 
-    def __init__(self):
-        self._connections: Dict[str, serial.Serial] = {}
-        # We run the background readers in threads (async read not natively supported cross platform via pyserial)
+    def __init__(self) -> None:
+        self._connections: dict[str, serial.Serial] = {}
+        # We run the background readers in threads (async read not natively supported cross platform via pyserial)  # noqa: E501
         self._running: bool = True
         logger.info("Initializing Hardware Serial/USB API")
 
-    def available_ports(self) -> List[Dict[str, str]]:
+    def available_ports(self) -> list[dict[str, str]]:
         """List all available serial ports on the system."""
         ports = serial.tools.list_ports.comports()
         return [
@@ -28,8 +29,9 @@ class SerialAPI:
                 "port": p.device,
                 "description": p.description,
                 "hwid": p.hwid,
-                "manufacturer": getattr(p, 'manufacturer', None),
-            } for p in ports
+                "manufacturer": str(getattr(p, "manufacturer", "") or ""),
+            }
+            for p in ports
         ]
 
     def open(self, port: str, baudrate: int = 9600) -> bool:
@@ -43,6 +45,7 @@ class SerialAPI:
 
             # Start a read loop in background
             import threading
+
             t = threading.Thread(target=self._read_loop, args=(port,), daemon=True)
             t.start()
 
@@ -75,7 +78,7 @@ class SerialAPI:
                 logger.error(f"Close failure on {port}: {e}")
         return False
 
-    def _read_loop(self, port: str):
+    def _read_loop(self, port: str) -> None:
         """Background thread to read lines from serial and emit them to the frontend."""
         if port not in self._connections:
             return
@@ -86,10 +89,11 @@ class SerialAPI:
                 if ser.in_waiting > 0:
                     data = ser.read(ser.in_waiting)
                     # Try to emit as string, but drop bad chars if not utf-8
-                    text = data.decode('utf-8', errors='replace')
+                    text = data.decode("utf-8", errors="replace")
                     emit("serial_data", {"port": port, "data": text})
                 else:
                     import time
+
                     time.sleep(0.05)
             except Exception as e:
                 logger.warning(f"Port {port} read loop disconnected: {e}")
@@ -99,7 +103,7 @@ class SerialAPI:
         self.close(port)
         emit("serial_disconnected", {"port": port})
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Cleanup all ports on exit."""
         self._running = False
         ports = list(self._connections.keys())

@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 _CAP = "forge_extensions"
 
 
-def _flatten(prefix: str, obj: Any, out: Dict[str, str]) -> None:
+def _flatten(prefix: str, obj: Any, out: dict[str, str]) -> None:
     if isinstance(obj, dict):
         for k, v in obj.items():
             key = f"{prefix}.{k}" if prefix else str(k)
@@ -26,7 +26,7 @@ class BuiltinI18nAPI:
 
     def __init__(self, app: Any) -> None:
         self._app = app
-        self._bundles: Dict[str, Dict[str, str]] = {}
+        self._bundles: dict[str, dict[str, str]] = {}
 
     def _under_base(self, path: str) -> Path | None:
         base = self._app.config.get_base_dir().resolve()
@@ -42,7 +42,7 @@ class BuiltinI18nAPI:
             return None
         return p
 
-    def load_json(self, locale: str, path: str) -> Dict[str, Any]:
+    def load_json(self, locale: str, path: str) -> dict[str, Any]:
         """Load a nested JSON file and flatten keys like ``a.b.c``."""
         p = self._under_base(path)
         if p is None:
@@ -51,7 +51,7 @@ class BuiltinI18nAPI:
             return {"ok": False, "error": f"not found: {p}"}
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
-            flat: Dict[str, str] = {}
+            flat: dict[str, str] = {}
             _flatten("", data, flat)
             self._bundles[locale] = {**self._bundles.get(locale, {}), **flat}
             return {"ok": True, "locale": locale, "keys": len(flat)}
@@ -59,7 +59,7 @@ class BuiltinI18nAPI:
             logger.exception("load_json")
             return {"ok": False, "error": str(exc)}
 
-    def translate(self, locale: str, key: str, default: str | None = None) -> Dict[str, Any]:
+    def translate(self, locale: str, key: str, default: str | None = None) -> dict[str, Any]:
         """Translate a flattened key for ``locale``."""
         bundle = self._bundles.get(locale, {})
         val = bundle.get(key)
@@ -67,7 +67,7 @@ class BuiltinI18nAPI:
             return {"ok": True, "text": default if default is not None else key, "missing": True}
         return {"ok": True, "text": val, "missing": False}
 
-    def list_locales(self) -> Dict[str, Any]:
+    def list_locales(self) -> dict[str, Any]:
         """Return loaded locale tags."""
         return {"locales": sorted(self._bundles.keys())}
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 
 class DragDropAPI:
     """
@@ -7,13 +9,13 @@ class DragDropAPI:
 
     __forge_capability__ = "drag_drop"
 
-    def __init__(self, app):
+    def __init__(self, app: Any) -> None:
         self.app = app
         self._setup_event_listeners()
 
-    def _setup_event_listeners(self):
+    def _setup_event_listeners(self) -> None:
         @self.app.events.on("file_drop")
-        def _on_file_drop(event_data):
+        def _on_file_drop(event_data: dict[str, Any]) -> None:
             paths = event_data.get("paths", [])
             window_label = event_data.get("window", "main")
 
@@ -22,7 +24,7 @@ class DragDropAPI:
             self.app.events.emit("drag_drop", {"paths": paths, "window": window_label})
 
         @self.app.events.on("file_drop_hover")
-        def _on_file_drop_hover(event_data):
+        def _on_file_drop_hover(event_data: dict[str, Any]) -> None:
             paths = event_data.get("paths", [])
             window_label = event_data.get("window", "main")
 
@@ -30,7 +32,7 @@ class DragDropAPI:
             self.app.events.emit("drag_hover", {"paths": paths, "window": window_label})
 
         @self.app.events.on("file_drop_cancelled")
-        def _on_file_drop_cancelled(event_data):
+        def _on_file_drop_cancelled(event_data: dict[str, Any]) -> None:
             window_label = event_data.get("window", "main")
 
             self.app.events.emit(f"drag_cancelled:{window_label}", {})

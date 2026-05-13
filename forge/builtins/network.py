@@ -15,7 +15,7 @@ import os
 import socket
 import threading
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 
@@ -29,12 +29,12 @@ class BuiltinNetworkAPI:
 
     def __init__(self, app: Any = None) -> None:
         self._app = app
-        self._watches: Dict[str, threading.Event] = {}
+        self._watches: dict[str, threading.Event] = {}
         self._watches_lock = threading.Lock()
 
     # ─── Basic HTTP ──────────────────────────────────────
 
-    def http_get(self, url: str, timeout: float = 30.0) -> Dict[str, Any]:
+    def http_get(self, url: str, timeout: float = 30.0) -> dict[str, Any]:
         """Simple GET returning status and body text (bounded size)."""
         try:
             r = requests.get(url, timeout=timeout)
@@ -47,10 +47,10 @@ class BuiltinNetworkAPI:
     def http_post_json(
         self,
         url: str,
-        json_body: Dict[str, Any],
-        headers: Optional[Dict[str, str]] = None,
+        json_body: dict[str, Any],
+        headers: dict[str, str] | None = None,
         timeout: float = 60.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """POST JSON and parse JSON response when possible."""
         try:
             r = requests.post(url, json=json_body, headers=headers or {}, timeout=timeout)
@@ -68,11 +68,11 @@ class BuiltinNetworkAPI:
         self,
         method: str,
         url: str,
-        headers: Optional[Dict[str, str]] = None,
-        body: Optional[str] = None,
-        json_body: Optional[Dict[str, Any]] = None,
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
+        json_body: dict[str, Any] | None = None,
         timeout: float = 60.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute an arbitrary HTTP request.
 
         Args:
@@ -119,9 +119,9 @@ class BuiltinNetworkAPI:
         self,
         url: str,
         destination: str,
-        headers: Optional[Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         timeout: float = 300.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Download a file with progress events.
 
         Emits ``download:progress`` events with ``{url, percent, bytes_downloaded, total_bytes}``.
@@ -135,6 +135,7 @@ class BuiltinNetworkAPI:
         Returns:
             ``{ok, path, size}`` on completion.
         """
+
         def _do_download() -> None:
             try:
                 r = requests.get(url, headers=headers or {}, stream=True, timeout=timeout)
@@ -151,23 +152,32 @@ class BuiltinNetworkAPI:
                             f.write(chunk)
                             downloaded += len(chunk)
                             percent = (downloaded / total * 100) if total > 0 else 0
-                            self._emit_event("download:progress", {
-                                "url": url,
-                                "percent": round(percent, 1),
-                                "bytes_downloaded": downloaded,
-                                "total_bytes": total,
-                            })
+                            self._emit_event(
+                                "download:progress",
+                                {
+                                    "url": url,
+                                    "percent": round(percent, 1),
+                                    "bytes_downloaded": downloaded,
+                                    "total_bytes": total,
+                                },
+                            )
 
-                self._emit_event("download:complete", {
-                    "url": url,
-                    "path": str(dest_path),
-                    "size": downloaded,
-                })
+                self._emit_event(
+                    "download:complete",
+                    {
+                        "url": url,
+                        "path": str(dest_path),
+                        "size": downloaded,
+                    },
+                )
             except Exception as exc:
-                self._emit_event("download:error", {
-                    "url": url,
-                    "error": str(exc),
-                })
+                self._emit_event(
+                    "download:error",
+                    {
+                        "url": url,
+                        "error": str(exc),
+                    },
+                )
 
         thread = threading.Thread(target=_do_download, name="forge-download", daemon=True)
         thread.start()
@@ -179,10 +189,10 @@ class BuiltinNetworkAPI:
         self,
         url: str,
         file_path: str,
-        headers: Optional[Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         field_name: str = "file",
         timeout: float = 300.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Upload a file with progress events.
 
         Uses multipart form upload. Emits ``upload:progress`` events.
@@ -207,26 +217,29 @@ class BuiltinNetworkAPI:
             try:
                 # Read-and-track wrapper for progress
                 class ProgressReader:
-                    def __init__(self, fp, total):
+                    def __init__(self, fp: Any, total: int) -> None:
                         self._fp = fp
                         self._total = total
                         self._read = 0
 
-                    def read(self, size=-1):
-                        data = self._fp.read(size)
+                    def read(self, size: int = -1) -> bytes:
+                        data: bytes = self._fp.read(size)  # type: ignore[no-any-return]
                         if data:
                             self._read += len(data)
                             percent = (self._read / self._total * 100) if self._total > 0 else 0
                             self._emit_progress(percent)
                         return data
 
-                    def _emit_progress(self, percent):
-                        self._emit_event("upload:progress", {
-                            "file": abs_path,
-                            "percent": round(percent, 1),
-                            "bytes_uploaded": self._read,
-                            "total_bytes": self._total,
-                        })
+                    def _emit_progress(self, percent: float) -> None:
+                        self._emit_event(  # type: ignore[attr-defined]
+                            "upload:progress",
+                            {
+                                "file": abs_path,
+                                "percent": round(percent, 1),
+                                "bytes_uploaded": self._read,
+                                "total_bytes": self._total,
+                            },
+                        )
 
                 # Simple multipart upload
                 with open(abs_path, "rb") as f:
@@ -239,16 +252,22 @@ class BuiltinNetworkAPI:
                         timeout=timeout,
                     )
 
-                self._emit_event("upload:complete", {
-                    "file": abs_path,
-                    "status": r.status_code,
-                    "response": r.text[:100_000],
-                })
+                self._emit_event(
+                    "upload:complete",
+                    {
+                        "file": abs_path,
+                        "status": r.status_code,
+                        "response": r.text[:100_000],
+                    },
+                )
             except Exception as exc:
-                self._emit_event("upload:error", {
-                    "file": abs_path,
-                    "error": str(exc),
-                })
+                self._emit_event(
+                    "upload:error",
+                    {
+                        "file": abs_path,
+                        "error": str(exc),
+                    },
+                )
 
         thread = threading.Thread(target=_do_upload, name="forge-upload", daemon=True)
         thread.start()
@@ -256,7 +275,9 @@ class BuiltinNetworkAPI:
 
     # ─── Connectivity ────────────────────────────────────
 
-    def is_online(self, host: str = "1.1.1.1", port: int = 443, timeout: float = 3.0) -> Dict[str, Any]:
+    def is_online(
+        self, host: str = "1.1.1.1", port: int = 443, timeout: float = 3.0
+    ) -> dict[str, Any]:
         """TCP connect probe (default Cloudflare DNS)."""
         try:
             with socket.create_connection((host, port), timeout=timeout):
@@ -264,7 +285,7 @@ class BuiltinNetworkAPI:
         except OSError:
             return {"ok": True, "reachable": False}
 
-    def connectivity_watch(self, interval_seconds: float = 10.0) -> Dict[str, Any]:
+    def connectivity_watch(self, interval_seconds: float = 10.0) -> dict[str, Any]:
         """Start monitoring network connectivity.
 
         Emits ``network:status`` events with ``{online: bool}`` at the
@@ -277,6 +298,7 @@ class BuiltinNetworkAPI:
             ``{ok, watch_id}``
         """
         import uuid
+
         watch_id = str(uuid.uuid4())
         stop_event = threading.Event()
 
@@ -293,11 +315,13 @@ class BuiltinNetworkAPI:
                     self._emit_event("network:status", {"online": online})
                 stop_event.wait(interval_seconds)
 
-        thread = threading.Thread(target=_monitor, name=f"forge-net-watch-{watch_id[:8]}", daemon=True)
+        thread = threading.Thread(
+            target=_monitor, name=f"forge-net-watch-{watch_id[:8]}", daemon=True
+        )
         thread.start()
         return {"ok": True, "watch_id": watch_id}
 
-    def connectivity_unwatch(self, watch_id: str) -> Dict[str, Any]:
+    def connectivity_unwatch(self, watch_id: str) -> dict[str, Any]:
         """Stop monitoring network connectivity.
 
         Args:

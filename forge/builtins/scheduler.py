@@ -6,7 +6,7 @@ import json
 import logging
 import threading
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +17,11 @@ class _Job:
     __slots__ = ("timer", "cancelled")
 
     def __init__(self) -> None:
-        self.timer: Optional[threading.Timer] = None
+        self.timer: threading.Timer | None = None
         self.cancelled = False
 
 
-_jobs: Dict[str, _Job] = {}
+_jobs: dict[str, _Job] = {}
 _jobs_lock = threading.Lock()
 
 
@@ -35,8 +35,8 @@ class BuiltinSchedulerAPI:
         self,
         delay_seconds: float,
         command: str,
-        args: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        args: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """After ``delay_seconds``, invoke an IPC ``command`` on the bridge (same process)."""
         jid = str(uuid.uuid4())
         job = _Job()

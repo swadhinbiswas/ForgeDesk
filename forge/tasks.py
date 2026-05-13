@@ -16,14 +16,15 @@ import logging
 import threading
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Callable, Dict
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class TaskState(str, Enum):
+class TaskState(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -79,7 +80,7 @@ class TaskManager:
     def __init__(self, app: Any = None, max_tasks: int = 50) -> None:
         self._app = app
         self._max_tasks = max_tasks
-        self._tasks: Dict[str, TaskRecord] = {}
+        self._tasks: dict[str, TaskRecord] = {}
         self._lock = threading.Lock()
 
     def start(
@@ -114,13 +115,10 @@ class TaskManager:
 
         with self._lock:
             active = sum(
-                1 for t in self._tasks.values()
-                if t.state in (TaskState.PENDING, TaskState.RUNNING)
+                1 for t in self._tasks.values() if t.state in (TaskState.PENDING, TaskState.RUNNING)
             )
             if active >= self._max_tasks:
-                raise RuntimeError(
-                    f"Maximum concurrent tasks ({self._max_tasks}) reached"
-                )
+                raise RuntimeError(f"Maximum concurrent tasks ({self._max_tasks}) reached")
 
         task_id = str(uuid.uuid4())
         record = TaskRecord(
@@ -192,9 +190,9 @@ class TaskManager:
         count = 0
         with self._lock:
             targets = [
-                t for t in self._tasks.values()
-                if t.group == group
-                and t.state in (TaskState.PENDING, TaskState.RUNNING)
+                t
+                for t in self._tasks.values()
+                if t.group == group and t.state in (TaskState.PENDING, TaskState.RUNNING)
             ]
         for task in targets:
             task.cancel_event.set()
@@ -206,8 +204,7 @@ class TaskManager:
         count = 0
         with self._lock:
             targets = [
-                t for t in self._tasks.values()
-                if t.state in (TaskState.PENDING, TaskState.RUNNING)
+                t for t in self._tasks.values() if t.state in (TaskState.PENDING, TaskState.RUNNING)
             ]
         for task in targets:
             task.cancel_event.set()
@@ -229,10 +226,13 @@ class TaskManager:
         """Emit a task lifecycle event if app is available."""
         if self._app and hasattr(self._app, "emit"):
             try:
-                self._app.emit(event, {
-                    "task_id": task_id,
-                    "name": name,
-                    "detail": detail,
-                })
+                self._app.emit(
+                    event,
+                    {
+                        "task_id": task_id,
+                        "name": name,
+                        "detail": detail,
+                    },
+                )
             except Exception:
                 pass  # Don't let event emission errors crash the task

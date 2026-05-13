@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import base64
 import json
-from typing import Any, Dict
+from typing import Any
 
-import msgpack
+import msgpack  # type: ignore[import-untyped]
 
 _CAP = "forge_extensions"
 
@@ -14,7 +14,7 @@ _CAP = "forge_extensions"
 class BuiltinSerializationAPI:
     __forge_capability__ = _CAP
 
-    def msgpack_packb(self, obj: Any) -> Dict[str, Any]:
+    def msgpack_packb(self, obj: Any) -> dict[str, Any]:
         """Serialize a JSON-compatible object to URL-safe base64 MessagePack bytes."""
         try:
             raw = msgpack.packb(obj, use_bin_type=True)
@@ -22,7 +22,7 @@ class BuiltinSerializationAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    def msgpack_unpackb(self, b64: str) -> Dict[str, Any]:
+    def msgpack_unpackb(self, b64: str) -> dict[str, Any]:
         """Decode base64 MessagePack to Python values."""
         try:
             raw = base64.b64decode(b64.encode("ascii"))

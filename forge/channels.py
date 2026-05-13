@@ -19,7 +19,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class _ChannelRecord:
     """Internal state for an active channel."""
+
     channel_id: str
     name: str
     created_at: float
@@ -56,7 +57,7 @@ class ChannelManager:
     """
 
     def __init__(self) -> None:
-        self._channels: Dict[str, _ChannelRecord] = {}
+        self._channels: dict[str, _ChannelRecord] = {}
         self._lock = threading.Lock()
 
     def create(
@@ -160,14 +161,17 @@ class ChannelManager:
     @staticmethod
     def _deliver(proxy: Any, channel_id: str, data: Any, *, done: bool) -> None:
         """Deliver a channel message to the frontend via WindowProxy."""
-        import json  # noqa: delayed to avoid circular
+        import json  # noqa: F401  # delayed to avoid circular
 
-        payload = json.dumps({
-            "type": "channel",
-            "channel_id": channel_id,
-            "data": data,
-            "done": done,
-        }, separators=(",", ":"))
+        payload = json.dumps(
+            {
+                "type": "channel",
+                "channel_id": channel_id,
+                "data": data,
+                "done": done,
+            },
+            separators=(",", ":"),
+        )
 
         script = f"window.__forge__._handleMessage({payload})"
         try:

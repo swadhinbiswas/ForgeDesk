@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +21,16 @@ class BuiltinCloudSyncAPI:
         self,
         bucket: str,
         prefix: str = "",
-        endpoint_url: Optional[str] = None,
-        region: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        endpoint_url: str | None = None,
+        region: str | None = None,
+    ) -> dict[str, Any]:
         """List objects in a bucket (requires ``boto3``)."""
         try:
-            import boto3  # type: ignore[import-untyped]
+            import boto3  # type: ignore[import-not-found]
         except ImportError:
             return {"ok": False, "error": "install boto3 for S3 support"}
         try:
-            kwargs: Dict[str, Any] = {}
+            kwargs: dict[str, Any] = {}
             if endpoint_url:
                 kwargs["endpoint_url"] = endpoint_url
             if region:
@@ -48,9 +48,9 @@ class BuiltinCloudSyncAPI:
         bucket: str,
         key: str,
         local_path: str,
-        endpoint_url: Optional[str] = None,
-        region: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        endpoint_url: str | None = None,
+        region: str | None = None,
+    ) -> dict[str, Any]:
         """Upload a file from disk (path resolved under app base if relative)."""
         try:
             import boto3  # type: ignore[import-untyped]
@@ -62,7 +62,7 @@ class BuiltinCloudSyncAPI:
         if not p.is_file():
             return {"ok": False, "error": f"file not found: {p}"}
         try:
-            kwargs: Dict[str, Any] = {}
+            kwargs: dict[str, Any] = {}
             if endpoint_url:
                 kwargs["endpoint_url"] = endpoint_url
             if region:
@@ -74,16 +74,18 @@ class BuiltinCloudSyncAPI:
             logger.exception("s3_upload_file")
             return {"ok": False, "error": str(exc)}
 
-    def providers(self) -> Dict[str, Any]:
+    def providers(self) -> dict[str, Any]:
         """Report which optional cloud backends are importable."""
-        out: Dict[str, bool] = {}
+        out: dict[str, bool | str] = {}
         try:
-            import boto3  # noqa: F401
+            import boto3  # type: ignore[import-not-found]  # noqa: F401
 
             out["s3_boto3"] = True
         except ImportError:
             out["s3_boto3"] = False
-        out["note"] = "Dropbox/Google Drive need provider SDKs; use S3 or sync via filesystem + rclone."
+        out["note"] = (
+            "Dropbox/Google Drive need provider SDKs; use S3 or sync via filesystem + rclone."
+        )
         return out
 
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import platform
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +38,7 @@ def _system_info() -> dict[str, Any]:
             "available": forge_core_ok,
             "detail": forge_core_detail,
         },
-        "collected_at": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+        "collected_at": datetime.now(UTC).isoformat(timespec="milliseconds"),
     }
 
 
@@ -69,7 +69,7 @@ def _sanitize_config(config_data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(obj, dict) and path[-1] in obj and obj[path[-1]]:
             obj[path[-1]] = "***REDACTED***"
 
-    return sanitized
+    return sanitized  # type: ignore[no-any-return]
 
 
 def _load_config_snapshot(project_dir: Path) -> dict[str, Any]:
@@ -80,6 +80,7 @@ def _load_config_snapshot(project_dir: Path) -> dict[str, Any]:
 
     try:
         import tomllib
+
         with config_path.open("rb") as f:
             raw = tomllib.load(f)
         return _sanitize_config(raw)
@@ -127,6 +128,7 @@ def generate_support_bundle(
         # 3. Environment checks (if CLI is available)
         try:
             from forge_cli.main import _environment_payload
+
             env = _environment_payload()
             zf.writestr("environment.json", json.dumps(env, indent=2, sort_keys=True))
             contents.append("environment.json")
@@ -163,5 +165,5 @@ def generate_support_bundle(
         "path": str(output),
         "size_bytes": output.stat().st_size,
         "contents": contents,
-        "collected_at": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+        "collected_at": datetime.now(UTC).isoformat(timespec="milliseconds"),
     }

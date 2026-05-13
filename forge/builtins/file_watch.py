@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import threading
 import uuid
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +31,8 @@ def _iter_files(root: Path, recursive: bool) -> Iterable[Path]:
                 yield p
 
 
-def _snapshot(paths: List[Path], recursive: bool) -> Dict[str, Tuple[float, int]]:
-    snap: Dict[str, Tuple[float, int]] = {}
+def _snapshot(paths: list[Path], recursive: bool) -> dict[str, tuple[float, int]]:
+    snap: dict[str, tuple[float, int]] = {}
     n = 0
     for root in paths:
         for fp in _iter_files(root, recursive):
@@ -51,8 +52,8 @@ class BuiltinFileWatchAPI:
 
     def __init__(self, app: Any) -> None:
         self._app = app
-        self._stop_events: Dict[str, threading.Event] = {}
-        self._threads: Dict[str, threading.Thread] = {}
+        self._stop_events: dict[str, threading.Event] = {}
+        self._threads: dict[str, threading.Thread] = {}
         self._lock = threading.Lock()
 
     def _paths_under_base(self, paths: list[str]) -> list[Path] | None:
@@ -65,13 +66,15 @@ class BuiltinFileWatchAPI:
             try:
                 p = p.resolve()
                 p.relative_to(base)
-            except (ValueError, OSError):
+            except ValueError, OSError:
                 return None
             out.append(p)
         return out
 
-    def watch_start(self, paths: list[str], interval_ms: int = 1500, recursive: bool = True) -> Dict[str, Any]:
-        """Poll mtimes under ``paths`` (must stay inside app dir); emits ``forge_fs_watch`` on changes."""
+    def watch_start(
+        self, paths: list[str], interval_ms: int = 1500, recursive: bool = True
+    ) -> dict[str, Any]:
+        """Poll mtimes under ``paths`` (must stay inside app dir); emits ``forge_fs_watch`` on changes."""  # noqa: E501
         resolved = self._paths_under_base(paths)
         if resolved is None:
             return {"ok": False, "error": "paths must stay under app directory"}
@@ -115,7 +118,7 @@ class BuiltinFileWatchAPI:
         t.start()
         return {"ok": True, "watch_id": wid}
 
-    def watch_stop(self, watch_id: str) -> Dict[str, Any]:
+    def watch_stop(self, watch_id: str) -> dict[str, Any]:
         with self._lock:
             ev = self._stop_events.pop(watch_id, None)
             self._threads.pop(watch_id, None)
@@ -126,10 +129,10 @@ class BuiltinFileWatchAPI:
 
 
 def _diff_paths(
-    prev: Dict[str, Tuple[float, int]],
-    cur: Dict[str, Tuple[float, int]],
-) -> List[str]:
-    out: List[str] = []
+    prev: dict[str, tuple[float, int]],
+    cur: dict[str, tuple[float, int]],
+) -> list[str]:
+    out: list[str] = []
     for k, v in cur.items():
         if prev.get(k) != v:
             out.append(k)

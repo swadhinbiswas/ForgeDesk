@@ -1,2 +1,1 @@
-from typing import Dict
-buffers: Dict[str, bytes] = {}
+buffers: dict[str, bytes] = {}

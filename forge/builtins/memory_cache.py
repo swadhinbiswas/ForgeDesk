@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 _CAP = "forge_extensions"
 
@@ -14,9 +14,9 @@ class BuiltinMemoryCacheAPI:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._data: Dict[str, tuple[Any, float | None]] = {}
+        self._data: dict[str, tuple[Any, float | None]] = {}
 
-    def cache_set(self, key: str, value: Any, ttl_seconds: Optional[float] = None) -> bool:
+    def cache_set(self, key: str, value: Any, ttl_seconds: float | None = None) -> bool:
         """Store ``value`` under ``key``. Optional TTL in seconds."""
         exp: float | None = None
         if ttl_seconds is not None and ttl_seconds > 0:
@@ -25,7 +25,7 @@ class BuiltinMemoryCacheAPI:
             self._data[key] = (value, exp)
         return True
 
-    def cache_get(self, key: str) -> Dict[str, Any]:
+    def cache_get(self, key: str) -> dict[str, Any]:
         """Get value or ``null`` if missing/expired."""
         with self._lock:
             item = self._data.get(key)

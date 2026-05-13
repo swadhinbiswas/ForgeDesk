@@ -6,14 +6,15 @@ Provides native OS dialog functionality for Forge applications.
 
 from __future__ import annotations
 
-import logging
 import json
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any
 
 from forge.bridge import command
-from forge.forge_core import DialogManager
+from forge.forge_core import DialogManager  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
+
 
 class DialogAPI:
     """
@@ -29,11 +30,11 @@ class DialogAPI:
     @command("dialog_open")
     def open_file(
         self,
-        title: Optional[str] = None,
-        directory: Optional[str] = None,
-        filters: Optional[List[Dict[str, Any]]] = None,
+        title: str | None = None,
+        directory: str | None = None,
+        filters: list[dict[str, Any]] | None = None,
         multiple: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Show system native open file dialog."""
         filters_json = json.dumps(filters) if filters else None
         try:
@@ -46,11 +47,11 @@ class DialogAPI:
     @command("dialog_save")
     def save_file(
         self,
-        title: Optional[str] = None,
-        directory: Optional[str] = None,
-        file_name: Optional[str] = None,
-        filters: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
+        title: str | None = None,
+        directory: str | None = None,
+        file_name: str | None = None,
+        filters: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Show system native save file dialog."""
         filters_json = json.dumps(filters) if filters else None
         try:
@@ -63,9 +64,9 @@ class DialogAPI:
     @command("dialog_folder")
     def select_folder(
         self,
-        title: Optional[str] = None,
-        directory: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        title: str | None = None,
+        directory: str | None = None,
+    ) -> dict[str, Any]:
         """Show system native folder selection dialog."""
         try:
             res = self._manager.select_folder(title, directory)

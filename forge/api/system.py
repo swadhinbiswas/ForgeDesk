@@ -17,7 +17,7 @@ import platform
 import subprocess
 import sys
 import webbrowser
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class SystemAPI:
         """Compatibility alias for getting the current platform name."""
         return self.get_platform()
 
-    def get_info(self) -> Dict[str, Any]:
+    def get_info(self) -> dict[str, Any]:
         """
         Get detailed system information.
 
@@ -107,7 +107,7 @@ class SystemAPI:
             else False,
         }
 
-    def info(self) -> Dict[str, Any]:
+    def info(self) -> dict[str, Any]:
         """Compatibility alias for getting detailed system information."""
         return self.get_info()
 
@@ -124,7 +124,7 @@ class SystemAPI:
         """Compatibility alias for exiting the application."""
         self.exit_app()
 
-    def get_env(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_env(self, key: str, default: str | None = None) -> str | None:
         """
         Get an environment variable.
 

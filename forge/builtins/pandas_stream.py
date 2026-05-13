@@ -5,28 +5,30 @@ from __future__ import annotations
 import io
 import logging
 import uuid
-from typing import Any, Dict
-
-logger = logging.getLogger(__name__)
+from typing import Any
 
 from forge import memory
 
+logger = logging.getLogger(__name__)
+
 _CAP = "forge_extensions"
+
 
 class BuiltinPandasAPI:
     """Plugin to ferry Pandas DataFrames securely to the frontend via forge-memory://."""
+
     __forge_capability__ = _CAP
 
     def __init__(self, app: Any) -> None:
         self._app = app
 
-    def dataframe_to_memory(self, df: Any, format: str = "parquet") -> Dict[str, Any]:
+    def dataframe_to_memory(self, df: Any, format: str = "parquet") -> dict[str, Any]:
         """
         Converts a Pandas DataFrame to a raw byte buffer and registers it in forge.memory.
-        The frontend can instantly fetch 'forge-memory://<buffer_id>' to render high-performance data grids.
+        The frontend can fetch 'forge-memory://<buffer_id>' to render high-performance data grids.
         """
         try:
-            import pandas as pd
+            import pandas as pd  # type: ignore[import-untyped]
         except ImportError:
             return {"ok": False, "error": "pip install pandas to use this capability"}
 
@@ -55,7 +57,7 @@ class BuiltinPandasAPI:
                 "url": f"forge-memory://{buffer_id}",
                 "format": format,
                 "rows": len(df),
-                "columns": list(df.columns)
+                "columns": list(df.columns),
             }
         except Exception as exc:
             logger.exception("dataframe_to_memory processing failed")
@@ -64,6 +66,7 @@ class BuiltinPandasAPI:
     def free_memory_buffer(self, buffer_id: str) -> bool:
         """Release the memory buffer when the frontend no longer needs it."""
         return memory.buffers.pop(buffer_id, None) is not None
+
 
 def register(app: Any) -> None:
     app.bridge.register_commands(BuiltinPandasAPI(app))

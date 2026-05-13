@@ -17,8 +17,8 @@ from __future__ import annotations
 import fnmatch
 import os
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 
 def expand_scope_path(pattern: str, base_dir: Path | None = None) -> str:
@@ -84,12 +84,8 @@ class ScopeValidator:
         base_dir: Path | None = None,
     ) -> None:
         self._base_dir = base_dir
-        self._allow_expanded = [
-            expand_scope_path(p, base_dir) for p in allow_patterns
-        ]
-        self._deny_expanded = [
-            expand_scope_path(p, base_dir) for p in deny_patterns
-        ]
+        self._allow_expanded = [expand_scope_path(p, base_dir) for p in allow_patterns]
+        self._deny_expanded = [expand_scope_path(p, base_dir) for p in deny_patterns]
 
     def is_path_allowed(self, path: str | Path) -> bool:
         """Check whether a filesystem path is allowed by the scopes.
@@ -168,10 +164,7 @@ class ScopeValidator:
         if not any(c in pattern_clean for c in ("*", "?", "[")):
             # Exact directory prefix match
             resolved_clean = resolved_path.rstrip("/")
-            return (
-                resolved_clean == pattern_clean
-                or resolved_clean.startswith(pattern_clean + "/")
-            )
+            return resolved_clean == pattern_clean or resolved_clean.startswith(pattern_clean + "/")
 
         # Glob matching — use fnmatch with ** support
         # For ** patterns, we need to check each path segment
@@ -184,7 +177,7 @@ class ScopeValidator:
                 suffix = suffix.lstrip("/")
                 if not resolved_path.startswith(prefix):
                     return False
-                remainder = resolved_path[len(prefix):].lstrip("/")
+                remainder = resolved_path[len(prefix) :].lstrip("/")
                 if not suffix:
                     return True
                 return fnmatch.fnmatch(remainder, suffix) or fnmatch.fnmatch(
@@ -198,10 +191,12 @@ class ScopeValidator:
 # Global registry for the Asset Protocol interceptor (called from Rust via PyO3)
 _asset_validator: ScopeValidator | None = None
 
+
 def _register_asset_validator(validator: ScopeValidator) -> None:
     """Internal: Set the global asset scope validator for Rust."""
     global _asset_validator
     _asset_validator = validator
+
 
 def _validate_asset_path(path: str) -> bool:
     """Internal: Check if a path is allowed by the global asset scope.

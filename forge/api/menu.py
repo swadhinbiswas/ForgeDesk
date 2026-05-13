@@ -23,7 +23,7 @@ class MenuAPI:
         normalized = self._normalize_items(items)
         self._items = normalized
         self._emit_menu_changed()
-        return self.get()
+        return self.get()  # type: ignore[no-any-return]
 
     @command("menu_get")
     def get(self) -> list[dict[str, Any]]:
@@ -64,7 +64,7 @@ class MenuAPI:
     @command("menu_uncheck")
     def uncheck(self, item_id: str) -> dict[str, Any]:
         """Unset the checked state for a menu item."""
-        return self.check(item_id, False)
+        return self.check(item_id, False)  # type: ignore[no-any-return]
 
     @command("menu_trigger")
     def trigger(self, item_id: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -116,7 +116,7 @@ class MenuAPI:
 
                 if item_type not in {"item", "separator", "checkbox"}:
                     raise ValueError(
-                        f"Menu item type at {path}[{index}] must be one of: item, separator, checkbox"
+                        f"Menu item type at {path}[{index}] must be one of: item, separator, checkbox"  # noqa: E501
                     )
 
                 normalized["type"] = item_type
@@ -134,7 +134,9 @@ class MenuAPI:
 
                 if item_id is not None:
                     if not isinstance(item_id, str) or not item_id:
-                        raise ValueError(f"Menu item id at {path}[{index}] must be a non-empty string")
+                        raise ValueError(
+                            f"Menu item id at {path}[{index}] must be a non-empty string"
+                        )
                     if item_id in seen_ids:
                         raise ValueError(f"Duplicate menu item id: {item_id}")
                     seen_ids.add(item_id)
@@ -142,10 +144,14 @@ class MenuAPI:
                 if "label" in normalized and not isinstance(normalized["label"], str):
                     raise TypeError(f"Menu item label at {path}[{index}] must be a string")
 
-                checkable = bool(normalized.get("checkable", item_type == "checkbox" or "checked" in normalized))
+                checkable = bool(
+                    normalized.get("checkable", item_type == "checkbox" or "checked" in normalized)
+                )
                 normalized["checkable"] = checkable
                 normalized["enabled"] = bool(normalized.get("enabled", True))
-                normalized["checked"] = bool(normalized.get("checked", False)) if checkable else False
+                normalized["checked"] = (
+                    bool(normalized.get("checked", False)) if checkable else False
+                )
                 if submenu is not None:
                     normalized["submenu"] = normalize(submenu, f"{path}[{index}].submenu")
                 normalized_items.append(normalized)

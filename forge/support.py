@@ -11,7 +11,8 @@ import threading
 import traceback
 import zipfile
 from collections import deque
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from weakref import WeakSet
@@ -20,7 +21,7 @@ from .bridge import PROTOCOL_VERSION
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class RuntimeLogBuffer:
@@ -117,7 +118,9 @@ class SupportBundleBuilder:
         safe_name = app_name.lower().replace(" ", "-")
 
         if destination is None:
-            destination_path = self._app.config.get_output_path() / f"{safe_name}-support-bundle.zip"
+            destination_path = (
+                self._app.config.get_output_path() / f"{safe_name}-support-bundle.zip"
+            )
         else:
             destination_path = Path(destination)
             if destination_path.suffix.lower() != ".zip":
@@ -178,7 +181,7 @@ class SupportBundleBuilder:
 class CrashStore:
     """Stores the latest crash snapshot and can install global exception hooks."""
 
-    def __init__(self, on_crash: callable | None = None) -> None:
+    def __init__(self, on_crash: Callable | None = None) -> None:
         self._lock = threading.Lock()
         self._last_crash: dict[str, Any] | None = None
         self._on_crash = on_crash
@@ -220,18 +223,22 @@ class CrashStore:
         if self._previous_excepthook is not None:
             return
 
-        self._previous_excepthook = sys.excepthook
+        self._previous_excepthook = sys.excepthook  # type: ignore[assignment]
         self._previous_threading_excepthook = getattr(threading, "excepthook", None)
 
-        def _handle_exception(exc_type: type[BaseException], exc_value: BaseException, exc_traceback: Any) -> None:
-            self.capture_exception(exc_type, exc_value, exc_traceback, thread_name="MainThread", fatal=True)
+        def _handle_exception(
+            exc_type: type[BaseException], exc_value: BaseException, exc_traceback: Any
+        ) -> None:
+            self.capture_exception(
+                exc_type, exc_value, exc_traceback, thread_name="MainThread", fatal=True
+            )
             if self._previous_excepthook is not None:
                 self._previous_excepthook(exc_type, exc_value, exc_traceback)
 
         def _handle_thread_exception(args: threading.ExceptHookArgs) -> None:
             self.capture_exception(
                 args.exc_type,
-                args.exc_value,
+                args.exc_value,  # type: ignore[arg-type]
                 args.exc_traceback,
                 thread_name=getattr(args.thread, "name", None),
                 fatal=True,

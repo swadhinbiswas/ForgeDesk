@@ -5,7 +5,7 @@ Enables grouping IPC commands into modular routers that can be
 included into the main ForgeApp, eliminating global state decorators.
 """
 
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 
 
 class Router:
@@ -24,17 +24,18 @@ class Router:
 
     def __init__(self, prefix: str = "") -> None:
         self.prefix = prefix
-        self.commands: Dict[str, Callable] = {}
+        self.commands: dict[str, Callable] = {}
 
     def command(
         self,
-        name: Optional[str] = None,
-        capability: Optional[str] = None,
+        name: str | None = None,
+        capability: str | None = None,
         version: str = "1.0",
     ) -> Callable:
         """
         Register a command within this router.
         """
+
         def decorator(func: Callable) -> Callable:
             cmd_name = name or getattr(func, "_forge_cmd", None) or func.__name__
             if self.prefix:

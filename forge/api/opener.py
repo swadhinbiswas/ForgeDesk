@@ -11,7 +11,7 @@ import os
 import subprocess
 import sys
 import webbrowser
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class OpenerAPI:
 
     __forge_capability__ = _CAP
 
-    def open_url(self, url: str) -> Dict[str, Any]:
+    def open_url(self, url: str) -> dict[str, Any]:
         """Open a URL in the default browser.
 
         Args:
@@ -38,7 +38,7 @@ class OpenerAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    def open_path(self, path: str) -> Dict[str, Any]:
+    def open_path(self, path: str) -> dict[str, Any]:
         """Open a file or directory with the system default application.
 
         Args:
@@ -63,7 +63,7 @@ class OpenerAPI:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    def reveal_in_folder(self, path: str) -> Dict[str, Any]:
+    def reveal_in_folder(self, path: str) -> dict[str, Any]:
         """Reveal a file in the system file manager (Finder/Explorer/Nautilus).
 
         - **macOS**: ``open -R <path>`` (reveals in Finder, file selected)
@@ -88,16 +88,18 @@ class OpenerAPI:
             else:
                 # Linux: try D-Bus FileManager1, fall back to xdg-open on parent
                 try:
-                    subprocess.Popen([
-                        "dbus-send",
-                        "--session",
-                        "--dest=org.freedesktop.FileManager1",
-                        "--type=method_call",
-                        "/org/freedesktop/FileManager1",
-                        "org.freedesktop.FileManager1.ShowItems",
-                        f"array:string:file://{abs_path}",
-                        "string:",
-                    ])
+                    subprocess.Popen(
+                        [
+                            "dbus-send",
+                            "--session",
+                            "--dest=org.freedesktop.FileManager1",
+                            "--type=method_call",
+                            "/org/freedesktop/FileManager1",
+                            "org.freedesktop.FileManager1.ShowItems",
+                            f"array:string:file://{abs_path}",
+                            "string:",
+                        ]
+                    )
                 except Exception:
                     # D-Bus not available; open the parent directory
                     parent = os.path.dirname(abs_path)

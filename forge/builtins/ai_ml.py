@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 
@@ -19,10 +19,10 @@ class BuiltinAIMLAPI:
         self,
         api_key: str,
         model: str,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         base_url: str = "https://api.openai.com/v1",
         timeout: float = 120.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Call OpenAI-compatible ``/chat/completions`` (pass API key from secure storage)."""
         url = base_url.rstrip("/") + "/chat/completions"
         try:
@@ -39,10 +39,10 @@ class BuiltinAIMLAPI:
             logger.exception("openai_chat")
             return {"ok": False, "error": str(exc)}
 
-    def onnx_runtime_available(self) -> Dict[str, Any]:
+    def onnx_runtime_available(self) -> dict[str, Any]:
         """Report whether ``onnxruntime`` can be imported."""
         try:
-            import onnxruntime as ort  # type: ignore[import-untyped]
+            import onnxruntime as ort  # type: ignore[import-not-found]
 
             return {"ok": True, "version": getattr(ort, "__version__", "unknown")}
         except ImportError:

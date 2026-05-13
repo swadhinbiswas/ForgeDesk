@@ -42,7 +42,7 @@ class OSIntegrationAPI:
         Request user attention (bounces macOS dock icon, flashes Windows taskbar).
 
         Args:
-            is_critical: If True, bounces continuously until focused. 
+            is_critical: If True, bounces continuously until focused.
                          If False, bounces once. (Behavior varies by OS).
         """
         self._require_capability()

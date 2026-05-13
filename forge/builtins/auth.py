@@ -7,7 +7,7 @@ import hashlib
 import json
 import logging
 import secrets
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 
@@ -16,16 +16,18 @@ logger = logging.getLogger(__name__)
 _CAP = "forge_extensions"
 
 # state -> { verifier: str, created: float }
-_pkce_store: Dict[str, Dict[str, Any]] = {}
+_pkce_store: dict[str, dict[str, Any]] = {}
 
 
 class BuiltinAuthAPI:
     __forge_capability__ = _CAP
 
-    def oauth_pkce_start(self, redirect_uri: str) -> Dict[str, Any]:
-        """Begin PKCE: returns ``authorization_url`` query params to append to provider authorize URL."""
+    def oauth_pkce_start(self, redirect_uri: str) -> dict[str, Any]:
+        """Begin PKCE: returns ``authorization_url`` query params to append to provider authorize URL."""  # noqa: E501
         verifier = secrets.token_urlsafe(64)
-        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=")
+        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(
+            b"="
+        )
         state = secrets.token_urlsafe(32)
         _pkce_store[state] = {"verifier": verifier, "redirect_uri": redirect_uri}
         return {
@@ -42,8 +44,8 @@ class BuiltinAuthAPI:
         client_id: str,
         code: str,
         redirect_uri: str,
-        client_secret: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        client_secret: str | None = None,
+    ) -> dict[str, Any]:
         """Exchange authorization ``code`` for tokens (POST to ``token_url``)."""
         rec = _pkce_store.pop(state, None)
         if not rec:
@@ -60,12 +62,17 @@ class BuiltinAuthAPI:
         try:
             r = requests.post(token_url, data=data, timeout=60)
             r.raise_for_status()
-            return {"ok": True, "data": r.json() if r.headers.get("content-type", "").startswith("application/json") else {"text": r.text}}
+            return {
+                "ok": True,
+                "data": r.json()
+                if r.headers.get("content-type", "").startswith("application/json")
+                else {"text": r.text},
+            }
         except Exception as exc:
             logger.exception("oauth_pkce_exchange")
             return {"ok": False, "error": str(exc)}
 
-    def jwt_decode_payload(self, token: str) -> Dict[str, Any]:
+    def jwt_decode_payload(self, token: str) -> dict[str, Any]:
         """Return JWT payload dict without signature verification (introspection only)."""
         try:
             parts = token.split(".")

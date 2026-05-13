@@ -1,4 +1,4 @@
-"""Built-in extension IPC modules (database, auth, crypto, compression, fs_tools, i18n, archive, etc.).
+"""Built-in extension IPC modules (database, auth, crypto, fs_tools, i18n, archive, etc.).
 
 Enable in ``forge.toml``::
 

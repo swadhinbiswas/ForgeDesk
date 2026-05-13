@@ -7,7 +7,7 @@ Splits the RuntimeAPI from the main app.py.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .bridge import PROTOCOL_VERSION, SUPPORTED_PROTOCOL_VERSIONS
 
@@ -20,7 +20,7 @@ class RuntimeAPI:
 
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
-        self._state: Dict[str, Any] = {
+        self._state: dict[str, Any] = {
             "url": "forge://app/index.html",
             "devtools_open": False,
         }
@@ -33,7 +33,7 @@ class RuntimeAPI:
     def _update_state(self, **updates: Any) -> None:
         self._state.update(updates)
 
-    def _apply_native_event(self, event: str, payload: Dict[str, Any] | None) -> None:
+    def _apply_native_event(self, event: str, payload: dict[str, Any] | None) -> None:
         payload = payload or {}
         if event == "navigated":
             url = payload.get("url")
@@ -42,7 +42,7 @@ class RuntimeAPI:
         elif event == "devtools":
             self._update_state(devtools_open=bool(payload.get("open")))
 
-    def state(self) -> Dict[str, Any]:
+    def state(self) -> dict[str, Any]:
         """Return cached runtime state for navigation and devtools controls."""
         return dict(self._state)
 
@@ -91,7 +91,7 @@ class RuntimeAPI:
             self.open_devtools()
         return bool(self._state.get("devtools_open"))
 
-    def logs(self, limit: int | None = 100) -> List[Dict[str, Any]]:
+    def logs(self, limit: int | None = 100) -> list[dict[str, Any]]:
         """Return recent structured runtime log entries."""
         return self._app._runtime_logs.snapshot(limit)
 
@@ -101,14 +101,14 @@ class RuntimeAPI:
         self._app._log_runtime_event("runtime_export_support_bundle", path=bundle_path)
         return bundle_path
 
-    def protocol(self) -> Dict[str, Any]:
+    def protocol(self) -> dict[str, Any]:
         """Return protocol compatibility information."""
         return {
             "current": PROTOCOL_VERSION,
             "supported": sorted(SUPPORTED_PROTOCOL_VERSIONS),
         }
 
-    def config_snapshot(self) -> Dict[str, Any]:
+    def config_snapshot(self) -> dict[str, Any]:
         """Return a serializable snapshot of effective Forge configuration."""
         config = self._app.config
         return {
@@ -199,15 +199,15 @@ class RuntimeAPI:
             "windows": self._app.windows.list(),
         }
 
-    def last_crash(self) -> Dict[str, Any] | None:
+    def last_crash(self) -> dict[str, Any] | None:
         """Return the latest captured crash snapshot, if any."""
         return self._app._crash_store.snapshot()
 
-    def commands(self) -> List[Dict[str, Any]]:
+    def commands(self) -> list[dict[str, Any]]:
         """Return the registered command manifest."""
         return self._app.bridge.get_command_registry()
 
-    def health(self) -> Dict[str, Any]:
+    def health(self) -> dict[str, Any]:
         """Return a lightweight runtime health snapshot."""
         frontend_path = self._app.config.get_frontend_path()
         command_count = len(self._app.bridge.get_command_registry())
@@ -227,7 +227,7 @@ class RuntimeAPI:
             "last_crash": self.last_crash() is not None,
         }
 
-    def diagnostics(self, include_logs: bool = True, log_limit: int | None = 100) -> Dict[str, Any]:
+    def diagnostics(self, include_logs: bool = True, log_limit: int | None = 100) -> dict[str, Any]:
         """Return a structured runtime diagnostics payload."""
         config = self._app.config
         payload = {

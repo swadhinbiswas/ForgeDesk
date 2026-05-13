@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import subprocess
-import os
-import sys
 import logging
+import os
+import subprocess
+import sys
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from forge.bridge import command
 
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _read_stream(stream, callback):
-    for line in iter(stream.readline, ''):
+def _read_stream(stream: Any, callback: Any) -> None:
+    for line in iter(stream.readline, ""):
         if line:
             callback(line)
     stream.close()
@@ -39,7 +39,7 @@ class ShellAPI:
         self,
         app: Any,
         base_dir: Path,
-        permissions: Union[bool, ShellPermissions] = False,
+        permissions: bool | ShellPermissions = False,
     ) -> None:
         from forge.scope import ScopeValidator
 
@@ -48,10 +48,10 @@ class ShellAPI:
         self._permissions = permissions
 
         # Build URL scope validator for shell.open()
-        if hasattr(permissions, 'allow_urls'):
+        if hasattr(permissions, "allow_urls"):
             self._url_scope = ScopeValidator(
-                allow_patterns=getattr(permissions, 'allow_urls', []),
-                deny_patterns=getattr(permissions, 'deny_urls', []),
+                allow_patterns=getattr(permissions, "allow_urls", []),
+                deny_patterns=getattr(permissions, "deny_urls", []),
             )
         else:
             self._url_scope = ScopeValidator()
@@ -64,7 +64,7 @@ class ShellAPI:
             return True
 
         # Check deny_execute first — deny always wins
-        deny_list = getattr(self._permissions, 'deny_execute', [])
+        deny_list = getattr(self._permissions, "deny_execute", [])
         if command in deny_list:
             return False
 
@@ -76,11 +76,15 @@ class ShellAPI:
             return False
         if self._permissions is True:
             return True
-        return hasattr(self._permissions, "sidecars") and name in getattr(self._permissions, "sidecars", [])
+        return hasattr(self._permissions, "sidecars") and name in getattr(
+            self._permissions, "sidecars", []
+        )
 
     def _get_sidecar_path(self, name: str) -> Path:
         if not self._is_sidecar_allowed(name):
-            raise PermissionError(f"Execution of sidecar '{name}' is not allowed by shell permissions policy.")
+            raise PermissionError(
+                f"Execution of sidecar '{name}' is not allowed by shell permissions policy."
+            )
 
         ext = ".exe" if sys.platform == "win32" else ""
         sidecar_path = self._base_dir / "bin" / f"{name}{ext}"
@@ -91,7 +95,7 @@ class ShellAPI:
         return sidecar_path
 
     @command("shell_sidecar")
-    def sidecar(self, name: str, args: Optional[List[str]] = None) -> Dict[str, Any]:
+    def sidecar(self, name: str, args: list[str] | None = None) -> dict[str, Any]:
         """
         Execute a bundled sidecar binary securely and wait for it.
         """
@@ -100,70 +104,54 @@ class ShellAPI:
 
         cmd_list = [str(sidecar_path)] + args
         try:
-            result = subprocess.run(
-                cmd_list,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            return {
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "code": result.returncode
-            }
+            result = subprocess.run(cmd_list, capture_output=True, text=True, check=False)
+            return {"stdout": result.stdout, "stderr": result.stderr, "code": result.returncode}
         except Exception as e:
             logger.error(f"Sidecar execution failed {cmd_list}: {e}")
-            raise RuntimeError(f"Sidecar execution failed: {e}")
+            raise RuntimeError(f"Sidecar execution failed: {e}") from e
 
     @command("shell_execute")
-    def execute(self, command_name: str, args: Optional[List[str]] = None) -> Dict[str, Any]:
+    def execute(self, command_name: str, args: list[str] | None = None) -> dict[str, Any]:
         """
         Execute a native shell command securely according to the configured allowlist.
         """
         if not self._is_allowed(command_name):
-            raise PermissionError(f"Execution of '{command_name}' is not allowed by shell permissions policy.")
+            raise PermissionError(
+                f"Execution of '{command_name}' is not allowed by shell permissions policy."
+            )
 
         args = args or []
         cmd_list = [command_name] + args
         try:
-            result = subprocess.run(
-                cmd_list,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            return {
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "code": result.returncode
-            }
+            result = subprocess.run(cmd_list, capture_output=True, text=True, check=False)
+            return {"stdout": result.stdout, "stderr": result.stderr, "code": result.returncode}
         except Exception as e:
             logger.error(f"Command execution failed {cmd_list}: {e}")
-            raise RuntimeError(f"Command execution failed: {e}")
+            raise RuntimeError(f"Command execution failed: {e}") from e
 
-    def _spawn_process(self, cmd_list: List[str]) -> Dict[str, Any]:
+    def _spawn_process(self, cmd_list: list[str]) -> dict[str, Any]:
         """Internal helper to spawn a process and stream output to IPC events."""
         try:
             # We must use bufsize=1 and universal_newlines to read line by line
             process = subprocess.Popen(
-                cmd_list,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1
+                cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1
             )
             pid = process.pid
 
-            def emit_stdout(line):
+            def emit_stdout(line: str) -> None:
                 self._app.events.emit("shell:stdout", {"pid": pid, "data": line})
 
-            def emit_stderr(line):
+            def emit_stderr(line: str) -> None:
                 self._app.events.emit("shell:stderr", {"pid": pid, "data": line})
 
-            threading.Thread(target=_read_stream, args=(process.stdout, emit_stdout), daemon=True).start()
-            threading.Thread(target=_read_stream, args=(process.stderr, emit_stderr), daemon=True).start()
+            threading.Thread(
+                target=_read_stream, args=(process.stdout, emit_stdout), daemon=True
+            ).start()
+            threading.Thread(
+                target=_read_stream, args=(process.stderr, emit_stderr), daemon=True
+            ).start()
 
-            def wait_for_exit():
+            def wait_for_exit() -> None:
                 process.wait()
                 self._app.events.emit("shell:exit", {"pid": pid, "code": process.returncode})
 
@@ -172,22 +160,24 @@ class ShellAPI:
             return {"pid": pid}
         except Exception as e:
             logger.error(f"Failed to spawn process {cmd_list}: {e}")
-            raise RuntimeError(f"Failed to spawn process: {e}")
+            raise RuntimeError(f"Failed to spawn process: {e}") from e
 
     @command("shell_spawn")
-    def spawn(self, command_name: str, args: Optional[List[str]] = None) -> Dict[str, Any]:
+    def spawn(self, command_name: str, args: list[str] | None = None) -> dict[str, Any]:
         """
         Spawn a native shell command securely and stream output line by line over IPC events.
         Events emitted: shell:stdout, shell:stderr, shell:exit (with `pid` in payload).
         """
         if not self._is_allowed(command_name):
-            raise PermissionError(f"Execution of '{command_name}' is not allowed by shell permissions policy.")
+            raise PermissionError(
+                f"Execution of '{command_name}' is not allowed by shell permissions policy."
+            )
 
         args = args or []
         return self._spawn_process([command_name] + args)
 
     @command("shell_sidecar_spawn")
-    def sidecar_spawn(self, name: str, args: Optional[List[str]] = None) -> Dict[str, Any]:
+    def sidecar_spawn(self, name: str, args: list[str] | None = None) -> dict[str, Any]:
         """
         Spawn a sidecar securely and stream output line by line over IPC events.
         Events emitted: shell:stdout, shell:stderr, shell:exit (with `pid` in payload).
@@ -227,4 +217,4 @@ class ShellAPI:
                 subprocess.Popen(["xdg-open", path])
         except Exception as e:
             logger.error(f"Failed to open '{path}': {e}")
-            raise RuntimeError(f"Failed to open '{path}': {e}")
+            raise RuntimeError(f"Failed to open '{path}': {e}") from e

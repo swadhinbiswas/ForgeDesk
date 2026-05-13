@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
-from typing import Dict, Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +44,15 @@ class WindowStateAPI:
 
         # Resolve data directory
         from .fs import _expand_path_var
+
         data_dir = _expand_path_var("$APPDATA") / app.config.app.name
         data_dir.mkdir(parents=True, exist_ok=True)
         self._state_file = data_dir / "window_state.json"
 
-        self._save_timer: Optional[threading.Timer] = None
+        self._save_timer: threading.Timer | None = None
         self._lock = threading.Lock()
 
-        self._cache: Dict[str, Dict[str, Any]] = self._load() if self._enabled else {}
+        self._cache: dict[str, dict[str, Any]] = self._load() if self._enabled else {}
 
         # Hook window lifecycle events to keep state synced
         if self._enabled:
@@ -62,14 +63,14 @@ class WindowStateAPI:
             self._hydrate_main_config()
 
     def _hydrate_main_config(self) -> None:
-        """Inject saved width/height directly into the app config before the native engine reads it."""
+        """Inject saved width/height directly into the app config before the native engine reads it."""  # noqa: E501
         main_state = self.get_state("main")
         if main_state.get("width") and main_state["width"] > 0:
             self.app.config.window.width = int(main_state["width"])
         if main_state.get("height") and main_state["height"] > 0:
             self.app.config.window.height = int(main_state["height"])
 
-    def try_hydrate_descriptor(self, descriptor: Dict[str, Any]) -> None:
+    def try_hydrate_descriptor(self, descriptor: dict[str, Any]) -> None:
         """Mutate a secondary window creation JSON descriptor inline before it's sent to Rust."""
         if not self._enabled:
             return
@@ -91,11 +92,11 @@ class WindowStateAPI:
         if saved.get("y") is not None:
             descriptor["y"] = float(saved["y"])
 
-    def _load(self) -> Dict[str, Dict[str, Any]]:
+    def _load(self) -> dict[str, dict[str, Any]]:
         """Load persisted state from disk."""
         if self._state_file.exists():
             try:
-                with open(self._state_file, "r") as f:
+                with open(self._state_file) as f:
                     data = json.load(f)
                 if isinstance(data, dict):
                     return data
@@ -103,11 +104,11 @@ class WindowStateAPI:
                 logger.debug("Failed to load window state, starting fresh")
         return {}
 
-    def get_state(self, label: str) -> Dict[str, Any]:
+    def get_state(self, label: str) -> dict[str, Any]:
         """Get the saved state for a given window label."""
         return dict(self._cache.get(label, {}))
 
-    def clear(self, label: Optional[str] = None) -> None:
+    def clear(self, label: str | None = None) -> None:
         """Clear persisted state for a window (or all windows if no label).
 
         Args:
@@ -120,10 +121,10 @@ class WindowStateAPI:
                 self._cache.clear()
         self._save_debounced()
 
-    def snapshot(self) -> Dict[str, Dict[str, Any]]:
+    def snapshot(self) -> dict[str, dict[str, Any]]:
         """Return a diagnostic snapshot of all tracked window states."""
         with self._lock:
-            return json.loads(json.dumps(self._cache))
+            return json.loads(json.dumps(self._cache))  # type: ignore[no-any-return]
 
     def _save_debounced(self) -> None:
         """Write cached state to disk atomically."""
@@ -186,7 +187,8 @@ class WindowStateAPI:
                 else:
                     logger.debug(
                         "Saved position (%s, %s) is off-screen, using default",
-                        x, y,
+                        x,
+                        y,
                     )
 
         # Restore maximized state
