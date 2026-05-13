@@ -2,8 +2,7 @@ use pyo3::prelude::*;
 use rfd::{FileDialog, MessageDialog};
 
 #[pyclass]
-pub struct DialogManager {
-}
+pub struct DialogManager {}
 
 #[pymethods]
 impl DialogManager {
@@ -20,13 +19,20 @@ impl DialogManager {
         multiple: Option<bool>,
     ) -> PyResult<Option<Vec<String>>> {
         let mut dialog = FileDialog::new();
-        if let Some(t) = title { dialog = dialog.set_title(t); }
-        if let Some(d) = directory { dialog = dialog.set_directory(d); }
+        if let Some(t) = title {
+            dialog = dialog.set_title(t);
+        }
+        if let Some(d) = directory {
+            dialog = dialog.set_directory(d);
+        }
 
         if let Some(fj) = filters_json {
             if let Ok(filters) = serde_json::from_str::<Vec<serde_json::Value>>(fj) {
                 for filter in filters {
-                    if let (Some(name), Some(exts)) = (filter.get("name").and_then(|n| n.as_str()), filter.get("extensions").and_then(|e| e.as_array())) {
+                    if let (Some(name), Some(exts)) = (
+                        filter.get("name").and_then(|n| n.as_str()),
+                        filter.get("extensions").and_then(|e| e.as_array()),
+                    ) {
                         let e_str: Vec<&str> = exts.iter().filter_map(|e| e.as_str()).collect();
                         dialog = dialog.add_filter(name, &e_str);
                     }
@@ -36,7 +42,12 @@ impl DialogManager {
 
         if multiple.unwrap_or(false) {
             match dialog.pick_files() {
-                Some(paths) => Ok(Some(paths.into_iter().map(|p| p.to_string_lossy().to_string()).collect())),
+                Some(paths) => Ok(Some(
+                    paths
+                        .into_iter()
+                        .map(|p| p.to_string_lossy().to_string())
+                        .collect(),
+                )),
                 None => Ok(None),
             }
         } else {
@@ -47,12 +58,7 @@ impl DialogManager {
         }
     }
 
-    fn show_message(
-        &self,
-        title: &str,
-        message: &str,
-        level: &str,
-    ) -> PyResult<()> {
+    fn show_message(&self, title: &str, message: &str, level: &str) -> PyResult<()> {
         let mut dialog = MessageDialog::new()
             .set_title(title)
             .set_description(message);
@@ -67,12 +73,7 @@ impl DialogManager {
         Ok(())
     }
 
-    fn confirm(
-        &self,
-        title: &str,
-        message: &str,
-        level: &str,
-    ) -> PyResult<bool> {
+    fn confirm(&self, title: &str, message: &str, level: &str) -> PyResult<bool> {
         let mut dialog = MessageDialog::new()
             .set_title(title)
             .set_description(message)
@@ -95,14 +96,23 @@ impl DialogManager {
         filters_json: Option<&str>,
     ) -> PyResult<Option<String>> {
         let mut dialog = FileDialog::new();
-        if let Some(t) = title { dialog = dialog.set_title(t); }
-        if let Some(d) = directory { dialog = dialog.set_directory(d); }
-        if let Some(f) = file_name { dialog = dialog.set_file_name(f); }
+        if let Some(t) = title {
+            dialog = dialog.set_title(t);
+        }
+        if let Some(d) = directory {
+            dialog = dialog.set_directory(d);
+        }
+        if let Some(f) = file_name {
+            dialog = dialog.set_file_name(f);
+        }
 
         if let Some(fj) = filters_json {
             if let Ok(filters) = serde_json::from_str::<Vec<serde_json::Value>>(fj) {
                 for filter in filters {
-                    if let (Some(name), Some(exts)) = (filter.get("name").and_then(|n| n.as_str()), filter.get("extensions").and_then(|e| e.as_array())) {
+                    if let (Some(name), Some(exts)) = (
+                        filter.get("name").and_then(|n| n.as_str()),
+                        filter.get("extensions").and_then(|e| e.as_array()),
+                    ) {
                         let e_str: Vec<&str> = exts.iter().filter_map(|e| e.as_str()).collect();
                         dialog = dialog.add_filter(name, &e_str);
                     }
@@ -122,8 +132,12 @@ impl DialogManager {
         directory: Option<&str>,
     ) -> PyResult<Option<String>> {
         let mut dialog = FileDialog::new();
-        if let Some(t) = title { dialog = dialog.set_title(t); }
-        if let Some(d) = directory { dialog = dialog.set_directory(d); }
+        if let Some(t) = title {
+            dialog = dialog.set_title(t);
+        }
+        if let Some(d) = directory {
+            dialog = dialog.set_directory(d);
+        }
 
         match dialog.pick_folder() {
             Some(path) => Ok(Some(path.to_string_lossy().to_string())),

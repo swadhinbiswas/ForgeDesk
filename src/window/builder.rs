@@ -121,12 +121,7 @@ pub fn build_webview_for_window(
         move |_webview_id, request, responder| {
             let path_str = request.uri().path().to_string();
 
-            let key = if path_str.starts_with('/') {
-                &path_str[1..]
-            } else {
-                &path_str
-            }
-            .to_string();
+            let key = path_str.strip_prefix('/').unwrap_or(&path_str).to_string();
 
             std::thread::spawn(move || {
                 let result: Result<Vec<u8>, PyErr> = Python::attach(|py| {

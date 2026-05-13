@@ -49,14 +49,15 @@ pub struct NativeWindow {
 #[pymethods]
 impl NativeWindow {
     #[new]
+    #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (
         title,
         base_path,
-        width = 800.0,
-        height = 600.0,
-        fullscreen = false,
-        resizable = true,
-        decorations = true,
+        width,
+        height,
+        fullscreen,
+        resizable,
+        decorations,
         transparent = false,
         always_on_top = false,
         min_width = 400.0,
@@ -811,7 +812,7 @@ impl NativeWindow {
                                 let is_primary = runtime_window
                                     .window
                                     .primary_monitor()
-                                    .map_or(false, |pm| pm.name() == m.name());
+                                    .is_some_and(|pm| pm.name() == m.name());
                                 let mon_json = serde_json::json!({
                                     "name": m.name(),
                                     "position": { "x": start.x, "y": start.y },
