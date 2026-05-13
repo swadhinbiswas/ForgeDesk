@@ -31,7 +31,9 @@ def _normalize_paths(values: list[str]) -> list[str]:
     return [str(Path(value)) for value in values]
 
 
-def verify_release_payload(payload: dict[str, Any], *, payload_path: Path | None = None) -> dict[str, Any]:
+def verify_release_payload(
+    payload: dict[str, Any], *, payload_path: Path | None = None
+) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("Release payload must be a JSON object")
 
@@ -65,7 +67,9 @@ def verify_release_payload(payload: dict[str, Any], *, payload_path: Path | None
     if not isinstance(package_app, dict):
         raise ValueError("Package manifest app section must be an object")
     expected_package_artifacts = [path for path in build_artifacts if path not in package_files]
-    package_manifest_artifacts = _normalize_paths([str(path) for path in package_manifest.get("artifacts", [])])
+    package_manifest_artifacts = _normalize_paths(
+        [str(path) for path in package_manifest.get("artifacts", [])]
+    )
     if package_manifest_artifacts != expected_package_artifacts:
         raise ValueError(
             "Package manifest artifacts do not match build artifacts\n"
@@ -112,7 +116,10 @@ def verify_release_payload(payload: dict[str, Any], *, payload_path: Path | None
     package_manifest_in_release = release_manifest.get("packaging")
     if isinstance(package_manifest_in_release, dict):
         manifest_path_from_release = package_manifest_in_release.get("manifest_path")
-        if isinstance(manifest_path_from_release, str) and Path(manifest_path_from_release) != package_manifest_file:
+        if (
+            isinstance(manifest_path_from_release, str)
+            and Path(manifest_path_from_release) != package_manifest_file
+        ):
             raise ValueError(
                 "Release manifest packaging.manifest_path does not match package manifest path\n"
                 f"package={package_manifest_file}\n"
@@ -142,7 +149,9 @@ def verify_release_payload(payload: dict[str, Any], *, payload_path: Path | None
         if digest != entry.get("sha256"):
             raise ValueError(f"Checksum mismatch for {path}: {digest} != {entry.get('sha256')}")
 
-    version_alignment = release_manifest.get("version_alignment") or release.get("version_alignment")
+    version_alignment = release_manifest.get("version_alignment") or release.get(
+        "version_alignment"
+    )
     if isinstance(version_alignment, dict) and not version_alignment.get("aligned", False):
         mismatches = version_alignment.get("mismatches", [])
         raise ValueError("Version alignment failed:\n" + "\n".join(map(str, mismatches)))
@@ -162,7 +171,9 @@ def verify_release_payload(payload: dict[str, Any], *, payload_path: Path | None
         "artifacts": len(release_artifacts),
         "build_artifacts": len(build_artifacts),
         "package_manifest": str(package_manifest_file),
-        "release_manifest": str(release_manifest_path) if isinstance(release_manifest_path, str) else None,
+        "release_manifest": str(release_manifest_path)
+        if isinstance(release_manifest_path, str)
+        else None,
         "provenance": provenance,
     }
     if payload_path is not None:
@@ -177,8 +188,7 @@ def main() -> None:
 
     payload_path = Path(args.build_result)
     payload = _load_payload(payload_path)
-    summary = verify_release_payload(payload, payload_path=payload_path)
-    print(json.dumps(summary, indent=2, sort_keys=True))
+    verify_release_payload(payload, payload_path=payload_path)
 
 
 if __name__ == "__main__":

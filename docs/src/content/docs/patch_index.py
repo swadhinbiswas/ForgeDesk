@@ -1,6 +1,4 @@
-import re
-
-with open("index.mdx", "r") as f:
+with open("index.mdx") as f:
     content = f.read()
 
 replacement = """import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
@@ -27,7 +25,10 @@ replacement = """import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlig
 
 ## Create small, fast, secure desktop applications"""
 
-content = content.replace("import { Card, CardGrid } from '@astrojs/starlight/components';\n\n## Create small, fast, secure desktop applications", replacement)
+content = content.replace(
+    "import { Card, CardGrid } from '@astrojs/starlight/components';\n\n## Create small, fast, secure desktop applications",  # noqa: E501
+    replacement,
+)
 
 with open("index.mdx", "w") as f:
     f.write(content)

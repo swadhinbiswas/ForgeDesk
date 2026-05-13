@@ -1,6 +1,6 @@
 import re
 
-with open("index.mdx", "r") as f:
+with open("index.mdx") as f:
     content = f.read()
 
 replacement = """<Tabs>
@@ -38,7 +38,7 @@ replacement = """<Tabs>
   </TabItem>
 </Tabs>"""
 
-content = re.sub(r'<Tabs>.*?</Tabs>', replacement, content, flags=re.DOTALL)
+content = re.sub(r"<Tabs>.*?</Tabs>", replacement, content, flags=re.DOTALL)
 
 with open("index.mdx", "w") as f:
     f.write(content)

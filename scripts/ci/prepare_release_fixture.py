@@ -5,7 +5,6 @@ import shutil
 import sys
 from pathlib import Path
 
-
 IGNORE_NAMES = {
     "dist",
     "target",
@@ -42,7 +41,7 @@ def _append_config(
         f'app_id = "{app_id}"',
         f'product_name = "{product_name}"',
         'category = "Utility"',
-        "formats = [" + ", ".join(f'\"{fmt}\"' for fmt in formats) + "]",
+        "formats = [" + ", ".join(f'"{fmt}"' for fmt in formats) + "]",
     ]
 
     if signing_mode == "linux-gpg":

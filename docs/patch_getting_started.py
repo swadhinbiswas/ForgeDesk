@@ -1,9 +1,10 @@
-import re
-
-with open('src/content/docs/getting-started.mdx', 'r') as f:
+with open("src/content/docs/getting-started.mdx") as f:
     content = f.read()
 
-content = content.replace('---\n\nBuild cross-platform', '---\n\nimport { FileTree } from \'@astrojs/starlight/components\';\n\nBuild cross-platform')
+content = content.replace(
+    "---\n\nBuild cross-platform",
+    "---\n\nimport { FileTree } from '@astrojs/starlight/components';\n\nBuild cross-platform",
+)
 
 old_tree = """```text
 my-app/
@@ -35,5 +36,5 @@ new_tree = """<FileTree>
 
 content = content.replace(old_tree, new_tree)
 
-with open('src/content/docs/getting-started.mdx', 'w') as f:
+with open("src/content/docs/getting-started.mdx", "w") as f:
     f.write(content)

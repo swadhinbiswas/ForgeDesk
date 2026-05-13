@@ -11,9 +11,8 @@ Features:
 - Search notes
 """
 
-import os
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from forge import ForgeApp
 
@@ -47,12 +46,14 @@ def list_notes() -> list[dict]:
 
     for file in sorted(notes_dir.glob("*.txt"), key=lambda f: f.stat().st_mtime, reverse=True):
         stat = file.stat()
-        notes.append({
-            "name": file.stem,
-            "size": stat.st_size,
-            "modified": stat.st_mtime,
-            "modified_formatted": _format_timestamp(stat.st_mtime),
-        })
+        notes.append(
+            {
+                "name": file.stem,
+                "size": stat.st_size,
+                "modified": stat.st_mtime,
+                "modified_formatted": _format_timestamp(stat.st_mtime),
+            }
+        )
 
     return notes
 
@@ -96,7 +97,7 @@ def save_note(name: str, content: str) -> dict:
     note_path = notes_dir / f"{name}.txt"
 
     note_path.write_text(content, encoding="utf-8")
-    
+
     stat = note_path.stat()
     return {
         "success": True,
@@ -151,18 +152,20 @@ def search_notes(query: str) -> list[dict]:
             content = file.read_text(encoding="utf-8")
             if query_lower in content.lower():
                 # Find the matching line
-                for line in content.split('\n'):
+                for line in content.split("\n"):
                     if query_lower in line.lower():
                         stat = file.stat()
-                        results.append({
-                            "name": file.stem,
-                            "size": stat.st_size,
-                            "modified": stat.st_mtime,
-                            "modified_formatted": _format_timestamp(stat.st_mtime),
-                            "preview": line.strip()[:100],
-                        })
+                        results.append(
+                            {
+                                "name": file.stem,
+                                "size": stat.st_size,
+                                "modified": stat.st_mtime,
+                                "modified_formatted": _format_timestamp(stat.st_mtime),
+                                "preview": line.strip()[:100],
+                            }
+                        )
                         break
-        except (UnicodeDecodeError, PermissionError):
+        except UnicodeDecodeError, PermissionError:
             continue
 
     return results
@@ -177,7 +180,7 @@ def open_note_dialog() -> dict | None:
         Dictionary with path and content, or None if cancelled.
     """
     dialog = app.dialog
-    
+
     path = dialog.open_file(
         title="Open Note",
         filters=[{"name": "Text Files", "extensions": ["txt"]}],
@@ -207,7 +210,7 @@ def save_note_dialog(content: str, default_name: str = "note") -> str | None:
         The saved file path, or None if cancelled.
     """
     dialog = app.dialog
-    
+
     path = dialog.save_file(
         title="Save Note As",
         default_path=f"{default_name}.txt",
@@ -231,13 +234,15 @@ def get_note_stats() -> dict:
     """
     notes_dir = _get_notes_dir()
     files = list(notes_dir.glob("*.txt"))
-    
+
     total_size = sum(f.stat().st_size for f in files)
-    
+
     return {
         "count": len(files),
         "total_size": total_size,
-        "total_size_formatted": f"{total_size / 1024:.1f} KB" if total_size < 1024 * 1024 else f"{total_size / (1024 * 1024):.1f} MB",
+        "total_size_formatted": f"{total_size / 1024:.1f} KB"
+        if total_size < 1024 * 1024
+        else f"{total_size / (1024 * 1024):.1f} MB",
     }
 
 

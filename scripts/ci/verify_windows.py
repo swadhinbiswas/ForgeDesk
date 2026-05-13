@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
-import os
-
 
 VERIFYABLE_SUFFIXES = {".exe", ".msi", ".dll"}
 
 
 def _select_targets() -> list[Path]:
     artifacts = [Path(path) for path in json.loads(os.environ.get("FORGE_BUILD_ARTIFACTS", "[]"))]
-    return [path for path in artifacts if path.exists() and path.suffix.lower() in VERIFYABLE_SUFFIXES]
+    return [
+        path for path in artifacts if path.exists() and path.suffix.lower() in VERIFYABLE_SUFFIXES
+    ]
 
 
 def main() -> None:
@@ -25,7 +26,9 @@ def main() -> None:
         raise RuntimeError("No verifiable Windows artifacts were found")
 
     for target in targets:
-        subprocess.run([signtool, "verify", "/pa", str(target)], check=True, capture_output=True, text=True)
+        subprocess.run(
+            [signtool, "verify", "/pa", str(target)], check=True, capture_output=True, text=True
+        )
 
 
 if __name__ == "__main__":

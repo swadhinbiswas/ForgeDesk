@@ -1,6 +1,7 @@
+import os
 import sys
 from pathlib import Path
-import os
+
 
 def expand_path(p: str) -> Path:
     p = os.path.expandvars(p)
@@ -15,5 +16,3 @@ def expand_path(p: str) -> Path:
             p = p.replace("$APPDATA", "~/.config")
         p = os.path.expanduser(p)
     return Path(p).resolve()
-
-print(expand_path("$APPDATA/myapp"))

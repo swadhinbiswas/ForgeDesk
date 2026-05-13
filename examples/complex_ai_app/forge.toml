@@ -1,0 +1,53 @@
+[app]
+name = "complex_ai_app"
+version = "1.0.0"
+description = "A Forge desktop application with React"
+authors = ["ForgeDesk Team"]
+
+[window]
+title = "complex_ai_app"
+width = 1280
+height = 800
+resizable = true
+fullscreen = false
+min_width = 400
+min_height = 300
+decorations = true
+always_on_top = false
+transparent = false
+
+[build]
+entry = "src/main.py"
+icon = "assets/icon.png"
+output_dir = "dist"
+single_binary = true
+
+[dev]
+frontend_dir = "src/frontend"
+hot_reload = true
+port = 5173
+dev_server_command = "skip run dev"
+dev_server_url = "http://127.0.0.1:5173"
+
+[permissions]
+filesystem = true
+clipboard = true
+dialogs = true
+notifications = true
+system_tray = false
+window_state = true
+forge_extensions = true
+
+[protocol]
+schemes = ["complex_ai_app"]
+
+[packaging]
+app_id = "dev.forge.complex_ai_app"
+product_name = "complex_ai_app"
+formats = ["dir"]
+category = "Utility"
+
+[tool.forge_template]
+name = "react"
+schema_version = 1
+forge_version_range = ">=3.0.0,<4.0.0"

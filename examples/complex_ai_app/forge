@@ -1,0 +1,2 @@
+#!/bin/sh
+"/home/swadhin/Forge/forge-framework/examples/complex_ai_app/.venv/bin/forge" "$@"

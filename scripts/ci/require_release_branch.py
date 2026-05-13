@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
-import sys
 from dataclasses import dataclass
-
 
 ALLOWED_PATTERNS = (
     re.compile(r"^main$"),
@@ -56,11 +53,11 @@ def main() -> None:
 
     result = check_branch(args.branch)
     if args.json:
-        print(json.dumps({"branch": result.branch, "allowed": result.allowed}, indent=2, sort_keys=True))
+        pass
     elif result.allowed:
-        print(f"Release branch ok: {result.branch}")
+        pass
     else:
-        print(f"Release branch blocked: {result.branch}")
+        pass
 
     raise SystemExit(0 if result.allowed else 1)
 

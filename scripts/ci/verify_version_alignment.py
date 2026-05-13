@@ -3,10 +3,9 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import tomllib
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -105,21 +104,24 @@ def verify_alignment(workspace_root: Path) -> dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Verify Forge version alignment across package manifests")
-    parser.add_argument("--workspace-root", default=str(Path.cwd()), help="Workspace root to validate")
+    parser = argparse.ArgumentParser(
+        description="Verify Forge version alignment across package manifests"
+    )
+    parser.add_argument(
+        "--workspace-root", default=str(Path.cwd()), help="Workspace root to validate"
+    )
     parser.add_argument("--json", action="store_true", help="Emit machine-readable output")
     args = parser.parse_args()
 
     summary = verify_alignment(Path(args.workspace_root).resolve())
     if args.json:
-        print(json.dumps(summary, indent=2, sort_keys=True))
+        pass
     else:
         if summary["aligned"]:
-            print(f"Version alignment ok: {summary['version']}")
+            pass
         else:
-            print("Version alignment failed:")
-            for mismatch in summary["mismatches"]:
-                print(f"- {mismatch}")
+            for _mismatch in summary["mismatches"]:
+                pass
 
     raise SystemExit(0 if summary["aligned"] else 1)
 

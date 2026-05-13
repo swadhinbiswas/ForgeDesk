@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -16,7 +16,7 @@ PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _normalize_tags(tags: list[str] | None) -> list[str]:
@@ -51,7 +51,9 @@ class TodoStore:
     def _ensure(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if not self.path.exists():
-            self.path.write_text(json.dumps({"version": 1, "tasks": []}, indent=2), encoding="utf-8")
+            self.path.write_text(
+                json.dumps({"version": 1, "tasks": []}, indent=2), encoding="utf-8"
+            )
 
     def _load(self) -> dict[str, Any]:
         self._ensure()
@@ -67,7 +69,9 @@ class TodoStore:
     def _save(self, payload: dict[str, Any]) -> None:
         self.path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
-    def _normalize_task_record(self, raw: dict[str, Any], *, existing_ids: set[str] | None = None) -> dict[str, Any]:
+    def _normalize_task_record(
+        self, raw: dict[str, Any], *, existing_ids: set[str] | None = None
+    ) -> dict[str, Any]:
         title = str(raw.get("title", "")).strip()
         if not title:
             raise ValueError("Imported task title is required")
@@ -80,7 +84,7 @@ class TodoStore:
         updated_at = raw.get("updated_at") or created_at
         updated_at_epoch = raw.get("updated_at_epoch")
         if not isinstance(updated_at_epoch, (int, float)):
-            updated_at_epoch = datetime.now(timezone.utc).timestamp()
+            updated_at_epoch = datetime.now(UTC).timestamp()
         return {
             "id": task_id,
             "title": title,
@@ -105,7 +109,9 @@ class TodoStore:
             ),
         )
 
-    def list_tasks(self, *, status: str = "all", search: str = "", priority: str = "all") -> list[dict[str, Any]]:
+    def list_tasks(
+        self, *, status: str = "all", search: str = "", priority: str = "all"
+    ) -> list[dict[str, Any]]:
         tasks = self._load()["tasks"]
         query = search.strip().lower()
         filtered: list[dict[str, Any]] = []
@@ -143,7 +149,7 @@ class TodoStore:
         clean_priority = priority if priority in PRIORITY_ORDER else "medium"
         payload = self._load()
         now = _now_iso()
-        epoch = datetime.now(timezone.utc).timestamp()
+        epoch = datetime.now(UTC).timestamp()
         task = {
             "id": str(uuid4()),
             "title": clean_title,
@@ -182,7 +188,7 @@ class TodoStore:
                 task["due_date"] = _normalize_due_date(due_date)
                 task["tags"] = _normalize_tags(tags)
                 task["updated_at"] = _now_iso()
-                task["updated_at_epoch"] = datetime.now(timezone.utc).timestamp()
+                task["updated_at_epoch"] = datetime.now(UTC).timestamp()
                 self._save(payload)
                 return task
         raise FileNotFoundError(f"Task not found: {task_id}")
@@ -193,7 +199,7 @@ class TodoStore:
             if task["id"] == task_id:
                 task["completed"] = bool(completed)
                 task["updated_at"] = _now_iso()
-                task["updated_at_epoch"] = datetime.now(timezone.utc).timestamp()
+                task["updated_at_epoch"] = datetime.now(UTC).timestamp()
                 self._save(payload)
                 return task
         raise FileNotFoundError(f"Task not found: {task_id}")
@@ -229,7 +235,7 @@ class TodoStore:
                     "completed": False,
                     "created_at": now,
                     "updated_at": now,
-                    "updated_at_epoch": datetime.now(timezone.utc).timestamp(),
+                    "updated_at_epoch": datetime.now(UTC).timestamp(),
                 }
                 payload["tasks"].append(duplicate)
                 self._save(payload)
@@ -250,7 +256,7 @@ class TodoStore:
             },
             {
                 "title": "Review updater roadmap",
-                "description": "Map release automation work to installer and notarization milestones.",
+                "description": "Map release automation work to installer and notarization milestones.",  # noqa: E501
                 "priority": "medium",
                 "due_date": None,
                 "tags": ["planning"],
@@ -291,7 +297,9 @@ class TodoStore:
         merge: bool = True,
         source: str = "memory",
     ) -> dict[str, Any]:
-        source_tasks = raw_payload.get("tasks", raw_payload) if isinstance(raw_payload, dict) else raw_payload
+        source_tasks = (
+            raw_payload.get("tasks", raw_payload) if isinstance(raw_payload, dict) else raw_payload
+        )
         if not isinstance(source_tasks, list):
             raise ValueError("Imported file must contain a tasks list")
 
@@ -360,7 +368,9 @@ store = TodoStore()
 
 
 @app.command
-def list_tasks(status: str = "all", search: str = "", priority: str = "all") -> list[dict[str, Any]]:
+def list_tasks(
+    status: str = "all", search: str = "", priority: str = "all"
+) -> list[dict[str, Any]]:
     return store.list_tasks(status=status, search=search, priority=priority)
 
 

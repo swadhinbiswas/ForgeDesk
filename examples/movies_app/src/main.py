@@ -1,6 +1,7 @@
 """
 examples/movies_app - Python Backend
 """
+
 from backend.app import app
 
 if __name__ == "__main__":

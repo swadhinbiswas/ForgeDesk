@@ -1,5 +1,6 @@
 import math
 import time
+
 from forge.app import ForgeApp
 from forge.bridge import command
 
@@ -62,7 +63,6 @@ def main():
         os.environ["GDK_BACKEND"] = "x11"
         # Fix for GBM buffer / Hardware Acceleration issues on Linux
         os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
-        print("Forcing X11 backend and disabling WebKit compositing for Linux compatibility...")
 
     # Initialize the Forge V2 App
     app = ForgeApp()
@@ -71,7 +71,6 @@ def main():
     perf_api = PerformanceAPI()
     app.bridge.register_commands(perf_api)
 
-    print("Forge V2 Performance Demo Started")
     app.run(debug=True)
 
 

@@ -12,20 +12,27 @@ import time
 from pathlib import Path
 from typing import Any
 
-
 LAUNCH_SECONDS = 6
 
 
-def _run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, cwd=str(cwd) if cwd else None, env=env, check=True, capture_output=True, text=True)
+def _run(
+    command: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command, cwd=str(cwd) if cwd else None, env=env, check=True, capture_output=True, text=True
+    )
 
 
 def _launch_for_a_moment(command: list[str], *, env: dict[str, str] | None = None) -> None:
-    process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(
+        command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
     time.sleep(LAUNCH_SECONDS)
     if process.poll() not in {None, 0}:
         stdout, stderr = process.communicate(timeout=5)
-        raise RuntimeError(f"Launch failed for {' '.join(command)}\nstdout={stdout}\nstderr={stderr}")
+        raise RuntimeError(
+            f"Launch failed for {' '.join(command)}\nstdout={stdout}\nstderr={stderr}"
+        )
     process.terminate()
     try:
         process.wait(timeout=10)
@@ -43,7 +50,9 @@ def _load_payload(path: Path) -> dict[str, Any]:
     raise ValueError(f"Unsupported build payload: {path}")
 
 
-def _installers_for_platform(installers: list[dict[str, Any]], platform_name: str) -> list[dict[str, Any]]:
+def _installers_for_platform(
+    installers: list[dict[str, Any]], platform_name: str
+) -> list[dict[str, Any]]:
     if platform_name.startswith("linux"):
         supported = {"appimage", "flatpak"}
     elif platform_name == "darwin":
@@ -84,14 +93,16 @@ def _linux_smoke(installers: list[dict[str, Any]]) -> None:
             _launch_for_a_moment(command, env={**os.environ, "APPIMAGE_EXTRACT_AND_RUN": "1"})
         elif fmt == "flatpak":
             _run(["flatpak", "install", "--user", "-y", "--bundle", str(path)])
-            _run([
-                "flatpak",
-                "run",
-                "--command=sh",
-                installer["app_id"],
-                "-c",
-                "echo forge-flatpak-smoke-ok",
-            ])
+            _run(
+                [
+                    "flatpak",
+                    "run",
+                    "--command=sh",
+                    installer["app_id"],
+                    "-c",
+                    "echo forge-flatpak-smoke-ok",
+                ]
+            )
 
 
 def _macos_smoke(installers: list[dict[str, Any]]) -> None:
@@ -101,14 +112,29 @@ def _macos_smoke(installers: list[dict[str, Any]]) -> None:
         dmg_path = Path(installer["path"])
         mount_point = Path(tempfile.mkdtemp(prefix="forge-dmg-"))
         try:
-            _run(["hdiutil", "attach", str(dmg_path), "-mountpoint", str(mount_point), "-nobrowse", "-quiet"])
+            _run(
+                [
+                    "hdiutil",
+                    "attach",
+                    str(dmg_path),
+                    "-mountpoint",
+                    str(mount_point),
+                    "-nobrowse",
+                    "-quiet",
+                ]
+            )
             app_bundle = next(mount_point.glob("*.app"))
             info_plist = plistlib.loads((app_bundle / "Contents" / "Info.plist").read_bytes())
             executable = info_plist["CFBundleExecutable"]
             binary = app_bundle / "Contents" / "MacOS" / executable
             _launch_for_a_moment([str(binary)])
         finally:
-            subprocess.run(["hdiutil", "detach", str(mount_point), "-quiet"], check=False, capture_output=True, text=True)
+            subprocess.run(
+                ["hdiutil", "detach", str(mount_point), "-quiet"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
 
 
 def _find_windows_binary(install_root: Path) -> Path:
@@ -139,7 +165,9 @@ def main() -> None:
     args = parser.parse_args()
 
     payload = _load_payload(Path(args.build_result))
-    installers = _installers_for_platform(list(payload["build"].get("installers", [])), sys.platform)
+    installers = _installers_for_platform(
+        list(payload["build"].get("installers", [])), sys.platform
+    )
 
     current = sys.platform
     if current.startswith("linux"):

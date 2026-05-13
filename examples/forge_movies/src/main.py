@@ -1,5 +1,6 @@
-from forge import Forge
 from src.handlers.movies import register_movie_commands
+
+from forge import Forge
 
 app = Forge()
 

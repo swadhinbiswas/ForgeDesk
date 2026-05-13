@@ -6,13 +6,14 @@ import shutil
 import subprocess
 from pathlib import Path
 
-
 SIGNABLE_SUFFIXES = {".exe", ".msi", ".dll"}
 
 
 def _select_targets() -> list[Path]:
     artifacts = [Path(path) for path in json.loads(os.environ.get("FORGE_BUILD_ARTIFACTS", "[]"))]
-    return [path for path in artifacts if path.exists() and path.suffix.lower() in SIGNABLE_SUFFIXES]
+    return [
+        path for path in artifacts if path.exists() and path.suffix.lower() in SIGNABLE_SUFFIXES
+    ]
 
 
 def main() -> None:
