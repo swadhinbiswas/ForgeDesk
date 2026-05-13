@@ -1,5 +1,5 @@
 """
-Forge Framework v3.0.
+Forge Framework v3.0.5.
 
 Build powerful, cross-platform desktop and web applications using
 Python 3.14+ (NoGIL/free-threaded) as the backend and any web
@@ -26,7 +26,7 @@ if sys.platform.startswith("linux") and os.environ.get("XDG_SESSION_TYPE") == "w
     # Prevent WebKitGTK (WPE) crashing persistently via Protocol Error 71 on Wayland
     os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
 
-__version__ = "3.0.4"
+__version__ = "3.0.5"
 __all__ = [
     "ForgeApp",
     "ForgeConfig",

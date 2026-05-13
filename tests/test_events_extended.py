@@ -138,10 +138,10 @@ class TestMainModule:
 
 
 class TestVersionExports:
-    def test_version_is_3_0_4(self):
+    def test_version_is_3_0_5(self):
         import forge
 
-        assert forge.__version__ == "3.0.4"
+        assert forge.__version__ == "3.0.5"
 
     def test_new_exports_accessible(self):
         from forge import CircuitBreaker, CrashReporter, ErrorCode, ScopeValidator

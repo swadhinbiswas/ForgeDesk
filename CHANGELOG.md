@@ -183,12 +183,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added null byte injection prevention
 - Implemented symlink resolution and validation
 
-## [Unreleased]
+## [3.0.5] - 2026-05-13
 
-### Planned
-- Plugin system for extending Forge
-- Auto-update mechanism
-- Enhanced tray icon support across platforms
-- WebSocket support for real-time communication
-- Database API with SQLite integration
-- Notification API for system notifications
+### Added
+- Full mypy type annotation coverage across the core framework (153 type errors resolved)
+- Type annotations for all API modules, builtins, CLI, and internals
+- Type stubs for `requests` and `pyserial` dependencies
+
+### Changed
+- Bumped version to 3.0.5
+
+### Fixed
+- Resolved 1,385+ ruff lint issues across the entire codebase
+  - Modernized type annotations (UP006, UP035, UP045)
+  - Fixed import sorting (I001) across all modules
+  - Removed unused imports (F401) and unused variables (F841)
+  - Replaced `print()` calls with proper logging (T201)
+  - Fixed exception chaining with `raise ... from err` (B904)
+  - Fixed naming conventions (N805, N806, N815)
+  - Fixed bare `except` and blind exception assertions (E722, B017)
+  - Fixed async file operations (ASYNC230, ASYNC240)
+  - Removed trailing whitespace and blank line whitespace (W291, W293)
+- Formatted all 211 Python files with `ruff format` for consistent style
+- Fixed 3 Rust clippy warnings:
+  - Replaced `.map_or(false, ...)` with `.is_some_and(...)`
+  - Replaced manual string stripping with `.strip_prefix()`
+  - Added `#[allow(clippy::too_many_arguments)]` for PyO3 constructor
+- Formatted all Rust files with `cargo fmt`
+- Fixed invalid `# noqa` directive in `forge/channels.py`
+- Fixed missing `json` import in `forge/bridge.py`
+- Fixed duplicate module name conflict in example apps
+- Fixed `ForgeApp.command` redefinition warning
+- Fixed untracked `examples/complex_ai_app/` directory
+
+### Infrastructure
+- Migrated ruff linter config to `[tool.ruff.lint]` sub-section (deprecation fix)
+- Added mypy exclude patterns for examples, docs, templates
