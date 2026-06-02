@@ -141,7 +141,7 @@ class TestVersionExports:
     def test_version_is_3_0_5(self):
         import forge
 
-        assert forge.__version__ == "3.0.5"
+        assert forge.__version__ == "3.0.6"
 
     def test_new_exports_accessible(self):
         from forge import CircuitBreaker, CrashReporter, ErrorCode, ScopeValidator

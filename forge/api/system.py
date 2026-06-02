@@ -150,9 +150,22 @@ class SystemAPI:
         """
         Open a URL in the default browser.
 
+        Only http/https/mailto/tel/sms schemes are accepted. file:// and
+        javascript:/data: are rejected to avoid leaking local resources to
+        the shell or executing privileged browser contexts from the frontend.
+
         Args:
             url: The URL to open.
         """
+        from urllib.parse import urlparse
+
+        try:
+            parsed = urlparse(url)
+        except ValueError as exc:
+            raise ValueError(f"invalid URL: {exc}") from exc
+        scheme = (parsed.scheme or "").lower()
+        if scheme not in {"http", "https", "mailto", "tel", "sms"}:
+            raise ValueError(f"refusing to open URL with scheme {scheme!r}")
         webbrowser.open(url)
         logger.debug(f"Opened URL: {url}")
 

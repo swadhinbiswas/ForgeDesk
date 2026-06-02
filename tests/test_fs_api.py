@@ -168,7 +168,7 @@ class TestFileSystemAPISecurity:
             # Accessing through symlink should be blocked
             with pytest.raises(ValueError, match="outside allowed"):
                 fs_api.read("link.txt")
-        except OSError, NotImplementedError:
+        except (OSError, NotImplementedError):
             # Symlinks not supported on this system
             pytest.skip("Symlinks not supported")
 

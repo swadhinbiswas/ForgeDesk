@@ -4,16 +4,20 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import json
 import re
 import shutil
+import socket
+import ssl
 import tarfile
+import urllib.error
+import urllib.request
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
-from urllib.request import urlopen
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -22,6 +26,63 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from forge.bridge import command
 
 _ALLOWED_CHANNELS = {"stable", "beta", "nightly"}
+
+
+def _ssrf_safe_urlparse(source: str) -> Any:
+    """Parse ``source`` and reject non-HTTPS, hostname-less, or private
+    network URLs. Returns the parsed url. Raises ``ValueError`` otherwise.
+
+    - Only ``https`` is allowed for manifest and artifact downloads.
+    - Loopback / link-local / private / reserved IPs are blocked so the
+      updater cannot be coerced into fetching from internal services.
+    - ``localhost`` and bare hostnames are blocked for the same reason.
+    """
+    parsed = urlparse(source)
+    if parsed.scheme.lower() != "https":
+        raise ValueError(
+            f"Updater URLs must use https (got scheme {parsed.scheme!r})"
+        )
+    host = parsed.hostname
+    if not host:
+        raise ValueError(f"Updater URL is missing a host: {source!r}")
+
+    # Resolve to IPs and check each one is publicly routable.
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror as exc:
+        raise ValueError(f"Updater URL host cannot be resolved: {host!r}") from exc
+    for info in infos:
+        sockaddr = info[4]
+        ip_str = sockaddr[0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise ValueError(
+                f"Updater URL resolves to a non-public address: {host!r} -> {ip}"
+            )
+    return parsed
+
+
+def _https_request(source: str) -> bytes:
+    """HTTPS GET with a modern TLS minimum and forced HTTPS scheme."""
+    _ssrf_safe_urlparse(source)
+    request = urllib.request.Request(source, headers={"User-Agent": "forge-updater/1.0"})
+    ctx = ssl.create_default_context()
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    try:
+        with urllib.request.urlopen(request, context=ctx, timeout=30) as response:
+            return response.read()
+    except (urllib.error.URLError, ssl.SSLError, TimeoutError) as exc:
+        raise ValueError(f"Updater download failed for {source!r}: {exc}") from exc
 
 
 def _utc_now() -> str:
@@ -448,10 +509,17 @@ class UpdaterAPI:
     def _load_manifest(self, source: str) -> dict[str, Any]:
         parsed = urlparse(source)
         if parsed.scheme in {"http", "https"}:
-            with urlopen(source) as response:  # noqa: S310 - updater endpoint is explicit config
-                payload = response.read().decode("utf-8")
+            payload = _https_request(source).decode("utf-8")
         elif parsed.scheme == "file":
-            payload = Path(parsed.path).read_text(encoding="utf-8")
+            local = Path(parsed.path).resolve()
+            base = self._base_dir.resolve()
+            try:
+                local.relative_to(base)
+            except ValueError as exc:
+                raise ValueError(
+                    f"file:// manifest path {local} is outside {base}"
+                ) from exc
+            payload = local.read_text(encoding="utf-8")
         else:
             payload = Path(source).read_text(encoding="utf-8")
 
@@ -558,14 +626,28 @@ class UpdaterAPI:
     def _download_artifact(self, source: str, destination: Path) -> int:
         parsed = urlparse(source)
         if parsed.scheme in {"http", "https"}:
-            with urlopen(source) as response, destination.open("wb") as output:  # noqa: S310
-                total = 0
-                for chunk in iter(lambda: response.read(1024 * 1024), b""):
-                    output.write(chunk)
-                    total += len(chunk)
-                return total
+            payload = _https_request(source)
+            destination.write_bytes(payload)
+            return len(payload)
 
-        source_path = Path(parsed.path if parsed.scheme == "file" else source).resolve()
+        if parsed.scheme == "file":
+            source_path = Path(parsed.path).resolve()
+            base = self._base_dir.resolve()
+            try:
+                source_path.relative_to(base)
+            except ValueError as exc:
+                raise ValueError(
+                    f"file:// artifact path {source_path} is outside {base}"
+                ) from exc
+        else:
+            source_path = Path(source).resolve()
+            base = self._base_dir.resolve()
+            try:
+                source_path.relative_to(base)
+            except ValueError as exc:
+                raise ValueError(
+                    f"artifact path {source_path} is outside {base}"
+                ) from exc
         if not source_path.exists():
             raise FileNotFoundError(f"Updater artifact not found: {source_path}")
         shutil.copy2(source_path, destination)

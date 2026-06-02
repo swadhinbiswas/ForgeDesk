@@ -24,7 +24,7 @@ class PositionerAPI:
     def _get_screen_size(self) -> tuple[int, int]:
         """Get the primary screen size from the Rust runtime."""
         try:
-            screen_api = getattr(self._app, "_screen_api", None)
+            screen_api = getattr(self._app, "screen", None)
             if screen_api:
                 info = screen_api.get_current()
                 if info and info.get("ok"):

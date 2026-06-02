@@ -30,6 +30,7 @@ import uuid
 from collections import deque
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 from typing import Any, get_type_hints
 
 import msgspec
@@ -802,20 +803,17 @@ class IPCBridge:
                 loop = None
 
             if loop and loop.is_running():
-                # Already in an async context -- schedule and return
-                import concurrent.futures
-
-                future: concurrent.futures.Future[Any] = concurrent.futures.Future()
-
-                async def _run() -> None:
-                    try:
-                        result = await func(**args)
-                        future.set_result(result)
-                    except Exception as e:
-                        future.set_exception(e)
-
-                asyncio.ensure_future(_run())
-                return future.result(timeout=30)
+                # We're being called from a worker thread but the app loop is
+                # running elsewhere. Submit the coroutine to that loop via the
+                # thread-safe scheduler and block on the resulting future.
+                cf_future = asyncio.run_coroutine_threadsafe(func(**args), loop)
+                try:
+                    return cf_future.result(timeout=30)
+                except concurrent.futures.TimeoutError as exc:
+                    cf_future.cancel()
+                    raise TimeoutError(
+                        f"Async command {getattr(func, '__name__', '?')} timed out after 30s"
+                    ) from exc
             else:
                 return asyncio.run(func(**args))
         else:
@@ -853,7 +851,7 @@ class IPCBridge:
 
         try:
             sig = inspect.signature(func)
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             return args
 
         # Try to get type hints (may fail for builtins/C extensions)
@@ -926,10 +924,10 @@ class IPCBridge:
         if isinstance(result, (bytes, bytearray, memoryview)):
             import uuid
 
-            from forge.memory import buffers
+            from forge.memory import put as _mem_put
 
             blob_id = str(uuid.uuid4())
-            buffers[blob_id] = result
+            _mem_put(blob_id, result)
             result = {"__forge_blob": f"forge-memory://{blob_id}"}
 
         return msgspec.json.encode(

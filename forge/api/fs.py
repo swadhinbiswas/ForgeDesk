@@ -264,7 +264,7 @@ class FileSystemAPI:
         try:
             resolved = self._resolve_path(path)
             return resolved.exists()
-        except ValueError, OSError:
+        except (ValueError, OSError):
             return False
 
     def list_dir(self, path: str, include_hidden: bool = False) -> builtins.list[dict]:
@@ -307,7 +307,7 @@ class FileSystemAPI:
                         "modified": stat.st_mtime,
                     }
                 )
-            except OSError, PermissionError:
+            except (OSError, PermissionError):
                 # Skip items we can't access
                 continue
 
@@ -386,7 +386,7 @@ class FileSystemAPI:
         try:
             resolved = self._resolve_path(path)
             return resolved.is_file()
-        except ValueError, OSError:
+        except (ValueError, OSError):
             return False
 
     def is_dir(self, path: str) -> bool:
@@ -402,7 +402,7 @@ class FileSystemAPI:
         try:
             resolved = self._resolve_path(path)
             return resolved.is_dir()
-        except ValueError, OSError:
+        except (ValueError, OSError):
             return False
 
     def get_base_path(self) -> Path:

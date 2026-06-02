@@ -114,11 +114,46 @@ class WebSocketAPI:
         # Check WebSocket permission scopes
         perm = self._app.config.permissions.websocket
         if hasattr(perm, "allowed_origins") and perm.allowed_origins:
+            from urllib.parse import urlparse
+
+            try:
+                target = urlparse(url)
+            except ValueError:
+                return {"ok": False, "error": "invalid websocket URL"}
+            target_host = (target.hostname or "").lower()
+            target_scheme = (target.scheme or "").lower()
+            target_port = target.port
+
             allowed = False
             for pattern in perm.allowed_origins:
-                if url.startswith(pattern) or pattern == "*":
+                if pattern == "*":
                     allowed = True
                     break
+                # Allow patterns may be either a bare host ("api.example.com")
+                # or a URL ("wss://api.example.com[:port]"). We match scheme +
+                # host + optional port exactly to prevent suffix-confusion
+                # attacks like wss://api.example.com.evil.com matching
+                # wss://api.example.com.
+                try:
+                    parsed = urlparse(pattern)
+                except ValueError:
+                    continue
+                if parsed.scheme:
+                    pat_host = (parsed.hostname or "").lower()
+                    pat_scheme = parsed.scheme.lower()
+                    pat_port = parsed.port
+                    if (
+                        pat_scheme == target_scheme
+                        and pat_host == target_host
+                        and (pat_port is None or pat_port == target_port)
+                    ):
+                        allowed = True
+                        break
+                else:
+                    # Bare-host pattern: match host exactly.
+                    if pattern.lower() == target_host:
+                        allowed = True
+                        break
             if not allowed:
                 return {
                     "ok": False,

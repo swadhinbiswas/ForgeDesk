@@ -1,7 +1,20 @@
+import hashlib
 import plistlib
+import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
+
+
+def _stable_upgrade_code(safe_name: str) -> str:
+    """Derive a deterministic UUID5 GUID for a product so subsequent builds
+    of the same application keep the same WiX ``UpgradeCode`` (required by
+    Windows Installer for major-upgrade detection). Using a name-derived
+    UUID means we do not silently install the literal placeholder
+    ``PUT-GUID-HERE`` that would cause ``light`` to reject the build.
+    """
+    digest = hashlib.sha1(safe_name.encode("utf-8")).digest()
+    return str(uuid.UUID(bytes=digest[:16]))
 
 
 class PlistBuilder:
@@ -36,8 +49,16 @@ class WixBuilder:
         safe_name: str,
         dist_dir: Path,
         version: str = "1.0.0.0",
-        upgrade_code: str = "PUT-GUID-HERE",
+        upgrade_code: str | None = None,
     ):
+        self.app_name = app_name
+        self.safe_name = safe_name
+        self.dist_dir = dist_dir
+        self.version = version
+        # If the caller did not pass an explicit UpgradeCode, derive a
+        # stable GUID from the safe name so each product has a unique but
+        # reproducible upgrade identifier.
+        self.upgrade_code = upgrade_code or _stable_upgrade_code(safe_name)
         self.app_name = app_name
         self.safe_name = safe_name
         self.dist_dir = dist_dir

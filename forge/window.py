@@ -235,13 +235,15 @@ class WindowManagerAPI:
         if self._app._proxy is None:
             return
         payload = json.dumps(descriptor)
-        self._app._proxy.evaluate_script(f"window.__forge__.__openManagedWindow({payload})")
+        self._app._proxy.evaluate_script(
+            "main", f"window.__forge__.__openManagedWindow({payload})"
+        )
 
     def _emit_frontend_close(self, label: str) -> None:
         if self._app._proxy is None:
             return
         self._app._proxy.evaluate_script(
-            f"window.__forge__.__closeManagedWindow({json.dumps(label)})"
+            "main", f"window.__forge__.__closeManagedWindow({json.dumps(label)})"
         )
 
     def _supports_native_multiwindow(self) -> bool:
@@ -478,7 +480,7 @@ class WindowManagerAPI:
         self._windows[normalized]["title"] = title
         if self._app._proxy is not None:
             try:
-                self._app._proxy.set_title(title)
+                self._app._proxy.set_title(title, normalized)
             except Exception:
                 pass
 
@@ -497,7 +499,7 @@ class WindowManagerAPI:
         self._windows[normalized]["height"] = height_val
         if self._app._proxy is not None:
             try:
-                self._app._proxy.set_size(float(width_val), float(height_val))
+                self._app._proxy.set_size(float(width_val), float(height_val), normalized)
             except Exception:
                 pass
 
@@ -514,7 +516,7 @@ class WindowManagerAPI:
         self._windows[normalized]["y"] = y_val
         if self._app._proxy is not None:
             try:
-                self._app._proxy.set_position(float(x_val), float(y_val))
+                self._app._proxy.set_position(float(x_val), float(y_val), normalized)
             except Exception:
                 pass
 
@@ -528,7 +530,7 @@ class WindowManagerAPI:
         self._windows[normalized]["focused"] = True
         if self._app._proxy is not None:
             try:
-                self._app._proxy.focus()
+                self._app._proxy.focus(normalized)
             except Exception:
                 pass
 
@@ -543,7 +545,7 @@ class WindowManagerAPI:
         self._windows[normalized]["maximized"] = False
         if self._app._proxy is not None:
             try:
-                self._app._proxy.set_minimized(True)
+                self._app._proxy.set_minimized(True, normalized)
             except Exception:
                 pass
 
@@ -558,7 +560,7 @@ class WindowManagerAPI:
         self._windows[normalized]["minimized"] = False
         if self._app._proxy is not None:
             try:
-                self._app._proxy.set_maximized(True)
+                self._app._proxy.set_maximized(True, normalized)
             except Exception:
                 pass
 
@@ -572,7 +574,7 @@ class WindowManagerAPI:
         self._windows[normalized]["fullscreen"] = bool(enabled)
         if self._app._proxy is not None:
             try:
-                self._app._proxy.set_fullscreen(bool(enabled))
+                self._app._proxy.set_fullscreen(bool(enabled), normalized)
             except Exception:
                 pass
 
@@ -586,7 +588,7 @@ class WindowManagerAPI:
         self._windows[normalized]["visible"] = True
         if self._app._proxy is not None:
             try:
-                self._app._proxy.set_visible(True)
+                self._app._proxy.set_visible(True, normalized)
             except Exception:
                 pass
 
@@ -600,6 +602,6 @@ class WindowManagerAPI:
         self._windows[normalized]["visible"] = False
         if self._app._proxy is not None:
             try:
-                self._app._proxy.set_visible(False)
+                self._app._proxy.set_visible(False, normalized)
             except Exception:
                 pass

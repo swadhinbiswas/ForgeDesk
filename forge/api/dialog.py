@@ -21,7 +21,7 @@ class DialogAPI:
     Native Dialog OS API for Forge applications.
     """
 
-    __forge_capability__ = "dialog"
+    __forge_capability__ = "dialogs"
 
     def __init__(self) -> None:
 

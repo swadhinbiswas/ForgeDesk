@@ -29,7 +29,7 @@ class BuiltinArchiveAPI:
         try:
             p = p.resolve()
             p.relative_to(base)
-        except ValueError, OSError:
+        except (ValueError, OSError):
             return None
         return p
 

@@ -7,6 +7,8 @@ import hashlib
 import json
 import logging
 import secrets
+import threading
+import time
 from typing import Any
 
 import requests
@@ -17,6 +19,14 @@ _CAP = "forge_extensions"
 
 # state -> { verifier: str, created: float }
 _pkce_store: dict[str, dict[str, Any]] = {}
+_pkce_lock = threading.Lock()
+_PKCE_TTL_SECONDS = 600.0
+
+
+def _purge_expired_pkce(now: float) -> None:
+    expired = [k for k, v in _pkce_store.items() if now - v.get("created", 0.0) > _PKCE_TTL_SECONDS]
+    for k in expired:
+        _pkce_store.pop(k, None)
 
 
 class BuiltinAuthAPI:
@@ -29,7 +39,14 @@ class BuiltinAuthAPI:
             b"="
         )
         state = secrets.token_urlsafe(32)
-        _pkce_store[state] = {"verifier": verifier, "redirect_uri": redirect_uri}
+        with _pkce_lock:
+            now = time.monotonic()
+            _purge_expired_pkce(now)
+            _pkce_store[state] = {
+                "verifier": verifier,
+                "redirect_uri": redirect_uri,
+                "created": now,
+            }
         return {
             "state": state,
             "code_verifier": verifier,
@@ -47,7 +64,10 @@ class BuiltinAuthAPI:
         client_secret: str | None = None,
     ) -> dict[str, Any]:
         """Exchange authorization ``code`` for tokens (POST to ``token_url``)."""
-        rec = _pkce_store.pop(state, None)
+        with _pkce_lock:
+            now = time.monotonic()
+            _purge_expired_pkce(now)
+            rec = _pkce_store.pop(state, None)
         if not rec:
             return {"ok": False, "error": "invalid or expired state"}
         data = {

@@ -108,9 +108,10 @@ class ChannelManager:
                 return False
             record.message_count += 1
             proxy = record.proxy
+            target_label = record.target_label
 
         if proxy is not None:
-            self._deliver(proxy, channel_id, data, done=False)
+            self._deliver(proxy, channel_id, data, done=False, target_label=target_label)
             return True
         return False
 
@@ -129,9 +130,10 @@ class ChannelManager:
                 return False
             record.closed = True
             proxy = record.proxy
+            target_label = record.target_label
 
         if proxy is not None:
-            self._deliver(proxy, channel_id, None, done=True)
+            self._deliver(proxy, channel_id, None, done=True, target_label=target_label)
         return True
 
     def list_channels(self) -> list[dict[str, Any]]:
@@ -159,7 +161,14 @@ class ChannelManager:
         return count
 
     @staticmethod
-    def _deliver(proxy: Any, channel_id: str, data: Any, *, done: bool) -> None:
+    def _deliver(
+        proxy: Any,
+        channel_id: str,
+        data: Any,
+        *,
+        done: bool,
+        target_label: str = "main",
+    ) -> None:
         """Deliver a channel message to the frontend via WindowProxy."""
         import json  # noqa: F401  # delayed to avoid circular
 
@@ -175,6 +184,6 @@ class ChannelManager:
 
         script = f"window.__forge__._handleMessage({payload})"
         try:
-            proxy.evaluate_script(script)
+            proxy.evaluate_script(target_label, script)
         except Exception as exc:
             logger.error("Channel %s delivery failed: %s", channel_id, exc)

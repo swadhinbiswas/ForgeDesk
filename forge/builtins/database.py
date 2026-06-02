@@ -19,8 +19,13 @@ class BuiltinDatabaseAPI:
 
     def __init__(self, app: Any) -> None:
         self._app = app
-        self._lock = threading.Lock()
-        self._sqlite: dict[str, sqlite3.Connection] = {}
+        # Map of connection_id -> (sqlite3.Connection, per-connection Lock).
+        # We keep the connections in the default ``check_same_thread=True``
+        # mode (the safe default for sqlite) and serialise every operation
+        # on the per-connection lock. The registry itself is guarded by
+        # ``_registry_lock`` only for the open/close cases.
+        self._sqlite: dict[str, tuple[sqlite3.Connection, threading.Lock]] = {}
+        self._registry_lock = threading.Lock()
 
     def _resolve_path(self, path: str) -> Path:
         raw = Path(path).expanduser()
@@ -33,8 +38,9 @@ class BuiltinDatabaseAPI:
         p = self._resolve_path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
         cid = str(uuid.uuid4())
-        with self._lock:
-            self._sqlite[cid] = sqlite3.connect(str(p), check_same_thread=False)
+        conn = sqlite3.connect(str(p))
+        with self._registry_lock:
+            self._sqlite[cid] = (conn, threading.Lock())
         return {"connection_id": cid, "path": str(p)}
 
     def sqlite_execute(
@@ -44,20 +50,25 @@ class BuiltinDatabaseAPI:
         params: list[Any] | None = None,
     ) -> dict[str, Any]:
         """Run SQL (INSERT/UPDATE/DDL). Params are passed as a list for ``?`` placeholders."""
-        with self._lock:
-            conn = self._sqlite.get(connection_id)
-        if conn is None:
+        entry = self._sqlite.get(connection_id)
+        if entry is None:
             return {"ok": False, "error": "unknown connection_id"}
+        conn, conn_lock = entry
         try:
-            cur = conn.cursor()
-            if params:
-                cur.execute(sql, params)
-            else:
-                cur.execute(sql)
-            conn.commit()
-            return {"ok": True, "rowcount": cur.rowcount}
+            with conn_lock:
+                cur = conn.cursor()
+                if params:
+                    cur.execute(sql, params)
+                else:
+                    cur.execute(sql)
+                conn.commit()
+                return {"ok": True, "rowcount": cur.rowcount}
         except Exception as exc:
             logger.exception("sqlite_execute")
+            try:
+                conn.rollback()
+            except Exception:
+                pass
             return {"ok": False, "error": str(exc)}
 
     def sqlite_query(
@@ -67,32 +78,35 @@ class BuiltinDatabaseAPI:
         params: list[Any] | None = None,
     ) -> dict[str, Any]:
         """Run a SELECT; returns rows as list of lists (JSON-serializable)."""
-        with self._lock:
-            conn = self._sqlite.get(connection_id)
-        if conn is None:
+        entry = self._sqlite.get(connection_id)
+        if entry is None:
             return {"ok": False, "error": "unknown connection_id", "rows": []}
+        conn, conn_lock = entry
         try:
-            cur = conn.cursor()
-            if params:
-                cur.execute(sql, params)
-            else:
-                cur.execute(sql)
-            rows = cur.fetchall()
-            colnames = [d[0] for d in cur.description] if cur.description else []
-            return {"ok": True, "columns": colnames, "rows": [list(r) for r in rows]}
+            with conn_lock:
+                cur = conn.cursor()
+                if params:
+                    cur.execute(sql, params)
+                else:
+                    cur.execute(sql)
+                rows = cur.fetchall()
+                colnames = [d[0] for d in cur.description] if cur.description else []
+                return {"ok": True, "columns": colnames, "rows": [list(r) for r in rows]}
         except Exception as exc:
             logger.exception("sqlite_query")
             return {"ok": False, "error": str(exc), "rows": []}
 
     def sqlite_close(self, connection_id: str) -> bool:
-        with self._lock:
-            conn = self._sqlite.pop(connection_id, None)
-        if conn is None:
+        with self._registry_lock:
+            entry = self._sqlite.pop(connection_id, None)
+        if entry is None:
             return False
-        try:
-            conn.close()
-        except Exception:
-            pass
+        conn, conn_lock = entry
+        with conn_lock:
+            try:
+                conn.close()
+            except Exception:
+                pass
         return True
 
     def kv_open(self, path: str) -> dict[str, Any]:

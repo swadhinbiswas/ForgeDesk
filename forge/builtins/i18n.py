@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,7 @@ class BuiltinI18nAPI:
     def __init__(self, app: Any) -> None:
         self._app = app
         self._bundles: dict[str, dict[str, str]] = {}
+        self._lock = threading.Lock()
 
     def _under_base(self, path: str) -> Path | None:
         base = self._app.config.get_base_dir().resolve()
@@ -53,7 +55,8 @@ class BuiltinI18nAPI:
             data = json.loads(p.read_text(encoding="utf-8"))
             flat: dict[str, str] = {}
             _flatten("", data, flat)
-            self._bundles[locale] = {**self._bundles.get(locale, {}), **flat}
+            with self._lock:
+                self._bundles[locale] = {**self._bundles.get(locale, {}), **flat}
             return {"ok": True, "locale": locale, "keys": len(flat)}
         except Exception as exc:
             logger.exception("load_json")
@@ -61,15 +64,17 @@ class BuiltinI18nAPI:
 
     def translate(self, locale: str, key: str, default: str | None = None) -> dict[str, Any]:
         """Translate a flattened key for ``locale``."""
-        bundle = self._bundles.get(locale, {})
-        val = bundle.get(key)
+        with self._lock:
+            bundle = self._bundles.get(locale, {})
+            val = bundle.get(key)
         if val is None:
             return {"ok": True, "text": default if default is not None else key, "missing": True}
         return {"ok": True, "text": val, "missing": False}
 
     def list_locales(self) -> dict[str, Any]:
         """Return loaded locale tags."""
-        return {"locales": sorted(self._bundles.keys())}
+        with self._lock:
+            return {"locales": sorted(self._bundles.keys())}
 
 
 def register(app: Any) -> None:

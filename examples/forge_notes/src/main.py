@@ -165,7 +165,7 @@ def search_notes(query: str) -> list[dict]:
                             }
                         )
                         break
-        except UnicodeDecodeError, PermissionError:
+        except (UnicodeDecodeError, PermissionError):
             continue
 
     return results

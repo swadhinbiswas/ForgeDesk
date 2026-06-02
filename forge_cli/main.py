@@ -65,8 +65,8 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-# Version
-VERSION = "3.0.4"
+# Version — kept in sync with forge_cli/__init__.py and pyproject.toml
+VERSION = "3.0.6"
 
 _STATUS_ICON = {
     "ok": "✓",
@@ -425,6 +425,34 @@ def _artifact_snapshot(path: Path) -> set[str]:
 
 def _slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-") or "forge-app"
+
+
+def _detect_source_commit(project_dir: Path) -> str:
+    """Return the current HEAD commit SHA for provenance, or ``"uncommitted"``.
+
+    Walks up from ``project_dir`` to find the enclosing git repository.
+    Falls back to a stable ``"uncommitted"`` marker if git is unavailable
+    or the project is not inside a working tree, so downstream consumers
+    do not see the misleading placeholder ``"abc123"`` that we used to
+    emit unconditionally.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(project_dir),
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return "uncommitted"
+    if result.returncode != 0:
+        return "uncommitted"
+    sha = (result.stdout or "").strip()
+    if not sha:
+        return "uncommitted"
+    return sha
 
 
 def _is_free_threaded() -> tuple[bool | None, str]:
@@ -1173,7 +1201,16 @@ def _write_ar_archive(archive_path: Path, members: list[tuple[str, bytes]]) -> N
         handle.write(b"!<arch>\n")
         timestamp = str(int(time.time())).encode("ascii")
         for name, payload in members:
-            encoded_name = f"{name}/"[:16].ljust(16).encode("ascii")
+            # AR member names are limited to 16 bytes. Deb archives use
+            # exact names (no trailing slash) like ``debian-binary``,
+            # ``control.tar.gz``, ``data.tar.xz``. We truncate the
+            # trailing-slash convention used by some BSD ar variants and
+            # reject members that would overflow the field.
+            if len(name) > 16:
+                raise ValueError(
+                    f"AR member name {name!r} exceeds the 16-byte limit"
+                )
+            encoded_name = name.encode("ascii").ljust(16)
             header = (
                 encoded_name
                 + timestamp.ljust(12)
@@ -2215,7 +2252,7 @@ def _graceful_kill(process: subprocess.Popen, *, timeout: int = 5) -> None:
             os.killpg(os.getpgid(process.pid), 15)  # SIGTERM to group
         else:
             process.terminate()
-    except OSError, ProcessLookupError:
+    except (OSError, ProcessLookupError):
         pass
     try:
         process.wait(timeout=timeout)
@@ -2225,7 +2262,7 @@ def _graceful_kill(process: subprocess.Popen, *, timeout: int = 5) -> None:
                 os.killpg(os.getpgid(process.pid), 9)  # SIGKILL
             else:
                 process.kill()
-        except OSError, ProcessLookupError:
+        except (OSError, ProcessLookupError):
             pass
         try:
             process.wait(timeout=3)
@@ -2644,8 +2681,21 @@ def create_project(
             else:
                 tailwind = False
 
-    # Create project directory
-    project_dir = Path.cwd() / name
+    # Create project directory — validate name to prevent directory traversal / data loss.
+    name = name.strip()
+    if not name or name in (".", "..") or any(sep in name for sep in ("/", "\\", "\x00")):
+        console.print(
+            "[red]Invalid project name. Names cannot contain path separators or be empty.[/]"
+        )
+        raise typer.Exit(1)
+
+    cwd = Path.cwd().resolve()
+    project_dir = (cwd / name).resolve()
+    # Project dir must be a direct child of cwd.
+    if project_dir.parent != cwd or project_dir == cwd:
+        console.print(f"[red]Refusing to create project outside current directory: {name}[/]")
+        raise typer.Exit(1)
+
     if project_dir.exists():
         if not Confirm.ask(f"[yellow]Directory '{name}' already exists. Overwrite?[/]"):
             raise typer.Exit(0)
@@ -3229,7 +3279,10 @@ def _build_desktop(
             build_args.extend([f"--include-data-file={project_dir / 'forge.toml'}=forge.toml"])
 
         if config.build.icon and (project_dir / config.build.icon).exists():
-            build_args.extend(["--linux-icon=" + str(project_dir / config.build.icon)])
+            # --linux-icon is only valid on Linux; passing it on macOS/Windows
+            # causes Nuitka to error out. Scope the flag to the current host.
+            if sys.platform.startswith("linux"):
+                build_args.extend(["--linux-icon=" + str(project_dir / config.build.icon)])
 
         build_args.append(str(entry_path))
 
@@ -3327,7 +3380,7 @@ def _build_desktop(
         "installers": installers,
         "signing": signing_pipeline["signing"],
         "notarization": signing_pipeline["notarization"],
-        "provenance": {"workspace_root": str(project_dir), "source_commit": "abc123"},
+        "provenance": {"workspace_root": str(project_dir), "source_commit": _detect_source_commit(project_dir)},
         "version_alignment": {"aligned": True},
     }
 

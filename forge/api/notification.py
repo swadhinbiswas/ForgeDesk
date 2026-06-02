@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any
 
 from forge.bridge import command
@@ -21,11 +22,15 @@ class NotificationAPI:
         self._manager = NotificationManager()
         self._history: list[dict[str, Any]] = []
         self._max_history = 50
+        self._lock = threading.Lock()
 
     def _record(self, payload: dict[str, Any]) -> dict[str, Any]:
-        self._history.append(payload)
-        if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history :]
+        with self._lock:
+            self._history.append(payload)
+            if len(self._history) > self._max_history:
+                # Replace contents to keep the same list object identity
+                # under the lock, avoiding a transient empty list.
+                del self._history[:-self._max_history]
         self._app.emit("notification:sent", payload)
         return payload
 
@@ -70,16 +75,20 @@ class NotificationAPI:
     @command("notification_state")
     def state(self) -> dict[str, Any]:
         """Return notification backend and delivery history information."""
+        with self._lock:
+            last = self._history[-1] if self._history else None
+            count = len(self._history)
         return {
             "backend": "notify-rust",
             "backend_available": True,
-            "sent_count": len(self._history),
-            "last": self._history[-1] if self._history else None,
+            "sent_count": count,
+            "last": last,
         }
 
     @command("notification_history")
     def history(self, limit: int | None = 20) -> list[dict[str, Any]]:
         """Return recently sent notification metadata."""
-        if limit is None or limit <= 0:
-            return list(self._history)
-        return self._history[-int(limit) :]
+        with self._lock:
+            if limit is None or limit <= 0:
+                return list(self._history)
+            return list(self._history[-int(limit) :])

@@ -79,9 +79,28 @@ cd ../create-forge-app && npm pack
 - installer smoke-test helpers now exist
 - signing helper selectors now exist for Windows and macOS validation paths
 - reusable version-alignment helper now exists for publish workflows
+- v3.0.6 hardening pass (security, correctness, NoGIL safety) merged
 
 ### Still required before first public publish
 - replace placeholder project email/URLs if needed
 - confirm final GitHub org/repo and package ownership
 - reserve package names on PyPI/npm if not already reserved
 - run one test release to TestPyPI and npm dry-run locally or in CI
+
+## v3.0.6 release
+
+See [RELEASE_NOTES_v3.0.6.md](RELEASE_NOTES_v3.0.6.md) for the full
+release notes. Summary:
+
+- **Security:** custom protocol path traversal closed, updater
+  forced to HTTPS with private-IP rejection, WebSocket origin
+  allowlist hardened, browser opener restricted to safe URL
+  schemes, PKCE store + cloud sync path containment added.
+- **Correctness:** updater rewritten with mandatory signature
+  verification, several attribute-name and import bugs fixed in
+  the Python framework, CLI rmtree / WiX UpgradeCode / .deb AR
+  archive / Nuitka `--linux-icon` all hardened.
+- **NoGIL safety:** every shared in-memory dict now lock-protected;
+  `forge.memory` exposes a locked `put`/`get`/`take` API used by
+  both the Python writer and the Rust `forge-memory://` protocol
+  handler.

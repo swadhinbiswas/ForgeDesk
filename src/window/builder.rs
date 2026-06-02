@@ -81,35 +81,40 @@ pub fn build_webview_for_window(
 
                 // Default deny if Python errors out or rejects
                 if !is_allowed.unwrap_or(false) {
-                    let builder = wry::http::Response::builder()
+                    let body =
+                        format!("Access Denied by Scope Validator: {}", decoded).into_bytes();
+                    let response = wry::http::Response::builder()
                         .status(403)
-                        .header("Content-Type", "text/plain");
-                    return responder.respond(
-                        builder
-                            .body(
-                                format!(
-                                    "Access Denied by
- Scope Validator: {}",
-                                    decoded
-                                )
-                                .into_bytes(),
-                            )
-                            .unwrap(),
-                    );
+                        .header("Content-Type", "text/plain")
+                        .body(Cow::Owned(body))
+                        .unwrap_or_else(|_| wry::http::Response::new(Cow::Borrowed(&[][..])));
+                    return responder.respond(response);
                 }
 
                 if let Ok(content) = fs::read(&file_path) {
                     let mime = mime_from_path(&file_path.to_string_lossy());
                     let builder = wry::http::Response::builder().header("Content-Type", mime);
 
-                    let response = builder.body(Cow::Owned(content)).unwrap();
-                    responder.respond(response);
+                    match builder.body(Cow::Owned(content)) {
+                        Ok(response) => responder.respond(response),
+                        Err(_) => {
+                            let _ = responder.respond(
+                                wry::http::Response::builder()
+                                    .status(500)
+                                    .body(Cow::Borrowed("Response build error".as_bytes()))
+                                    .unwrap_or_else(|_| {
+                                        wry::http::Response::new(Cow::Borrowed(&[][..]))
+                                    }),
+                            );
+                        }
+                    }
                 } else {
-                    let response = wry::http::Response::builder()
-                        .status(404)
-                        .body(Cow::Borrowed("File not found".as_bytes()))
-                        .unwrap();
-                    responder.respond(response);
+                    let _ = responder.respond(
+                        wry::http::Response::builder()
+                            .status(404)
+                            .body(Cow::Borrowed("File not found".as_bytes()))
+                            .unwrap_or_else(|_| wry::http::Response::new(Cow::Borrowed(&[][..]))),
+                    );
                 }
             });
         },
@@ -125,26 +130,21 @@ pub fn build_webview_for_window(
 
             std::thread::spawn(move || {
                 let result: Result<Vec<u8>, PyErr> = Python::attach(|py| {
-                    // Fetch from `forge.memory.buffers`
+                    // Fetch and remove the entry in a single locked call so we
+                    // never race with the Python writer path on NoGIL.
                     let forge_module = py.import("forge.memory")?;
-                    let buffers = forge_module.getattr("buffers")?;
-                    let memory_dict = buffers.cast::<pyo3::types::PyDict>()?;
+                    let take_fn = forge_module.getattr("take")?;
+                    let value = take_fn.call1((&key,))?;
 
-                    if let Some(py_bytes) = memory_dict.get_item(&key)? {
-                        // Extract into bytes slice directly avoiding any other conversions
-                        let extracted = py_bytes.cast::<pyo3::types::PyBytes>()?;
-                        let vec_bytes = extracted.as_bytes().to_vec();
-
-                        // Auto-clear memory inside Python so RAM is freed instantly
-                        let _ = memory_dict.del_item(&key);
-
-                        Ok(vec_bytes)
-                    } else {
-                        Err(pyo3::exceptions::PyKeyError::new_err(format!(
+                    if value.is_none() {
+                        return Err(pyo3::exceptions::PyKeyError::new_err(format!(
                             "Memory {} not found",
                             key
-                        )))
+                        )));
                     }
+
+                    let py_bytes = value.cast::<pyo3::types::PyBytes>()?;
+                    Ok(py_bytes.as_bytes().to_vec())
                 });
 
                 match result {
@@ -152,19 +152,31 @@ pub fn build_webview_for_window(
                         let mime = mime_from_path(&key);
                         let builder = wry::http::Response::builder().header("Content-Type", mime);
 
-                        let response = builder.body(Cow::Owned(content)).unwrap();
-                        responder.respond(response);
+                        match builder.body(Cow::Owned(content)) {
+                            Ok(response) => responder.respond(response),
+                            Err(_) => {
+                                let _ = responder.respond(
+                                    wry::http::Response::builder()
+                                        .status(500)
+                                        .body(Cow::Borrowed("Response build error".as_bytes()))
+                                        .unwrap_or_else(|_| {
+                                            wry::http::Response::new(Cow::Borrowed(&[][..]))
+                                        }),
+                                );
+                            }
+                        }
                     }
                     Err(e) => {
                         eprintln!(
                             "[forge-core] forge-memory:// fetch failed for key {}: {:?}",
                             key, e
                         );
-                        let response = wry::http::Response::builder()
-                            .status(404)
-                            .body(Cow::Borrowed("Memory not found or not bytes".as_bytes()))
-                            .unwrap();
-                        responder.respond(response);
+                        let _ = responder.respond(
+                            wry::http::Response::builder()
+                                .status(404)
+                                .body(Cow::Borrowed("Memory not found or not bytes".as_bytes()))
+                                .unwrap_or_else(|_| wry::http::Response::new(Cow::Borrowed(&[][..]))),
+                        );
                     }
                 }
             });
@@ -176,33 +188,85 @@ pub fn build_webview_for_window(
         "forge".into(),
         move |_webview_id, request, responder| {
             let path = request.uri().path().to_string();
-            let mut file_path = root_path.clone();
+            let root_clone = root_path.clone();
             let csp = runtime_csp();
 
             std::thread::spawn(move || {
-                let relative_path = if path == "/" {
-                    "index.html"
+                let decoded_path = urlencoding::decode(&path)
+                    .map(|c| c.into_owned())
+                    .unwrap_or_else(|_| path.clone());
+                let relative_path = if decoded_path == "/" {
+                    "index.html".to_string()
                 } else {
-                    &path[1..]
+                    decoded_path.trim_start_matches('/').to_string()
                 };
-                file_path.push(relative_path);
 
-                if let Ok(content) = fs::read(&file_path) {
-                    let mime = mime_from_path(&path);
+                let candidate = root_clone.join(&relative_path);
+
+                // Canonicalize both root and target, then verify containment.
+                // Reject any path that escapes the project root.
+                let root_canonical = match std::fs::canonicalize(&root_clone) {
+                    Ok(p) => p,
+                    Err(_) => {
+                        let _ = responder.respond(
+                            wry::http::Response::builder()
+                                .status(500)
+                                .body(Cow::Borrowed("Root not accessible".as_bytes()))
+                                .unwrap_or_else(|_| wry::http::Response::new(Cow::Borrowed(&[][..]))),
+                        );
+                        return;
+                    }
+                };
+                let resolved = match std::fs::canonicalize(&candidate) {
+                    Ok(p) => p,
+                    Err(_) => {
+                        let _ = responder.respond(
+                            wry::http::Response::builder()
+                                .status(404)
+                                .body(Cow::Borrowed("File not found".as_bytes()))
+                                .unwrap_or_else(|_| wry::http::Response::new(Cow::Borrowed(&[][..]))),
+                        );
+                        return;
+                    }
+                };
+                if !resolved.starts_with(&root_canonical) {
+                    let _ = responder.respond(
+                        wry::http::Response::builder()
+                            .status(403)
+                            .body(Cow::Borrowed("Path traversal blocked".as_bytes()))
+                            .unwrap_or_else(|_| wry::http::Response::new(Cow::Borrowed(&[][..]))),
+                    );
+                    return;
+                }
+
+                if let Ok(content) = fs::read(&resolved) {
+                    let mime = mime_from_path(&decoded_path);
                     let mut builder = wry::http::Response::builder().header("Content-Type", mime);
 
                     if mime == "text/html" {
                         builder = builder.header("Content-Security-Policy", csp.as_str());
                     }
 
-                    let response = builder.body(Cow::Owned(content)).unwrap();
-                    responder.respond(response);
+                    match builder.body(Cow::Owned(content)) {
+                        Ok(response) => responder.respond(response),
+                        Err(_) => {
+                            let _ = responder.respond(
+                                wry::http::Response::builder()
+                                    .status(500)
+                                    .body(Cow::Borrowed("Response build error".as_bytes()))
+                                    .unwrap_or_else(|_| {
+                                        wry::http::Response::new(Cow::Borrowed(&[][..]))
+                                    }),
+                            );
+                        }
+                    }
                 } else {
-                    let response = wry::http::Response::builder()
-                        .status(404)
-                        .body(Cow::Borrowed("File not found".as_bytes()))
-                        .unwrap();
-                    responder.respond(response);
+                    let _ = responder.respond(
+                        wry::http::Response::builder()
+                            .status(404)
+                            .body(Cow::Borrowed("File not found".as_bytes()))
+                            .unwrap_or_else(|_| wry::http::Response::new(Cow::Borrowed(&[][..]))),
+                    );
                 }
             });
         },
@@ -245,10 +309,10 @@ pub fn build_webview_for_window(
     {
         use tao::platform::unix::WindowExtUnix;
         use wry::WebViewBuilderExtUnix;
-        let vbox = window.default_vbox().expect(
-            "tao window should have a default vbox; \
-             did you disable it with with_default_vbox(false)?",
-        );
+        let vbox = window.default_vbox().ok_or_else(|| {
+            "tao window has no default vbox; did you disable it with with_default_vbox(false)?"
+                .to_string()
+        })?;
         webview_builder
             .build_gtk(vbox)
             .map_err(|error| error.to_string())

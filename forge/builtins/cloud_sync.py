@@ -51,14 +51,31 @@ class BuiltinCloudSyncAPI:
         endpoint_url: str | None = None,
         region: str | None = None,
     ) -> dict[str, Any]:
-        """Upload a file from disk (path resolved under app base if relative)."""
+        """Upload a file from disk (path resolved under app base; must stay inside it)."""
         try:
             import boto3  # type: ignore[import-untyped]
         except ImportError:
             return {"ok": False, "error": "install boto3 for S3 support"}
+        try:
+            base = Path(self._app.config.get_base_dir()).resolve()
+        except Exception as exc:
+            return {"ok": False, "error": f"base dir unavailable: {exc}"}
+
         p = Path(local_path).expanduser()
         if not p.is_absolute():
-            p = (self._app.config.get_base_dir() / p).resolve()
+            p = (base / p).resolve()
+        else:
+            p = p.resolve()
+
+        # Containment check: refuse uploads of files outside the project base.
+        try:
+            p.relative_to(base)
+        except ValueError:
+            return {
+                "ok": False,
+                "error": f"refusing upload: path {p} is outside project base {base}",
+            }
+
         if not p.is_file():
             return {"ok": False, "error": f"file not found: {p}"}
         try:

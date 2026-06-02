@@ -166,14 +166,25 @@ class EventEmitter:
         # Schedule asynchronous callbacks
         if async_callbacks:
             try:
-                asyncio.get_running_loop()
-                for callback in async_callbacks:
-                    asyncio.ensure_future(self._call_async_callback(callback, event, data))
+                running_loop = asyncio.get_running_loop()
             except RuntimeError:
-                # No event loop running -- call synchronously as fallback
+                running_loop = None
+
+            if running_loop is not None:
+                for callback in async_callbacks:
+                    running_loop.create_task(
+                        self._call_async_callback(callback, event, data)
+                    )
+            else:
+                # No event loop running -- run coroutine callbacks to
+                # completion via asyncio.run so the listener is actually
+                # awaited, otherwise plain sync callbacks just get called.
                 for callback in async_callbacks:
                     try:
-                        callback(data)
+                        if asyncio.iscoroutinefunction(callback):
+                            asyncio.run(self._call_async_callback(callback, event, data))
+                        else:
+                            callback(data)
                     except Exception as e:
                         logger.error(f"Error in async event listener for '{event}': {e}")
 

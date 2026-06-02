@@ -72,13 +72,16 @@ class BuiltinLocalLLMAPI:
         if not self._llm:
             return {"ok": False, "error": "No model loaded. Call llm_load first."}
 
-        # We start a streaming task in the background using Forge's background task API
-        def _stream_task() -> None:
+        # We start a streaming task in the background using Forge's background task API.
+        # TaskManager.start expects fn(cancel_event, *args, **kwargs) for non-interval tasks.
+        def _stream_task(cancel_event: Any) -> None:
             try:
                 stream = self._llm.create_chat_completion(
                     messages=messages, max_tokens=max_tokens, temperature=temperature, stream=True
                 )
                 for chunk in stream:
+                    if cancel_event.is_set():
+                        break
                     delta = chunk["choices"][0]["delta"]
                     if "content" in delta:
                         # Push updates over our high speed IPC event stream channel
@@ -90,10 +93,10 @@ class BuiltinLocalLLMAPI:
                 self._app.events.emit(channel_id, {"type": "error", "error": str(exc)})
 
         try:
-            self._app.tasks.spawn(_stream_task)
+            self._app.tasks.start(f"llm_chat_stream:{channel_id}", _stream_task)
             return {"ok": True, "stream_channel": channel_id}
         except Exception as exc:
-            logger.exception("llm_chat_stream task spawn")
+            logger.exception("llm_chat_stream task start")
             return {"ok": False, "error": str(exc)}
 
 

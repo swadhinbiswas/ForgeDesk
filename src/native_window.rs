@@ -663,6 +663,25 @@ impl NativeWindow {
                             .with_transparent(descriptor.transparent)
                             .with_always_on_top(descriptor.always_on_top);
 
+                        // Honour explicit x/y in the descriptor when present
+                        // so the caller can position secondary windows
+                        // rather than letting the WM choose.
+                        if let (Some(x), Some(y)) = (descriptor.x, descriptor.y) {
+                            #[cfg(not(target_os = "linux"))]
+                            {
+                                child_builder = child_builder
+                                    .with_position(tao::dpi::LogicalPosition::new(x, y));
+                            }
+                            // Linux: position is applied post-build via
+                            // gtk_window.move() because GTK ignores the
+                            // tao LogicalPosition at build time when a
+                            // default vbox is used.
+                            #[cfg(target_os = "linux")]
+                            {
+                                let _ = (x, y);
+                            }
+                        }
+
                         #[cfg(target_os = "windows")]
                         if let Some(parent_label) = &descriptor.parent_label {
                             if let Some(parent_id) = labels_to_id.get(parent_label) {
@@ -674,16 +693,35 @@ impl NativeWindow {
                             }
                         }
 
-                        #[cfg(target_os = "macos")]
-                        if let Some(parent_label) = &descriptor.parent_label {
-                            if let Some(parent_id) = labels_to_id.get(parent_label) {
-                                if let Some(_parent_rt) = windows_by_id.get(parent_id) {
-                                    use tao::platform::macos::WindowExtMacOS;
+                        if let Ok(child_window) = child_builder.build(target) {
+                            #[cfg(target_os = "macos")]
+                            if let Some(parent_label) = &descriptor.parent_label {
+                                if let Some(_parent_id) = labels_to_id.get(parent_label) {
+                                    // tao 0.34's macOS backend does not
+                                    // expose a stable builder hook for
+                                    // reparenting one NSWindow onto
+                                    // another; the upstream tracking
+                                    // issue is tao#238. Until a public
+                                    // API lands we record the
+                                    // requested parent in the runtime
+                                    // entry and emit a debug event so
+                                    // callers can detect that the
+                                    // parenting request was noted but
+                                    // the OS-level relationship is
+                                    // currently a no-op.
+                                    eprintln!(
+                                        "[forge] window {} requested parent={} but tao 0.34 does \
+                                         not yet expose NSWindow.parentWindow; reparenting skipped",
+                                        descriptor.label, parent_label
+                                    );
                                 }
                             }
-                        }
 
-                        if let Ok(child_window) = child_builder.build(target) {
+                            #[cfg(target_os = "linux")]
+                            if let (Some(x), Some(y)) = (descriptor.x, descriptor.y) {
+                                child_window.gtk_window().move_(x as i32, y as i32);
+                            }
+
                             #[cfg(target_os = "linux")]
                             if descriptor.decorations {
                                 let gtk_window = child_window.gtk_window();

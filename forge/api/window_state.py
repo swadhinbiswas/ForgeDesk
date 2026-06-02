@@ -51,6 +51,7 @@ class WindowStateAPI:
 
         self._save_timer: threading.Timer | None = None
         self._lock = threading.Lock()
+        self._cache_lock = threading.Lock()
 
         self._cache: dict[str, dict[str, Any]] = self._load() if self._enabled else {}
 
@@ -106,7 +107,8 @@ class WindowStateAPI:
 
     def get_state(self, label: str) -> dict[str, Any]:
         """Get the saved state for a given window label."""
-        return dict(self._cache.get(label, {}))
+        with self._cache_lock:
+            return dict(self._cache.get(label, {}))
 
     def clear(self, label: str | None = None) -> None:
         """Clear persisted state for a window (or all windows if no label).
@@ -114,7 +116,7 @@ class WindowStateAPI:
         Args:
             label: Window label to clear. If None, clears all window state.
         """
-        with self._lock:
+        with self._cache_lock:
             if label is not None:
                 self._cache.pop(label, None)
             else:
@@ -123,19 +125,20 @@ class WindowStateAPI:
 
     def snapshot(self) -> dict[str, dict[str, Any]]:
         """Return a diagnostic snapshot of all tracked window states."""
-        with self._lock:
+        with self._cache_lock:
             return json.loads(json.dumps(self._cache))  # type: ignore[no-any-return]
 
     def _save_debounced(self) -> None:
         """Write cached state to disk atomically."""
-        with self._lock:
-            temp_file = self._state_file.with_suffix(".tmp")
-            try:
-                with open(temp_file, "w") as f:
-                    json.dump(self._cache, f, indent=2)
-                temp_file.replace(self._state_file)
-            except Exception as e:
-                logger.debug("Failed to save window state: %s", e)
+        with self._cache_lock:
+            snapshot = json.dumps(self._cache, indent=2)
+        temp_file = self._state_file.with_suffix(".tmp")
+        try:
+            with open(temp_file, "w") as f:
+                f.write(snapshot)
+            temp_file.replace(self._state_file)
+        except Exception as e:
+            logger.debug("Failed to save window state: %s", e)
 
     def _trigger_save(self) -> None:
         """Schedule a debounced save (500ms delay)."""
@@ -149,25 +152,25 @@ class WindowStateAPI:
     def _on_resized(self, event: Any) -> None:
         """Track window resize events."""
         label = event.get("label", "main")
-        if label not in self._cache:
-            self._cache[label] = {}
         width, height = event.get("width"), event.get("height")
-        if width is not None and width > 0:
-            self._cache[label]["width"] = width
-        if height is not None and height > 0:
-            self._cache[label]["height"] = height
+        with self._cache_lock:
+            entry = self._cache.setdefault(label, {})
+            if width is not None and width > 0:
+                entry["width"] = width
+            if height is not None and height > 0:
+                entry["height"] = height
         self._trigger_save()
 
     def _on_moved(self, event: Any) -> None:
         """Track window move events."""
         label = event.get("label", "main")
-        if label not in self._cache:
-            self._cache[label] = {}
         x, y = event.get("x"), event.get("y")
-        if x is not None:
-            self._cache[label]["x"] = x
-        if y is not None:
-            self._cache[label]["y"] = y
+        with self._cache_lock:
+            entry = self._cache.setdefault(label, {})
+            if x is not None:
+                entry["x"] = x
+            if y is not None:
+                entry["y"] = y
         self._trigger_save()
 
     def _on_ready(self, _event: Any) -> None:
@@ -209,15 +212,17 @@ class WindowStateAPI:
 
     def _on_shutdown(self) -> None:
         """Force flush all pending window states right before app termination."""
-        if self._save_timer:
-            self._save_timer.cancel()
+        with self._lock:
+            if self._save_timer:
+                self._save_timer.cancel()
+                self._save_timer = None
 
         # Capture maximized state from window API before final save
         try:
             if hasattr(self.app, "window") and hasattr(self.app.window, "is_maximized"):
-                if "main" not in self._cache:
-                    self._cache["main"] = {}
-                self._cache["main"]["maximized"] = bool(self.app.window.is_maximized())
+                with self._cache_lock:
+                    entry = self._cache.setdefault("main", {})
+                    entry["maximized"] = bool(self.app.window.is_maximized())
         except Exception:
             pass
 
