@@ -46,7 +46,7 @@ anyhow = "1.0.102"
 urlencoding = "2.1.3"
 # Delta update support (binary diff/patch)
 bsdiff = "0.1"
-sha2 = "0.10"
+sha2 = "0.11"
 
 # GTK for Linux window decoration support (same version tao uses internally).
 # Used to set a proper GtkHeaderBar so close/minimize/maximize buttons appear
