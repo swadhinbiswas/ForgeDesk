@@ -29,7 +29,7 @@ tao = "0.34"
 wry = { version = "0.54", features = ["devtools"] }
 muda = "0.15"
 tray-icon = "0.19"
-rfd = "0.15"
+rfd = "0.17"
 
 global-hotkey = "0.7"
 single-instance = "0.3.3"
